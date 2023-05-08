@@ -10,13 +10,13 @@
 // Obligatory Mandelbrot Example
 // https://en.wikipedia.org/wiki/Mandelbrot_set
 
-// This version optimized for fixed point math on 8-bit ptocessors
+// This version optimized for fixed point math on 8-bit processors
 typedef int32_t fint32_t;
 #define FRAC_BITS 12
 #define FINT32(whole, frac) (((fint32_t)whole << FRAC_BITS) | (frac >> (16 - FRAC_BITS)))
 
 #define WIDTH 320
-#define HEIGHT 180
+#define HEIGHT 180 // 180 or 240
 
 static void vmode(uint16_t data)
 {
@@ -74,7 +74,11 @@ void mandelbrot()
     {
         for (px = 0; px < WIDTH; ++px)
         {
+#if (HEIGHT == 180)
             fint32_t x0 = px * FINT32(3, 32768u) / WIDTH - FINT32(2, 32768u); // -2.5-1
+#else
+            fint32_t x0 = px * FINT32(3, 0u) / WIDTH - FINT32(2, 16384u);
+#endif
             fint32_t y0 = py * FINT32(2, 15728u) / HEIGHT - FINT32(1, 7864u); // +-1.12
             fint32_t x = 0;
             fint32_t y = 0;
@@ -101,7 +105,11 @@ void mandelbrot()
 
 void main()
 {
+#if (HEIGHT == 180)
     vmode(2);
+#else
+    vmode(1);
+#endif
     wait();
     while (1) // 0 run once, 1 loop forever
     {
