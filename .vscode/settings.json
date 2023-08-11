@@ -22,14 +22,5 @@
         "launch": {
             "visibility": "hidden"
         },
-        "launchTarget": {
-            "visibility": "default"
-        },
-        "build": {
-            "visibility": "hidden"
-        },
-        "buildTarget": {
-            "visibility": "default"
-        },
     },
 }
