@@ -27,3 +27,11 @@ target_sources(brot32 PRIVATE
 target_link_libraries(brot32 PRIVATE
     rp6502
 )
+
+add_executable(vsync)
+target_sources(vsync PRIVATE
+    src/vsync.c
+)
+target_link_libraries(vsync PRIVATE
+    rp6502
+)
