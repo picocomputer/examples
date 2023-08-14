@@ -15,8 +15,6 @@ void main()
 
     printf("Testing RIA_VSYNC for 5 seconds.\nPlease wait.\n");
 
-    for (i = 0; i < 2048; i++)
-        ; // Burn some time because all regs init to 0
     v = RIA_VSYNC;
     for (k = 0; k < 5; k++) // 5 seconds
     {
