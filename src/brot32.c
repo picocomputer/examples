@@ -110,7 +110,7 @@ void main()
 #else
     vmode(1);
 #endif
-    wait();
+    // wait();
     while (1) // 0 run once, 1 loop forever
     {
         erase();

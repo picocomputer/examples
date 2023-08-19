@@ -7,12 +7,6 @@ void main()
     unsigned i, j, k;
     static uint8_t v;
 
-    if (phi2() < 4000)
-    {
-        printf("PHI2 is %u. Must be >= 4000.\n", phi2());
-        exit(1);
-    }
-
     printf("Testing RIA_VSYNC for 5 seconds.\nPlease wait.\n");
 
     v = RIA_VSYNC;
