@@ -35,3 +35,11 @@ target_sources(vsync PRIVATE
 target_link_libraries(vsync PRIVATE
     rp6502
 )
+
+add_executable(palette)
+target_sources(palette PRIVATE
+    src/palette.c
+)
+target_link_libraries(palette PRIVATE
+    rp6502
+)

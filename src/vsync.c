@@ -1,6 +1,9 @@
 #include <rp6502.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
+
+#define TIMEOUT 2048
 
 void main()
 {
@@ -9,25 +12,25 @@ void main()
 
     printf("Testing RIA_VSYNC for 5 seconds.\nPlease wait.\n");
 
-    v = RIA_VSYNC;
+    v = RIA.vsync;
     for (k = 0; k < 5; k++) // 5 seconds
     {
         for (j = 0; j < 60; j++) // 60 frames per second
         {
-            for (i = 0; i < 2048; i++) // PHI2 based timeout
+            for (i = 0; i < TIMEOUT; i++) // PHI2 based timeout
             {
-                if (v != RIA_VSYNC)
+                if (v != RIA.vsync)
                 {
-                    if ((uint8_t)(v + 1) != RIA_VSYNC)
+                    if ((uint8_t)(v + 1) != RIA.vsync)
                     {
-                        printf("SEQUENCE ERROR\n");
+                        printf("SEQUENCE ERROR\n %d %d\n",v, RIA.vsync);
                         exit(1);
                     }
-                    v = RIA_VSYNC;
+                    v = RIA.vsync;
                     break;
                 }
             }
-            if (i == 1024)
+            if (i == TIMEOUT)
             {
                 printf("TIMEOUT ERROR\n");
                 exit(1);

@@ -20,50 +20,50 @@ typedef int32_t fint32_t;
 
 static void vmode(uint16_t data)
 {
-    xreg(data, 0, 1);
+    ria_xreg(1, 0, 0, data);
 }
 
 static void erase()
 {
     // Partially unrolled loop is FAST
     unsigned i = 0;
-    RIA_ADDR0 = 0;
-    RIA_STEP0 = 1;
+    RIA.addr0 = 0;
+    RIA.step0 = 1;
     for (i = 0x1300; --i;)
     {
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
-        RIA_RW0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
+        RIA.rw0 = 255;
     }
-    RIA_ADDR0 = 0;
+    RIA.addr0 = 0;
     for (i = 0x1300; --i;)
     {
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
-        RIA_RW0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
     }
-    RIA_ADDR0 = 0;
+    RIA.addr0 = 0;
 }
 
 static void wait()
 {
     uint8_t discard;
-    discard = RIA_RX;
-    while (RIA_RX_READY)
-        discard = RIA_RX;
-    while (!(RIA_RX_READY))
+    discard = RIA.rx;
+    while (RIA.ready & RIA_READY_RX_BIT)
+        discard = RIA.rx;
+    while (!(RIA.ready & RIA_READY_RX_BIT))
         ;
-    discard = RIA_RX;
+    discard = RIA.rx;
 }
 
 void mandelbrot()
@@ -96,7 +96,7 @@ void mandelbrot()
             }
             iteration = iteration - 1;
             if (px & 1)
-                RIA_RW0 = vbyte | (iteration << 4);
+                RIA.rw0 = vbyte | (iteration << 4);
             else
                 vbyte = iteration;
         }
