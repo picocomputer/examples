@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
+#include <stdio.h>
 #include <stdint.h>
 #include "rp6502.h"
 
@@ -16,12 +17,7 @@ typedef int32_t fint32_t;
 #define FINT32(whole, frac) (((fint32_t)whole << FRAC_BITS) | (frac >> (16 - FRAC_BITS)))
 
 #define WIDTH 320
-#define HEIGHT 180 // 180 or 240
-
-static void vmode(uint16_t data)
-{
-    ria_xreg(1, 0, 0, data);
-}
+#define HEIGHT 240 // 180 or 240
 
 static void erase()
 {
@@ -105,11 +101,35 @@ void mandelbrot()
 
 void main()
 {
-#if (HEIGHT == 180)
-    vmode(2);
-#else
-    vmode(1);
-#endif
+    int i;
+    typedef struct
+    {
+        int16_t xpos_px;
+        int16_t ypos_px;
+        int16_t width_px;
+        int16_t height_px;
+        uint16_t xram_data_ptr;
+        uint16_t xram_palette_ptr;
+    } mode3_config_t;
+    mode3_config_t config = {};
+    config.xpos_px = 0;
+    config.ypos_px = 0;
+    config.width_px = 320;
+    config.height_px = 240;
+    config.xram_data_ptr = 0;
+    config.xram_palette_ptr = 0xFFFF;
+    RIA.addr0 = 0xFF00;
+    RIA.step0 = 1;
+    for (i = 0; i < sizeof(mode3_config_t); i++)
+        RIA.rw0 = ((uint8_t *)&config)[i];
+
+    i = ria_xreg(1, 0, 0, 1);
+    printf("canvas=%d\n", i);
+    i = ria_xreg(1, 0, 1, 3, 0xFF00, 17);
+    printf("mode_3=%d\n", i);
+    i = ria_xreg(1, 0, 1, 0, 1);
+    printf("mode_0=%d\n", i);
+
     // wait();
     while (1) // 0 run once, 1 loop forever
     {
