@@ -4,27 +4,19 @@ project(MY-RP6502-PROJECT C ASM)
 
 add_subdirectory(rp6502-sdk)
 
-add_executable(rand)
-target_sources(rand PRIVATE
-    src/rand.c
+add_executable(mandelbrot)
+target_sources(mandelbrot PRIVATE
+    src/mandelbrot.c
 )
-target_link_libraries(rand PRIVATE
+target_link_libraries(mandelbrot PRIVATE
     rp6502
 )
 
-add_executable(brot16)
-target_sources(brot16 PRIVATE
-    src/brot16.c
+add_executable(palette)
+target_sources(palette PRIVATE
+    src/palette.c
 )
-target_link_libraries(brot16 PRIVATE
-    rp6502
-)
-
-add_executable(brot32)
-target_sources(brot32 PRIVATE
-    src/brot32.c
-)
-target_link_libraries(brot32 PRIVATE
+target_link_libraries(palette PRIVATE
     rp6502
 )
 
@@ -36,10 +28,10 @@ target_link_libraries(vsync PRIVATE
     rp6502
 )
 
-add_executable(palette)
-target_sources(palette PRIVATE
-    src/palette.c
+add_executable(vgaprog)
+target_sources(vgaprog PRIVATE
+    src/vgaprog.c
 )
-target_link_libraries(palette PRIVATE
+target_link_libraries(vgaprog PRIVATE
     rp6502
 )

@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include "rp6502.h"
 
@@ -101,34 +102,18 @@ void mandelbrot()
 
 void main()
 {
-    int i;
-    typedef struct
-    {
-        int16_t xpos_px;
-        int16_t ypos_px;
-        int16_t width_px;
-        int16_t height_px;
-        uint16_t xram_data_ptr;
-        uint16_t xram_palette_ptr;
-    } mode3_config_t;
-    mode3_config_t config = {};
-    config.xpos_px = 0;
-    config.ypos_px = 0;
-    config.width_px = 320;
-    config.height_px = 240;
-    config.xram_data_ptr = 0;
-    config.xram_palette_ptr = 0xFFFF;
-    RIA.addr0 = 0xFF00;
-    RIA.step0 = 1;
-    for (i = 0; i < sizeof(mode3_config_t); i++)
-        RIA.rw0 = ((uint8_t *)&config)[i];
+    xram0_struct_set(0xFF00, vga_mode3_config_t, x_wrap, true);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, y_wrap, true);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, 0);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, y_pos_px, 0);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, width_px, 320);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, height_px, 240);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0000);
+    xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
-    i = ria_xreg(1, 0, 0, 1);
-    printf("canvas=%d\n", i);
-    i = ria_xreg(1, 0, 1, 3, 0xFF00, 17);
-    printf("mode_3=%d\n", i);
-    i = ria_xreg(1, 0, 1, 0, 1);
-    printf("mode_0=%d\n", i);
+    xreg(1, 0, 0, 1);
+    xreg(1, 0, 1, 3, 5, 0xFF00);
+    xreg(1, 0, 1, 0, 1);
 
     // wait();
     while (1) // 0 run once, 1 loop forever
