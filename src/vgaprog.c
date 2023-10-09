@@ -3,26 +3,34 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdarg.h>
-#include <stddef.h>
 #include <fcntl.h>
 
-void load(const char *name)
+int load(const char *name)
 {
-    int fd;
+    int fd, result;
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, -1000);
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0200);
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0x0000);
     fd = open(name, O_RDONLY);
-    read_xram(0x0000, 0x6000, fd);
-    read_xram(0x6000, 0x6000, fd);
-    read_xram(0xC000, 0x2300, fd);
-    close(fd);
+    if (fd < 0)
+        return fd;
+    result = read_xram(0x0000, 0x6000, fd);
+    if (result < 0)
+        return result;
+    result = read_xram(0x6000, 0x6000, fd);
+    if (result < 0)
+        return result;
+    result = read_xram(0xC000, 0x2300, fd);
+    if (result < 0)
+        return result;
+    result = close(fd);
+    if (result < 0)
+        return result;
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, 0);
     xram0_struct_set(0xFF00, vga_mode3_config_t, y_pos_px, 0);
 }
 
-void erase()
+void clear()
 {
     unsigned i;
     RIA.addr0 = 0;
@@ -54,7 +62,6 @@ void box(unsigned qty)
             y1 = y2;
             y2 = y;
         }
-        // printf("x1,y1,x2,y2=%u,%u,%u,%u\n", x1, y1, x2, y2);
         RIA.step1 = 0;
         for (y = y1; y < y2; y++)
         {
@@ -93,13 +100,14 @@ void scroll(bool x_scroll, bool y_scroll)
 
 void main()
 {
+    xreg(1, 0, 0, 2); // Canvas
+    clear();
+
     puts("You are standing on the bridge.");
     puts(">look");
-    puts("A legion of one-dimensional beings");
+    puts("A legion of two-dimensional lifeforms");
     puts("obscures your vision.");
     putchar('>');
-
-    erase();
 
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_wrap, true);
     xram0_struct_set(0xFF00, vga_mode3_config_t, y_wrap, true);
@@ -110,9 +118,8 @@ void main()
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0000);
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
-    xreg(1, 0, 0, 2);
-    xreg(1, 0, 1, 3, 2, 0xFF00, 0, 0, 140);
-    xreg(1, 0, 1, 0, 1, 140, 180);
+    xreg(1, 0, 1, 3, 2, 0xFF00, 0, 0, 140); // Mode 3
+    xreg(1, 0, 1, 0, 1, 140, 180);          // Mode 0
 
     box(10);
     scroll(true, true);
