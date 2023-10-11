@@ -5,6 +5,7 @@ project(MY-RP6502-PROJECT C ASM)
 add_subdirectory(rp6502-sdk)
 
 add_executable(mandelbrot)
+rp6502_executable(mandelbrot)
 target_sources(mandelbrot PRIVATE
     src/mandelbrot.c
 )
@@ -13,6 +14,7 @@ target_link_libraries(mandelbrot PRIVATE
 )
 
 add_executable(palette)
+rp6502_executable(palette)
 target_sources(palette PRIVATE
     src/palette.c
 )
@@ -21,6 +23,7 @@ target_link_libraries(palette PRIVATE
 )
 
 add_executable(vsync)
+rp6502_executable(vsync)
 target_sources(vsync PRIVATE
     src/vsync.c
 )
@@ -29,6 +32,7 @@ target_link_libraries(vsync PRIVATE
 )
 
 add_executable(vgaprog)
+rp6502_executable(vgaprog)
 target_sources(vgaprog PRIVATE
     src/vgaprog.c
 )
