@@ -39,3 +39,12 @@ target_sources(vgaprog PRIVATE
 target_link_libraries(vgaprog PRIVATE
     rp6502
 )
+
+add_executable(paint)
+rp6502_executable(paint)
+target_sources(paint PRIVATE
+    src/paint.c
+)
+target_link_libraries(paint PRIVATE
+    rp6502
+)

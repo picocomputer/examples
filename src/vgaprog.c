@@ -100,7 +100,7 @@ void scroll(bool x_scroll, bool y_scroll)
 
 void main()
 {
-    xreg(1, 0, 0, 2); // Canvas
+    xreg_vga_canvas(2);
     clear();
 
     puts("You are standing on the bridge.");
@@ -118,8 +118,8 @@ void main()
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0000);
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
-    xreg(1, 0, 1, 3, 2, 0xFF00, 0, 0, 140); // Mode 3
-    xreg(1, 0, 1, 0, 1, 140, 180);          // Mode 0
+    xreg_vga_mode(3, 2, 0xFF00, 0, 0, 140);
+    xreg_vga_mode(0, 1, 140, 180);
 
     box(10);
     scroll(true, true);
