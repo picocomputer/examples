@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <fcntl.h>
 
+// 3 + 6*18
+
 static uint8_t color;
 static bool left_down;
 static bool right_down;
@@ -28,7 +30,7 @@ void erase()
     }
 }
 
-void move(int16_t x, int16_t y)
+void move(int x, int y)
 {
     if (left_down || right_down)
     {
@@ -41,7 +43,7 @@ void move(int16_t x, int16_t y)
     }
 }
 
-void left_press(int16_t x, int16_t y)
+void left_press(int x, int y)
 {
     (void)x;
     (void)y;
@@ -49,14 +51,14 @@ void left_press(int16_t x, int16_t y)
     color = 1;
 }
 
-void left_release(int16_t x, int16_t y)
+void left_release(int x, int y)
 {
     (void)x;
     (void)y;
     left_down = false;
 }
 
-void right_press(int16_t x, int16_t y)
+void right_press(int x, int y)
 {
     (void)x;
     (void)y;
@@ -64,21 +66,21 @@ void right_press(int16_t x, int16_t y)
     color = 2;
 }
 
-void right_release(int16_t x, int16_t y)
+void right_release(int x, int y)
 {
     (void)x;
     (void)y;
     right_down = false;
 }
 
-void middle_press(int16_t x, int16_t y)
+void middle_press(int x, int y)
 {
     (void)x;
     (void)y;
     erase();
 }
 
-void middle_release(int16_t x, int16_t y)
+void middle_release(int x, int y)
 {
     (void)x;
     (void)y;
@@ -86,11 +88,11 @@ void middle_release(int16_t x, int16_t y)
 
 void mouse(unsigned addr)
 {
-    const int16_t ispeed = 4;
-    static int16_t sx, sy;
+    const int ispeed = 4;
+    static int sx, sy;
     static uint8_t mb, mx, my;
 
-    int16_t x, y;
+    int x, y;
     uint8_t rw, changed, pressed, released;
 
     RIA.addr0 = 0xFFA1;
@@ -144,6 +146,53 @@ void mouse(unsigned addr)
     move(x, y);
 }
 
+void box(unsigned addr, uint8_t color, int x1, int y1, int x2, int y2)
+{
+    int x, y;
+    if (x1 > x2)
+    {
+        x = x1;
+        x1 = x2;
+        x2 = x;
+    }
+    if (y1 > y2)
+    {
+        y = y1;
+        y1 = y2;
+        y2 = y;
+    }
+    RIA.step0 = 1;
+    for (y = y1; y <= y2; y++)
+    {
+        RIA.addr0 = addr + 111 * y + x1;
+        for (x = x1; x <= x2; x++)
+        {
+            RIA.rw0 = color;
+        }
+    }
+}
+
+void picker(unsigned addr)
+{
+    uint8_t i;
+
+    box(addr, 250, 0, 0, 110, 8); // border
+    box(addr, 240, 1, 1, 109, 7); // fill
+
+    box(addr, 231, 2, 2, 6, 2); // bar1
+    box(addr, 231, 2, 4, 6, 4); // bar2
+    box(addr, 231, 2, 6, 6, 6); // bar3
+
+    box(addr, 231, 104, 2, 108, 6); // eraser border
+    box(addr, 240, 105, 3, 107, 5); // eraser fill
+
+    for (i = 0; i < 16; i++) // colors
+    {
+        int x = 8 + i * 6;
+        box(addr, i, x, 2, x + 4, 6);
+    }
+}
+
 void pointer(unsigned addr)
 {
     // clang-format off
@@ -183,9 +232,9 @@ void main()
 
     xram0_struct_set(0xFF10, vga_mode3_config_t, x_wrap, false);
     xram0_struct_set(0xFF10, vga_mode3_config_t, y_wrap, false);
-    xram0_struct_set(0xFF10, vga_mode3_config_t, x_pos_px, 50);
+    xram0_struct_set(0xFF10, vga_mode3_config_t, x_pos_px, 104);
     xram0_struct_set(0xFF10, vga_mode3_config_t, y_pos_px, 0);
-    xram0_struct_set(0xFF10, vga_mode3_config_t, width_px, 200);
+    xram0_struct_set(0xFF10, vga_mode3_config_t, width_px, 111);
     xram0_struct_set(0xFF10, vga_mode3_config_t, height_px, 9);
     xram0_struct_set(0xFF10, vga_mode3_config_t, xram_data_ptr, 0xA000);
     xram0_struct_set(0xFF10, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
@@ -199,12 +248,14 @@ void main()
     xram0_struct_set(0xFF20, vga_mode3_config_t, xram_data_ptr, 0xB000);
     xram0_struct_set(0xFF20, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
+    erase();
+    picker(0xA000);
+    pointer(0xB000);
+
     xreg_vga_mode(3, 1, 0xFF00, 0);
-    // xreg_vga_mode(3, 2, 0xFF10, 1);
+    // xreg_vga_mode(3, 2, 0xFF10, 1); // enable to see inactive picker
     xreg_vga_mode(3, 2, 0xFF20, 2);
 
-    pointer(0xB000);
-    erase();
     while (1)
         mouse(0xFF20);
 }
