@@ -16,15 +16,19 @@
 #define CANVAS_WIDTH 320
 #define CANVAS_HEIGHT 240
 
+// Mouse speed divider
+#define MOUSE_DIV 4
+
 // Color Picker, do not change
 #define PICKER_WIDTH 111
 #define PICKER_HEIGHT 9
 
+static uint8_t left_color = 15;
+static uint8_t right_color = 14;
 static uint8_t color;
-static bool left_down;
-static bool right_down;
-static bool picker_drag;
-int pick_x, pick_y;
+static bool draw;
+static bool drag;
+int picker_x, picker_y;
 int drag_x, drag_y;
 
 void erase()
@@ -48,27 +52,27 @@ void erase()
 
 void move_picker(int x, int y)
 {
-    pick_x = x;
-    pick_y = y;
-    if (pick_x < 0)
-        pick_x = 0;
-    if (pick_x > CANVAS_WIDTH - PICKER_WIDTH)
-        pick_x = CANVAS_WIDTH - PICKER_WIDTH;
-    if (pick_y < 0)
-        pick_y = 0;
-    if (pick_y > CANVAS_HEIGHT - PICKER_HEIGHT)
-        pick_y = CANVAS_HEIGHT - PICKER_HEIGHT;
-    xram0_struct_set(0xFF10, vga_mode3_config_t, x_pos_px, pick_x);
-    xram0_struct_set(0xFF10, vga_mode3_config_t, y_pos_px, pick_y);
+    picker_x = x;
+    picker_y = y;
+    if (picker_x < 0)
+        picker_x = 0;
+    if (picker_x > CANVAS_WIDTH - PICKER_WIDTH)
+        picker_x = CANVAS_WIDTH - PICKER_WIDTH;
+    if (picker_y < 0)
+        picker_y = 0;
+    if (picker_y > CANVAS_HEIGHT - PICKER_HEIGHT)
+        picker_y = CANVAS_HEIGHT - PICKER_HEIGHT;
+    xram0_struct_set(0xFF10, vga_mode3_config_t, x_pos_px, picker_x);
+    xram0_struct_set(0xFF10, vga_mode3_config_t, y_pos_px, picker_y);
 }
 
 void move(int x, int y)
 {
-    if (picker_drag)
+    if (drag)
     {
         move_picker(x - drag_x, y - drag_y);
     }
-    else if (left_down || right_down)
+    else if (draw)
     {
         RIA.step0 = 0;
         RIA.addr0 = y * 160 + x / 2;
@@ -79,48 +83,71 @@ void move(int x, int y)
     }
 }
 
-void left_press(int x, int y)
+// Returns -1 = draw, 0-15 = color, 16 = drag, 17 = erase, 18 = none
+int picker_num(int x, int y)
 {
-    (void)x;
-    (void)y;
-    left_down = true;
-    color = 1;
-
-    if (x >= pick_x && x < pick_x + PICKER_WIDTH &&
-        y >= pick_y && y < pick_y + PICKER_HEIGHT)
-    {
-        picker_drag = true;
-        drag_x = x - pick_x;
-        drag_y = y - pick_y;
-    }
+    int num;
+    x -= picker_x;
+    y -= picker_y;
+    if (x < 0 || x >= PICKER_WIDTH ||
+        y < 0 || y >= PICKER_HEIGHT)
+        return -1;
+    if (x < 2 || x >= PICKER_WIDTH - 1 ||
+        y < 2 || y >= PICKER_HEIGHT - 1)
+        return 18;
+    num = (x - 2) / 6;
+    if (num == 0)
+        num = 16;
+    else if (num == 16)
+        num = 0;
+    return num;
 }
 
-void left_release(int x, int y)
+void left_press(int x, int y)
 {
-    (void)x;
-    (void)y;
-    left_down = false;
-    picker_drag = false;
+    int num = picker_num(x, y);
+    if (num < 0)
+    {
+        draw = true;
+        color = left_color;
+    }
+    if (num >= 0 && num <= 15)
+        left_color = num;
+    if (num == 16)
+    {
+        drag = true;
+        drag_x = x - picker_x;
+        drag_y = y - picker_y;
+    }
+    if (num == 17)
+        erase();
+}
+
+void left_release()
+{
+    draw = false;
+    drag = false;
 }
 
 void right_press(int x, int y)
 {
-    (void)x;
-    (void)y;
-    right_down = true;
-    color = 2;
+    int num = picker_num(x, y);
+    if (num < 0)
+    {
+        draw = true;
+        color = right_color;
+    }
+    if (num >= 0 && num <= 15)
+        right_color = num;
 }
 
-void right_release(int x, int y)
+void right_release()
 {
-    (void)x;
-    (void)y;
-    right_down = false;
+    draw = false;
 }
 
 void mouse(unsigned addr)
 {
-    const int ispeed = 4;
     static int sx, sy;
     static uint8_t mb, mx, my;
 
@@ -133,10 +160,10 @@ void mouse(unsigned addr)
     {
         sx += (int8_t)(rw - mx);
         mx = rw;
-        if (sx < -ispeed)
-            sx = -ispeed;
-        if (sx > (CANVAS_WIDTH - 2) * ispeed)
-            sx = (CANVAS_WIDTH - 2) * ispeed;
+        if (sx < -MOUSE_DIV)
+            sx = -MOUSE_DIV;
+        if (sx > (CANVAS_WIDTH - 2) * MOUSE_DIV)
+            sx = (CANVAS_WIDTH - 2) * MOUSE_DIV;
     }
 
     RIA.addr0 = 0xFFA2;
@@ -145,14 +172,14 @@ void mouse(unsigned addr)
     {
         sy += (int8_t)(rw - my);
         my = rw;
-        if (sy < -ispeed)
-            sy = -ispeed;
-        if (sy > (CANVAS_HEIGHT - 2) * ispeed)
-            sy = (CANVAS_HEIGHT - 2) * ispeed;
+        if (sy < -MOUSE_DIV)
+            sy = -MOUSE_DIV;
+        if (sy > (CANVAS_HEIGHT - 2) * MOUSE_DIV)
+            sy = (CANVAS_HEIGHT - 2) * MOUSE_DIV;
     }
 
-    x = sx / ispeed;
-    y = sy / ispeed;
+    x = sx / MOUSE_DIV;
+    y = sy / MOUSE_DIV;
     xram0_struct_set(addr, vga_mode3_config_t, x_pos_px, x);
     xram0_struct_set(addr, vga_mode3_config_t, y_pos_px, y);
     x++, y++;
@@ -166,11 +193,11 @@ void mouse(unsigned addr)
     if (pressed & 1)
         left_press(x, y);
     if (released & 1)
-        left_release(x, y);
+        left_release();
     if (pressed & 2)
         right_press(x, y);
     if (released & 2)
-        right_release(x, y);
+        right_release();
     move(x, y);
 }
 
@@ -214,7 +241,7 @@ void picker(unsigned addr)
     picker_box(addr, 231, 104, 2, 108, 6); // eraser border
     picker_box(addr, 240, 105, 3, 107, 5); // eraser fill
 
-    for (i = 1; i < 17; i++) // colors
+    for (i = 1; i < 17; i++) // colors (black moved to end)
     {
         int x = 2 + i * 6;
         picker_box(addr, i, x, 2, x + 4, 6);
@@ -282,10 +309,8 @@ void main()
     move_picker(104, 0);
     pointer(0xB000);
 
-    // xreg_vga_mode(0, 0);
-
     xreg_vga_mode(3, 1, 0xFF00, 0);
-    // xreg_vga_mode(3, 2, 0xFF10, 1);
+    xreg_vga_mode(3, 2, 0xFF10, 1);
     xreg_vga_mode(3, 2, 0xFF20, 2);
 
     xreg_ria_mouse(0xFFA0);
