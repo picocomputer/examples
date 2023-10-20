@@ -339,9 +339,9 @@ void main()
     change_right_color(8);
     draw_pointer();
 
-    xreg_vga_mode(3, 1, CANVAS_STRUCT, 0);
-    xreg_vga_mode(3, 2, PICKER_STRUCT, 1);
-    xreg_vga_mode(3, 2, POINTER_STRUCT, 2);
+    xreg_vga_mode(3, 2, CANVAS_STRUCT, 0);
+    xreg_vga_mode(3, 3, PICKER_STRUCT, 1);
+    xreg_vga_mode(3, 3, POINTER_STRUCT, 2);
 
     xreg_ria_mouse(MOUSE_INPUT);
     while (1)

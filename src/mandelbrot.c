@@ -22,12 +22,15 @@ typedef int32_t fint32_t;
 
 static void erase()
 {
-    // Partially unrolled loop is FAST
-    unsigned i = 0;
+    unsigned i;
+    // Erase console
+    printf("\f");
+    // Erase graphics
     RIA.addr0 = 0;
     RIA.step0 = 1;
     for (i = 0x1300; --i;)
     {
+        // Partially unrolled loop is FAST
         RIA.rw0 = 255;
         RIA.rw0 = 255;
         RIA.rw0 = 255;
@@ -49,24 +52,13 @@ static void erase()
         RIA.rw0 = 0;
         RIA.rw0 = 0;
     }
-    RIA.addr0 = 0;
-}
-
-static void wait()
-{
-    uint8_t discard;
-    discard = RIA.rx;
-    while (RIA.ready & RIA_READY_RX_BIT)
-        discard = RIA.rx;
-    while (!(RIA.ready & RIA_READY_RX_BIT))
-        ;
-    discard = RIA.rx;
 }
 
 void mandelbrot()
 {
     int8_t vbyte;
     int16_t px, py;
+    RIA.addr0 = 0;
     for (py = 0; py < HEIGHT; ++py)
     {
         for (px = 0; px < WIDTH; ++px)
@@ -102,6 +94,8 @@ void mandelbrot()
 
 void main()
 {
+    erase();
+
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_wrap, true);
     xram0_struct_set(0xFF00, vga_mode3_config_t, y_wrap, true);
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, 0);
@@ -111,15 +105,18 @@ void main()
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0000);
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
-    xreg(1, 0, 0, 1);
-    xreg(1, 0, 1, 3, 5, 0xFF00);
-    xreg(1, 0, 1, 0, 1);
+    xreg_vga_canvas(1);
+    xreg_vga_mode(3, 10, 0xFF00);
+    xreg_vga_mode(0, 1); // console
 
-    // wait();
-    while (1) // 0 run once, 1 loop forever
-    {
-        erase();
-        mandelbrot();
-        wait();
-    }
+    printf("Mandelbrot Set");
+    mandelbrot();
+
+    printf("\nPress any key to exit");
+    xreg_ria_keyboard(0xFF10);
+    RIA.addr0 = 0xFF10;
+    RIA.step0 = 0;
+    while (RIA.rw0 & 1)
+        ;
+    printf("\n");
 }

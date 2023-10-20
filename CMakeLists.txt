@@ -31,12 +31,12 @@ target_link_libraries(vsync PRIVATE
     rp6502
 )
 
-add_executable(vgaprog)
-rp6502_executable(vgaprog)
-target_sources(vgaprog PRIVATE
-    src/vgaprog.c
+add_executable(mode3)
+rp6502_executable(mode3)
+target_sources(mode3 PRIVATE
+    src/mode3.c
 )
-target_link_libraries(vgaprog PRIVATE
+target_link_libraries(mode3 PRIVATE
     rp6502
 )
 
