@@ -21,12 +21,20 @@ void main()
     {
         int x;
         int y;
+    } sprites[SPRITE_LENGTH];
+    struct
+    {
         int xv;
         int yv;
-    } sprites[SPRITE_LENGTH];
+    } vectors[SPRITE_LENGTH];
 
-    xreg_vga_canvas(1);
+    // Copy sprite data
+    RIA.addr0 = 0;
+    RIA.step0 = 1;
+    for (u = 0; u < sizeof(raspberry_128x128); u++)
+        RIA.rw0 = raspberry_128x128[u];
 
+    // Initial sprite positions
     for (u = 0; u < SPRITE_LENGTH; u++)
     {
         unsigned ptr = SPRITE_CONFIG + u * sizeof(vga_mode4_sprite_t);
@@ -35,13 +43,13 @@ void main()
         sprites[u].x = x;
         sprites[u].y = y;
         if (((uint32_t)rand() * 2) >> 15)
-            sprites[u].xv = 1;
+            vectors[u].xv = 1;
         else
-            sprites[u].xv = -1;
+            vectors[u].xv = -1;
         if (((uint32_t)rand() * 2) >> 15)
-            sprites[u].yv = 1;
+            vectors[u].yv = 1;
         else
-            sprites[u].yv = -1;
+            vectors[u].yv = -1;
         xram0_struct_set(ptr, vga_mode4_sprite_t, x_pos_px, x);
         xram0_struct_set(ptr, vga_mode4_sprite_t, y_pos_px, y);
         xram0_struct_set(ptr, vga_mode4_sprite_t, xram_sprite_ptr, 0x0000);
@@ -49,14 +57,12 @@ void main()
         xram0_struct_set(ptr, vga_mode4_sprite_t, has_opacity_metadata, false);
     }
 
+    // Program VGA
+    xreg_vga_canvas(1);
     xreg_vga_mode(0);
     xreg_vga_mode(4, 0, SPRITE_CONFIG, SPRITE_LENGTH);
 
-    RIA.addr0 = 0;
-    RIA.step0 = 1;
-    for (u = 0; u < sizeof(raspberry_128x128); u++)
-        RIA.rw0 = raspberry_128x128[u];
-
+    // Vsync loop
     v = RIA.vsync;
     while (1)
     {
@@ -64,21 +70,35 @@ void main()
             continue;
         v = RIA.vsync;
 
+        // Copy positions during vblank
+        RIA.addr0 = SPRITE_CONFIG;
+        RIA.step0 = sizeof(vga_mode4_sprite_t);
+        RIA.addr1 = SPRITE_CONFIG + 1;
+        RIA.step1 = sizeof(vga_mode4_sprite_t);
         for (u = 0; u < SPRITE_LENGTH; u++)
         {
-            unsigned ptr = SPRITE_CONFIG + u * sizeof(vga_mode4_sprite_t);
-            xram0_struct_set(ptr, vga_mode4_sprite_t, x_pos_px, sprites[u].x);
-            xram0_struct_set(ptr, vga_mode4_sprite_t, y_pos_px, sprites[u].y);
+            int val = sprites[u].x;
+            RIA.rw0 = val & 0xff;
+            RIA.rw1 = (val >> 8) & 0xff;
+        }
+        RIA.addr0 = SPRITE_CONFIG + 2;
+        RIA.addr1 = SPRITE_CONFIG + 3;
+        for (u = 0; u < SPRITE_LENGTH; u++)
+        {
+            int val = sprites[u].y;
+            RIA.rw0 = val & 0xff;
+            RIA.rw1 = (val >> 8) & 0xff;
         }
 
+        // Update positions
         for (u = 0; u < SPRITE_LENGTH; u++)
         {
-            int x = sprites[u].x = sprites[u].x + sprites[u].xv;
-            int y = sprites[u].y = sprites[u].y + sprites[u].yv;
-            if (x < 0 || x > 320 - 128)
-                sprites[u].xv *= -1;
+            int x = sprites[u].x = sprites[u].x + vectors[u].xv;
+            int y = sprites[u].y = sprites[u].y + vectors[u].yv;
+            if (x < -12 || x > 320 - 118)
+                vectors[u].xv *= -1;
             if (y < 0 || y > 240 - 128)
-                sprites[u].yv *= -1;
+                vectors[u].yv *= -1;
         }
     }
 }
