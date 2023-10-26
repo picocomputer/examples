@@ -48,3 +48,12 @@ target_sources(paint PRIVATE
 target_link_libraries(paint PRIVATE
     rp6502
 )
+
+add_executable(raspberry)
+rp6502_executable(raspberry)
+target_sources(raspberry PRIVATE
+    src/raspberry.c
+)
+target_link_libraries(raspberry PRIVATE
+    rp6502
+)

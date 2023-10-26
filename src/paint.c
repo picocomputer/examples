@@ -42,7 +42,7 @@ static void erase_canvas(void)
     unsigned i;
     RIA.addr0 = CANVAS_DATA;
     RIA.step0 = 1;
-    for (i = 0; i < CANVAS_WIDTH * CANVAS_HEIGHT / 2 / 8; i++)
+    for (i = 0; i < CANVAS_WIDTH * CANVAS_HEIGHT / 2 / 16; i++)
     {
         // unrolled for speed
         RIA.rw0 = 0;
@@ -53,6 +53,41 @@ static void erase_canvas(void)
         RIA.rw0 = 0;
         RIA.rw0 = 0;
         RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+        RIA.rw0 = 0;
+    }
+}
+
+static void erase_canvas2(void)
+{
+    unsigned i;
+    RIA.addr0 = CANVAS_DATA;
+    RIA.step0 = 1;
+    for (i = 0; i < CANVAS_WIDTH * CANVAS_HEIGHT / 2 / 16; i++)
+    {
+        // unrolled for speed
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
+        RIA.rw0 = 0xff;
     }
 }
 
@@ -301,6 +336,7 @@ static void draw_pointer(void)
 
 void main()
 {
+    int i;
 #if CANVAS_HEIGHT == 240
     xreg_vga_canvas(1);
 #elif CANVAS_HEIGHT == 180
@@ -332,7 +368,6 @@ void main()
     xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, xram_data_ptr, POINTER_DATA);
     xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
-    erase_canvas();
     draw_picker();
     move_picker(104, 0);
     change_left_color(15);
