@@ -1,0 +1,5 @@
+#!RP6502
+# This is an example of how to place help inside a ROM file. e.g.
+#     rp6502_executable(altair 0x0200 0x0200
+#         ${CMAKE_CURRENT_LIST_DIR}/src/altair.hlp.rp6502
+#     )
