@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2023 Rumbledethumps
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ * SPDX-License-Identifier: Unlicense
+ */
+
 #include <rp6502.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +30,7 @@ void main()
                 {
                     if ((uint8_t)(v + 1) != RIA.vsync)
                     {
-                        printf("SEQUENCE ERROR\n %d %d\n",v, RIA.vsync);
+                        printf("SEQUENCE ERROR\n %d %d\n", v, RIA.vsync);
                         exit(1);
                     }
                     v = RIA.vsync;
