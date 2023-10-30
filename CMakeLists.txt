@@ -37,6 +37,24 @@ target_link_libraries(mandelbrot PRIVATE
     rp6502
 )
 
+add_executable(mode1)
+rp6502_executable(mode1)
+target_sources(mode1 PRIVATE
+    src/mode1.c
+)
+target_link_libraries(mode1 PRIVATE
+    rp6502
+)
+
+add_executable(mode2)
+rp6502_executable(mode2)
+target_sources(mode2 PRIVATE
+    src/mode2.c
+)
+target_link_libraries(mode2 PRIVATE
+    rp6502
+)
+
 add_executable(mode3)
 rp6502_executable(mode3)
 target_sources(mode3 PRIVATE

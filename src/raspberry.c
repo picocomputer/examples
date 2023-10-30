@@ -12,22 +12,24 @@
 #include "raspberry_128x128_bgar5515.h"
 
 #define SPRITE_CONFIG 0xF000
-#define SPRITE_LENGTH 16
+#define SPRITE_LENGTH 24
+
+struct
+{
+    int x;
+    int y;
+} sprites[SPRITE_LENGTH];
+struct
+{
+    int xv;
+    int yv;
+} vectors[SPRITE_LENGTH];
 
 void main()
 {
     unsigned u;
+    unsigned char c;
     uint8_t v;
-    struct
-    {
-        int x;
-        int y;
-    } sprites[SPRITE_LENGTH];
-    struct
-    {
-        int xv;
-        int yv;
-    } vectors[SPRITE_LENGTH];
 
     // Copy sprite data
     RIA.addr0 = 0;
@@ -72,21 +74,21 @@ void main()
         v = RIA.vsync;
 
         // Copy positions during vblank
-        RIA.addr0 = SPRITE_CONFIG;
         RIA.step0 = sizeof(vga_mode4_sprite_t);
-        RIA.addr1 = SPRITE_CONFIG + 1;
         RIA.step1 = sizeof(vga_mode4_sprite_t);
-        for (u = 0; u < SPRITE_LENGTH; u++)
+        RIA.addr0 = SPRITE_CONFIG;
+        RIA.addr1 = SPRITE_CONFIG + 1;
+        for (c = 0; c < SPRITE_LENGTH; c++)
         {
-            int val = sprites[u].x;
+            int val = sprites[c].x;
             RIA.rw0 = val & 0xff;
-            RIA.rw1 = (val >> 8) & 0xff;
+            RIA.rw1 = val >> 8;
         }
         RIA.addr0 = SPRITE_CONFIG + 2;
         RIA.addr1 = SPRITE_CONFIG + 3;
-        for (u = 0; u < SPRITE_LENGTH; u++)
+        for (c = 0; c < SPRITE_LENGTH; c++)
         {
-            int val = sprites[u].y;
+            int val = sprites[c].y;
             RIA.rw0 = val & 0xff;
             RIA.rw1 = (val >> 8) & 0xff;
         }
