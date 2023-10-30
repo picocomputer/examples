@@ -12,7 +12,7 @@
 #include "raspberry_128x128_bgar5515.h"
 
 #define SPRITE_CONFIG 0xF000
-#define SPRITE_LENGTH 6
+#define SPRITE_LENGTH 10
 
 void main()
 {
