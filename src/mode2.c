@@ -10,10 +10,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <fcntl.h>
 
 // This is not good code to learn from,
-// it's a functional test for developing mode1.
+// it's a functional test for developing mode2.
 
 void scroll(bool x_scroll, bool y_scroll)
 {
@@ -26,13 +25,13 @@ void scroll(bool x_scroll, bool y_scroll)
         v = RIA.vsync;
         if (x_scroll)
         {
-            xram0_struct_set(0xFF00, vga_mode1_config_t, x_pos_px, x);
+            xram0_struct_set(0xFF00, vga_mode2_config_t, x_pos_px, x);
             if (++x >= 320)
                 x = 0;
         }
         if (y_scroll)
         {
-            xram0_struct_set(0xFF00, vga_mode1_config_t, y_pos_px, y);
+            xram0_struct_set(0xFF00, vga_mode2_config_t, y_pos_px, y);
             if (++y >= 480)
                 y = 0;
         }
@@ -51,48 +50,51 @@ void scroll(bool x_scroll, bool y_scroll)
 void main()
 {
     int i;
-    char message[] = "                                        "
-                     "    **** COMMODORE 64 BASIC V2 ****     "
-                     "                                        "
-                     " 64K RAM SYSTEM  38911 BASIC BYTES FREE "
-                     "                                        "
-                     "READY                                  ";
 
     xreg_vga_canvas(3);
 
-    xram0_struct_set(0xFF00, vga_mode1_config_t, x_wrap, true);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, y_wrap, true);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, x_pos_px, 0);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, y_pos_px, 0);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, width_chars, 40);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, height_chars, 30);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, xram_data_ptr, 0x0000);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, xram_palette_ptr, 0xFFFF);
-    xram0_struct_set(0xFF00, vga_mode1_config_t, xram_font_ptr, 0xFFFF);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, x_wrap, true);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, y_wrap, true);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, x_pos_px, 0);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, y_pos_px, 0);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, width_tiles, 40);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, height_tiles, 30);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, xram_data_ptr, 0x0000);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, xram_palette_ptr, 0xFFFF);
+    xram0_struct_set(0xFF00, vga_mode2_config_t, xram_tile_ptr, 0x1000);
 
-    xreg_vga_mode(1, 3, 0xFF00);
+    xreg_vga_mode(2, 0, 0xFF00);
     xreg_ria_keyboard(0xFF10);
 
+    RIA.addr0 = 0x1000;
+    RIA.step0 = 1;
+    // 0
+    RIA.rw0 = 1;
+    RIA.rw0 = 2;
+    RIA.rw0 = 4;
+    RIA.rw0 = 8;
+    RIA.rw0 = 16;
+    RIA.rw0 = 32;
+    RIA.rw0 = 64;
+    RIA.rw0 = 128;
+    // 1
+    RIA.rw0 = 128;
+    RIA.rw0 = 64;
+    RIA.rw0 = 32;
+    RIA.rw0 = 16;
+    RIA.rw0 = 8;
+    RIA.rw0 = 4;
+    RIA.rw0 = 2;
+    RIA.rw0 = 1;
 
     RIA.addr0 = 0;
-    RIA.step0 = 1;
     for (i = 0; i < 40 * 30; i++)
     {
-        RIA.rw0 = ' ';
-        RIA.rw0 = 14;
-        RIA.rw0 = 12;
+        if (rand() < 16384)
+            RIA.rw0 = 0;
+        else
+            RIA.rw0 = 1;
     }
-    RIA.addr0 = 0;
-    RIA.step0 = 1;
-    for (i = 0; i < sizeof(message); i++)
-    {
-        RIA.rw0 = message[i];
-        RIA.rw0 = 14;
-        RIA.rw0 = 12;
-    }
-    RIA.rw0 = ' ';
-    RIA.rw0 = 12;
-    RIA.rw0 = 14;
 
     // while (1)
     //     ;
