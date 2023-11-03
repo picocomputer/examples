@@ -26,14 +26,14 @@ void scroll(bool x_scroll, bool y_scroll)
         if (x_scroll)
         {
             xram0_struct_set(0xFF00, vga_mode2_config_t, x_pos_px, x);
-            if (++x >= 320)
-                x = 0;
+            if (++x >= 640)
+                x = -640;
         }
         if (y_scroll)
         {
             xram0_struct_set(0xFF00, vga_mode2_config_t, y_pos_px, y);
             if (++y >= 480)
-                y = 0;
+                y = -480;
         }
 
         RIA.addr0 = 0xFF10;
@@ -89,6 +89,7 @@ void option8()
     int i;
 
     xreg_vga_mode(2, 8, 0xFF00);
+
     RIA.addr0 = 0x1000;
     RIA.step0 = 1;
 

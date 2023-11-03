@@ -7,10 +7,10 @@ add_subdirectory(rp6502-sdk)
 add_executable(altair)
 rp6502_asset(altair 0x10000 src/altair.pal.bin)
 rp6502_asset(altair 0x10200 src/altair.dat.bin)
-rp6502_executable(altair 0x0200 0x0200
+rp6502_executable(altair
     ${CMAKE_CURRENT_LIST_DIR}/src/altair.hlp.rp6502
-    altair.pal.rp6502
-    altair.dat.rp6502
+    altair.pal.bin.rp6502
+    altair.dat.bin.rp6502
 )
 target_sources(altair PRIVATE
     src/altair.c
