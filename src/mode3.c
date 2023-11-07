@@ -109,7 +109,7 @@ void box(unsigned qty, uint8_t bpp)
                 for (x = x1; x < x2; x++)
                 {
                     RIA.rw0 = color;
-                    RIA.rw0 = color;
+                    RIA.rw0 = color >> 8;
                 }
             }
             break;
