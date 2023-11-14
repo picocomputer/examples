@@ -6,18 +6,32 @@
  */
 
 #include <rp6502.h>
+#include <6502.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
 #define TIMEOUT 2048
 
+unsigned irq_count;
+uint8_t irq_stack[256];
+
+unsigned char irq_fn(void)
+{
+    ++irq_count;
+    RIA.irq = 1;
+    return IRQ_HANDLED;
+}
+
 void main()
 {
     unsigned i, j, k;
     static uint8_t v;
 
-    printf("Testing RIA_VSYNC for 5 seconds.\nPlease wait.\n");
+    set_irq(irq_fn, &irq_stack, sizeof(irq_stack));
+    RIA.irq = 1;
+
+    printf("Testing RIA_VSYNC and RIA_IRQ for 5 seconds.\nPlease wait.\n");
 
     v = RIA.vsync;
     for (k = 0; k < 5; k++) // 5 seconds
@@ -44,5 +58,13 @@ void main()
             }
         }
     }
-    printf("PASS\n");
+
+    RIA.irq = 0;
+
+    printf("RIA_VSYNC PASS\n");
+
+    if (irq_count >= 299 && irq_count <= 301)
+        printf("RIA_IRQ PASS\n");
+    else
+        printf("RIA_IRQ count: %d\n", irq_count);
 }
