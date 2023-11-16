@@ -8,19 +8,8 @@
         "__fastcall__=",
         "asm(...)=",
     ],
-    "[ca65]": {
-        "editor.tabSize": 8
-    },
     "cmake.showSystemKits": false,
     "cmake.preferredGenerators": [
         "Unix Makefiles"
     ],
-    "cmake.statusbar.advanced": {
-        "debug": {
-            "visibility": "hidden"
-        },
-        "launch": {
-            "visibility": "hidden"
-        },
-    },
 }

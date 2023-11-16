@@ -4,6 +4,15 @@ project(MY-RP6502-PROJECT C ASM)
 
 add_subdirectory(rp6502-sdk)
 
+add_executable(affine)
+rp6502_executable(affine)
+target_sources(affine PRIVATE
+    src/affine.c
+)
+target_link_libraries(affine PRIVATE
+    rp6502
+)
+
 add_executable(altair)
 rp6502_asset(altair 0x10000 src/altair.pal.bin)
 rp6502_asset(altair 0x10200 src/altair.dat.bin)
@@ -19,12 +28,12 @@ target_link_libraries(altair PRIVATE
     rp6502
 )
 
-add_executable(affine)
-rp6502_executable(affine)
-target_sources(affine PRIVATE
-    src/affine.c
+add_executable(gets)
+rp6502_executable(gets)
+target_sources(gets PRIVATE
+    src/gets.c
 )
-target_link_libraries(affine PRIVATE
+target_link_libraries(gets PRIVATE
     rp6502
 )
 

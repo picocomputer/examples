@@ -309,7 +309,6 @@ static void draw_pointer(void)
 
 void main()
 {
-    int i;
 #if CANVAS_HEIGHT == 240
     xreg_vga_canvas(1);
 #elif CANVAS_HEIGHT == 180

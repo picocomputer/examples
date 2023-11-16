@@ -105,7 +105,7 @@ void box(unsigned qty, uint8_t bpp)
             RIA.step0 = 1;
             for (y = y1; y < y2; y++)
             {
-                RIA.addr0 = 480 * y + x1;
+                RIA.addr0 = 480 * y + x1 * 2;
                 for (x = x1; x < x2; x++)
                 {
                     RIA.rw0 = color;
