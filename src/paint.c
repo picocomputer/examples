@@ -42,26 +42,8 @@ static void erase_canvas(void)
     unsigned i;
     RIA.addr0 = CANVAS_DATA;
     RIA.step0 = 1;
-    for (i = 0; i < CANVAS_WIDTH * CANVAS_HEIGHT / 2 / 16; i++)
-    {
-        // unrolled for speed
+    for (i = 0; i < CANVAS_WIDTH / 2 * CANVAS_HEIGHT; i++)
         RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-        RIA.rw0 = 0;
-    }
 }
 
 static void draw_picker_box(uint8_t color, int x1, int y1, int x2, int y2)

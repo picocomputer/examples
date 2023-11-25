@@ -5,7 +5,14 @@
     "tasks": [
         {
             "label": "RP6502: run program",
-            "command": "python3 rp6502.py run ${command:cmake.launchTargetPath}.rp6502",
+            "command": [
+                "python3",
+                "rp6502.py",
+                "-c",
+                "${workspaceFolder}/.rp6502",
+                "run",
+                "${command:cmake.launchTargetPath}.rp6502"
+            ],
             "type": "shell",
             "group": {
                 "kind": "build"
@@ -16,7 +23,7 @@
                 "focus": true
             },
             "options": {
-                "cwd": "${workspaceFolder}/rp6502-sdk"
+                "cwd": "${workspaceFolder}/tools"
             },
             "problemMatcher": []
         },

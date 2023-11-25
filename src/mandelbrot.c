@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "rp6502.h"
+#include <rp6502.h>
 
 // Obligatory Mandelbrot Example
 // https://en.wikipedia.org/wiki/Mandelbrot_set
