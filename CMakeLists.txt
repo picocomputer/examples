@@ -52,6 +52,12 @@ target_sources(mode3 PRIVATE
     src/mode3.c
 )
 
+add_executable(music)
+rp6502_executable(music)
+target_sources(music PRIVATE
+    src/music.c
+)
+
 add_executable(paint)
 rp6502_executable(paint)
 target_sources(paint PRIVATE
