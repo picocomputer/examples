@@ -86,7 +86,10 @@ void play(uint16_t f)
 
 void stop()
 {
+    unsigned i;
     xram0_struct_set(0xFF00, struct channels, pan_trig, 0x00);
+    for (i = 1000u; i; i--)
+        ;
 }
 
 void main(void)
@@ -94,8 +97,8 @@ void main(void)
     // xreg(0, 1, 0xFF, 0xFF00);
 
     xram0_struct_set(0xFF00, struct channels, vol_attack, 0x00);
-    xram0_struct_set(0xFF00, struct channels, vol_decay, 0x00);
-    xram0_struct_set(0xFF00, struct channels, wave_release, 0x00);
+    xram0_struct_set(0xFF00, struct channels, vol_decay, 0xFA);
+    xram0_struct_set(0xFF00, struct channels, wave_release, 0x30);
     xram0_struct_set(0xFF00, struct channels, pan_trig, 0x00);
     xram0_struct_set(0xFF00, struct channels, freq, 50);
     // xram0_struct_set(0xFF00, struct channels, duty, 65535);
@@ -105,70 +108,100 @@ void main(void)
     xreg(0, 1, 0x00, 0xFF00);
     sleep(1);
 
+    stop();
     play(e5);
     sleep(1);
+    stop();
     play(ds5);
     sleep(1);
 
+    stop();
     play(e5);
     sleep(1);
+    stop();
     play(ds5);
     sleep(1);
+    stop();
     play(e5);
     sleep(1);
+    stop();
     play(b4);
     sleep(1);
+    stop();
     play(d5);
     sleep(1);
+    stop();
     play(c5);
     sleep(1);
 
+    stop();
     play(a4);
     sleep(2);
+    stop();
     play(a3);
     sleep(1);
+    stop();
     play(c4);
     sleep(1);
+    stop();
     play(e4);
     sleep(1);
+    stop();
     play(a4);
     sleep(1);
 
+    stop();
     play(b4);
     sleep(2);
+    stop();
     play(gs3);
     sleep(1);
+    stop();
     play(e4);
     sleep(1);
+    stop();
     play(gs4);
     sleep(1);
+    stop();
     play(b4);
     sleep(1);
 
+    stop();
     play(c5);
     sleep(2);
+    stop();
     play(a3);
     sleep(1);
+    stop();
     play(e4);
     sleep(1);
+    stop();
     play(e5);
     sleep(1);
+    stop();
     play(ds5);
     sleep(1);
 
+    stop();
     play(e5);
     sleep(1);
+    stop();
     play(ds5);
     sleep(1);
+    stop();
     play(e5);
     sleep(1);
+    stop();
     play(b4);
     sleep(1);
+    stop();
     play(d5);
     sleep(1);
+    stop();
     play(c5);
     sleep(1);
 
+    stop();
     play(a4);
     sleep(2);
 }
