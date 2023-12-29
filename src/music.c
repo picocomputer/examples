@@ -6,6 +6,7 @@
  */
 
 #include <rp6502.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -61,6 +62,8 @@
 #define as5 932
 #define b5 988
 
+#define PSG_CHANNELS 8
+
 typedef struct
 {
     uint16_t duty;
@@ -71,145 +74,167 @@ typedef struct
     uint8_t wave_release;
 } ria_psg_t;
 
-void sleep(unsigned n)
+struct note
 {
-    unsigned i;
-    while (n--)
-        for (i = 22000u; i; i--)
-            ;
-}
+    struct note *next;
+    uint16_t addr;
+    uint16_t duration;
+    int16_t pan;
+} notes[PSG_CHANNELS];
 
-void play(uint16_t f)
+struct note *notes_free;
+struct note *notes_playing;
+struct note *notes_releasing;
+
+static void
+play_piano(uint16_t f, int8_t pan)
 {
+    xram0_struct_set(0xFF00, ria_psg_t, duty, 48000u);
     xram0_struct_set(0xFF00, ria_psg_t, freq, f);
-    xram0_struct_set(0xFF00, ria_psg_t, pan_gate, 0x01);
+    xram0_struct_set(0xFF00, ria_psg_t, vol_attack, 0x01);
+    xram0_struct_set(0xFF00, ria_psg_t, vol_decay, 0xF9);
+    xram0_struct_set(0xFF00, ria_psg_t, wave_release, 0x31);
+    xram0_struct_set(0xFF00, ria_psg_t, pan_gate, (uint8_t)(pan | 0x01));
 }
 
-void stop()
+void wait(unsigned n)
 {
-    unsigned i;
+    unsigned u;
+    while (n--)
+        for (u = 22000u; u; u--)
+            ;
     xram0_struct_set(0xFF00, ria_psg_t, pan_gate, 0);
-    for (i = 1000u; i; i--)
+    for (u = 1000u; u; u--)
         ;
+}
+
+void debug_list(char *s, struct note *notes)
+{
+    printf("%s ", s);
+    while (notes)
+    {
+        printf("%X ", notes->addr);
+        notes = notes->next;
+    }
+    printf("\n");
+}
+
+void play(uint16_t freq, uint16_t duration)
+{
+    struct note *note = notes_free;
+    struct note **insert = &notes_playing;
+    if (!note)
+    {
+        printf("No free notes");
+        exit(1);
+    }
+    notes_free = note->next;
+
+    while (*insert && duration > (*insert)->duration)
+        insert = &(*insert)->next;
+    if (*insert && (*insert)->next)
+    {
+        note->next = (*insert)->next;
+        *insert = note;
+    }
+    else
+    {
+        note->next = NULL;
+        *insert = note;
+    }
+
+    debug_list("free", notes_free);
+    debug_list("playing", notes_playing);
+
+    play_piano(freq, 0);
 }
 
 void main(void)
 {
     unsigned u;
-    // xreg(0, 1, 0xFF, 0xFF00);
 
-    for (u = 0; u < 8; u++)
-    {
-        unsigned base = 0xFF00 + sizeof(ria_psg_t) * u;
-        // printf("%X\n", base);
-        xram0_struct_set(base, ria_psg_t, vol_attack, 0x01);
-        xram0_struct_set(base, ria_psg_t, vol_decay, 0xF9);
-        xram0_struct_set(base, ria_psg_t, wave_release, 0x30);
-        xram0_struct_set(base, ria_psg_t, pan_gate, 0x00);
-        xram0_struct_set(base, ria_psg_t, freq, 50);
-        // xram0_struct_set(base, ria_psg_t, duty, 65535u);
-        xram0_struct_set(base, ria_psg_t, duty, 48000u);
-        // xram0_struct_set(base, ria_psg_t, duty, 32768u);
-        // xram0_struct_set(base, ria_psg_t, duty, 15000u);
-    }
-
+    // clear psg xram and start
+    RIA.addr0 = 0xFF00;
+    for (u = 0; u < PSG_CHANNELS * sizeof(ria_psg_t); u++)
+        RIA.rw0 = 0;
     xreg(0, 1, 0x00, 0xFF00);
-    sleep(1);
 
-    stop();
-    play(e5);
-    sleep(1);
-    stop();
-    play(ds5);
-    sleep(1);
+    for (u = 0; u < PSG_CHANNELS; u++)
+    {
+        notes[u].addr = 0xFF00 + u * sizeof(ria_psg_t);
+        notes[u].next = &notes[u + 1];
+    }
+    notes[PSG_CHANNELS - 1].next = NULL;
+    notes_free = &notes[0];
+    notes_playing = NULL;
+    notes_releasing = NULL;
 
-    stop();
-    play(e5);
-    sleep(1);
-    stop();
-    play(ds5);
-    sleep(1);
-    stop();
-    play(e5);
-    sleep(1);
-    stop();
-    play(b4);
-    sleep(1);
-    stop();
-    play(d5);
-    sleep(1);
-    stop();
-    play(c5);
-    sleep(1);
+    wait(1);
 
-    stop();
-    play(a4);
-    sleep(2);
-    stop();
-    play(a3);
-    sleep(1);
-    stop();
-    play(c4);
-    sleep(1);
-    stop();
-    play(e4);
-    sleep(1);
-    stop();
-    play(a4);
-    sleep(1);
+    play(e5, 1);
+    wait(1);
+    play(ds5, 1);
+    wait(1);
 
-    stop();
-    play(b4);
-    sleep(2);
-    stop();
-    play(gs3);
-    sleep(1);
-    stop();
-    play(e4);
-    sleep(1);
-    stop();
-    play(gs4);
-    sleep(1);
-    stop();
-    play(b4);
-    sleep(1);
+    play(e5, 1);
+    wait(1);
+    play(ds5, 1);
+    wait(1);
+    play(e5, 1);
+    wait(1);
+    play(b4, 1);
+    wait(1);
+    play(d5, 1);
+    wait(1);
+    play(c5, 1);
+    wait(1);
 
-    stop();
-    play(c5);
-    sleep(2);
-    stop();
-    play(a3);
-    sleep(1);
-    stop();
-    play(e4);
-    sleep(1);
-    stop();
-    play(e5);
-    sleep(1);
-    stop();
-    play(ds5);
-    sleep(1);
+    play(a4, 1);
+    wait(2);
+    play(a3, 1);
+    wait(1);
+    play(c4, 1);
+    wait(1);
+    play(e4, 1);
+    wait(1);
+    play(a4, 1);
+    wait(1);
 
-    stop();
-    play(e5);
-    sleep(1);
-    stop();
-    play(ds5);
-    sleep(1);
-    stop();
-    play(e5);
-    sleep(1);
-    stop();
-    play(b4);
-    sleep(1);
-    stop();
-    play(d5);
-    sleep(1);
-    stop();
-    play(c5);
-    sleep(1);
+    play(b4, 1);
+    wait(2);
+    play(gs3, 1);
+    wait(1);
+    play(e4, 1);
+    wait(1);
+    play(gs4, 1);
+    wait(1);
+    play(b4, 1);
+    wait(1);
 
-    stop();
-    play(a4);
-    sleep(2);
+    play(c5, 1);
+    wait(2);
+    play(a3, 1);
+    wait(1);
+    play(e4, 1);
+    wait(1);
+    play(e5, 1);
+    wait(1);
+    play(ds5, 1);
+    wait(1);
+
+    play(e5, 1);
+    wait(1);
+    play(ds5, 1);
+    wait(1);
+    play(e5, 1);
+    wait(1);
+    play(b4, 1);
+    wait(1);
+    play(d5, 1);
+    wait(1);
+    play(c5, 1);
+    wait(1);
+
+    play(a4, 1);
+    wait(2);
 }
