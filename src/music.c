@@ -7,6 +7,7 @@
 
 #include <rp6502.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define c2 65
 #define cs2 69
@@ -60,15 +61,15 @@
 #define as5 932
 #define b5 988
 
-struct channels
+typedef struct
 {
     uint16_t duty;
     uint16_t freq;
-    uint8_t pan_trig;
+    uint8_t pan_gate;
     uint8_t vol_attack;
     uint8_t vol_decay;
     uint8_t wave_release;
-};
+} ria_psg_t;
 
 void sleep(unsigned n)
 {
@@ -80,30 +81,37 @@ void sleep(unsigned n)
 
 void play(uint16_t f)
 {
-    xram0_struct_set(0xFF00, struct channels, freq, f);
-    xram0_struct_set(0xFF00, struct channels, pan_trig, 0x01);
+    xram0_struct_set(0xFF00, ria_psg_t, freq, f);
+    xram0_struct_set(0xFF00, ria_psg_t, pan_gate, 0x01);
 }
 
 void stop()
 {
     unsigned i;
-    xram0_struct_set(0xFF00, struct channels, pan_trig, 0x00);
+    xram0_struct_set(0xFF00, ria_psg_t, pan_gate, 0);
     for (i = 1000u; i; i--)
         ;
 }
 
 void main(void)
 {
+    unsigned u;
     // xreg(0, 1, 0xFF, 0xFF00);
 
-    xram0_struct_set(0xFF00, struct channels, vol_attack, 0x00);
-    xram0_struct_set(0xFF00, struct channels, vol_decay, 0xFA);
-    xram0_struct_set(0xFF00, struct channels, wave_release, 0x30);
-    xram0_struct_set(0xFF00, struct channels, pan_trig, 0x00);
-    xram0_struct_set(0xFF00, struct channels, freq, 50);
-    // xram0_struct_set(0xFF00, struct channels, duty, 65535);
-    xram0_struct_set(0xFF00, struct channels, duty, 32768);
-    // xram0_struct_set(0xFF00, struct channels, duty, 5000);
+    for (u = 0; u < 8; u++)
+    {
+        unsigned base = 0xFF00 + sizeof(ria_psg_t) * u;
+        // printf("%X\n", base);
+        xram0_struct_set(base, ria_psg_t, vol_attack, 0x01);
+        xram0_struct_set(base, ria_psg_t, vol_decay, 0xF9);
+        xram0_struct_set(base, ria_psg_t, wave_release, 0x30);
+        xram0_struct_set(base, ria_psg_t, pan_gate, 0x00);
+        xram0_struct_set(base, ria_psg_t, freq, 50);
+        // xram0_struct_set(base, ria_psg_t, duty, 65535u);
+        xram0_struct_set(base, ria_psg_t, duty, 48000u);
+        // xram0_struct_set(base, ria_psg_t, duty, 32768u);
+        // xram0_struct_set(base, ria_psg_t, duty, 15000u);
+    }
 
     xreg(0, 1, 0x00, 0xFF00);
     sleep(1);
