@@ -86,29 +86,7 @@ struct note *notes_free;
 struct note *notes_playing;
 struct note *notes_releasing;
 
-static void
-play_piano(uint16_t f, int8_t pan)
-{
-    xram0_struct_set(0xFF00, ria_psg_t, duty, 48000u);
-    xram0_struct_set(0xFF00, ria_psg_t, freq, f);
-    xram0_struct_set(0xFF00, ria_psg_t, vol_attack, 0x01);
-    xram0_struct_set(0xFF00, ria_psg_t, vol_decay, 0xF9);
-    xram0_struct_set(0xFF00, ria_psg_t, wave_release, 0x31);
-    xram0_struct_set(0xFF00, ria_psg_t, pan_gate, (uint8_t)(pan | 0x01));
-}
-
-void wait(unsigned n)
-{
-    unsigned u;
-    while (n--)
-        for (u = 22000u; u; u--)
-            ;
-    xram0_struct_set(0xFF00, ria_psg_t, pan_gate, 0);
-    for (u = 1000u; u; u--)
-        ;
-}
-
-void debug_list(char *s, struct note *notes)
+static void debug_list(char *s, struct note *notes)
 {
     printf("%s ", s);
     while (notes)
@@ -119,34 +97,70 @@ void debug_list(char *s, struct note *notes)
     printf("\n");
 }
 
-void play(uint16_t freq, uint16_t duration)
+static void wait(void)
+{
+    unsigned u;
+    for (u = 22000u; u; u--)
+        ;
+
+    {
+        struct note *note = notes_releasing;
+        notes_releasing = NULL;
+        while (note)
+        {
+            struct note *next = note->next;
+            note->next = notes_free;
+            notes_free = note;
+            note = next;
+        }
+    }
+
+    while (notes_playing && notes_playing->duration <= 1)
+    {
+        struct note *note = notes_playing;
+        notes_playing = notes_playing->next;
+        note->next = notes_releasing;
+        notes_releasing = note;
+        xram0_struct_set(note->addr, ria_psg_t, pan_gate, (uint8_t)(note->pan & 0xFE));
+    }
+    {
+        struct note *note = notes_playing;
+        while (note)
+        {
+            note->duration--;
+            note = note->next;
+        }
+    }
+}
+
+static void play(uint16_t freq, uint16_t duration)
 {
     struct note *note = notes_free;
     struct note **insert = &notes_playing;
     if (!note)
     {
-        printf("No free notes");
+        printf("No free notes\n");
         exit(1);
     }
     notes_free = note->next;
 
+    note->duration = duration;
+    note->pan = 0;
+
     while (*insert && duration > (*insert)->duration)
         insert = &(*insert)->next;
-    if (*insert && (*insert)->next)
-    {
-        note->next = (*insert)->next;
-        *insert = note;
-    }
-    else
-    {
-        note->next = NULL;
-        *insert = note;
-    }
+    note->next = *insert;
+    *insert = note;
 
     debug_list("free", notes_free);
     debug_list("playing", notes_playing);
 
-    play_piano(freq, 0);
+    xram0_struct_set(note->addr, ria_psg_t, duty, 48000u);
+    xram0_struct_set(note->addr, ria_psg_t, freq, freq);
+    xram0_struct_set(note->addr, ria_psg_t, vol_attack, 0x01);
+    xram0_struct_set(note->addr, ria_psg_t, vol_decay, 0xF9);
+    xram0_struct_set(note->addr, ria_psg_t, wave_release, 0x31);
+    xram0_struct_set(note->addr, ria_psg_t, pan_gate, (uint8_t)(note->pan | 0x01));
 }
 
 void main(void)
@@ -169,72 +183,81 @@ void main(void)
     notes_playing = NULL;
     notes_releasing = NULL;
 
-    wait(1);
+    wait();
 
     play(e5, 1);
-    wait(1);
+    wait();
     play(ds5, 1);
-    wait(1);
+    wait();
 
     play(e5, 1);
-    wait(1);
+    wait();
     play(ds5, 1);
-    wait(1);
+    wait();
     play(e5, 1);
-    wait(1);
+    wait();
     play(b4, 1);
-    wait(1);
+    wait();
     play(d5, 1);
-    wait(1);
+    wait();
     play(c5, 1);
-    wait(1);
+    wait();
 
+    play(a4, 2);
+    play(a2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(a3, 4);
+    wait();
+    play(c4, 3);
+    wait();
+    play(e4, 2);
+    wait();
     play(a4, 1);
-    wait(2);
-    play(a3, 1);
-    wait(1);
-    play(c4, 1);
-    wait(1);
-    play(e4, 1);
-    wait(1);
-    play(a4, 1);
-    wait(1);
+    wait();
 
+    play(b4, 2);
+    play(e2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(gs3, 4);
+    wait();
+    play(e4, 3);
+    wait();
+    play(gs4, 2);
+    wait();
     play(b4, 1);
-    wait(2);
-    play(gs3, 1);
-    wait(1);
-    play(e4, 1);
-    wait(1);
-    play(gs4, 1);
-    wait(1);
-    play(b4, 1);
-    wait(1);
+    wait();
 
-    play(c5, 1);
-    wait(2);
-    play(a3, 1);
-    wait(1);
-    play(e4, 1);
-    wait(1);
-    play(e5, 1);
-    wait(1);
+    play(c5, 2);
+    play(a2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(a3, 4);
+    wait();
+    play(e4, 3);
+    wait();
+    play(e5, 2);
+    wait();
     play(ds5, 1);
-    wait(1);
+    wait();
 
     play(e5, 1);
-    wait(1);
+    wait();
     play(ds5, 1);
-    wait(1);
+    wait();
     play(e5, 1);
-    wait(1);
+    wait();
     play(b4, 1);
-    wait(1);
+    wait();
     play(d5, 1);
-    wait(1);
+    wait();
     play(c5, 1);
-    wait(1);
+    wait();
 
     play(a4, 1);
-    wait(2);
+    wait(); // 2
 }
