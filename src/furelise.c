@@ -214,6 +214,45 @@
                 wait(2),       \
                 piano(c5, 2),  \
                 wait(2)
+#define bar_3_4 piano(a4, 4),  \
+                piano(a2, 12), \
+                wait(2),       \
+                piano(e3, 10), \
+                wait(2),       \
+                piano(a3, 8),  \
+                wait(2),       \
+                piano(c4, 8),  \
+                wait(2),       \
+                piano(e4, 8),  \
+                wait(2),       \
+                piano(a4, 8),  \
+                wait(2)
+#define bar_3_5 piano(b4, 4),  \
+                piano(e2, 12), \
+                wait(2),       \
+                piano(e3, 10), \
+                wait(2),       \
+                piano(gs3, 8),  \
+                wait(2),       \
+                piano(e4, 8),  \
+                wait(2),       \
+                piano(gs4, 8),  \
+                wait(2),       \
+                piano(b4, 8),  \
+                wait(2)
+#define bar_3_6 piano(c5, 4),  \
+                piano(a2, 12), \
+                wait(2),       \
+                piano(e3, 10), \
+                wait(2),       \
+                piano(a3, 8),  \
+                wait(2),       \
+                piano(e4, 8),  \
+                wait(2),       \
+                piano(e5, 8),  \
+                wait(2),       \
+                piano(ds5, 8),  \
+                wait(2)
 
 uint8_t song[] = {
     wait(1),
@@ -245,6 +284,11 @@ uint8_t song[] = {
     bar_3_1,
     bar_3_2,
     bar_3_3,
+    bar_3_4,
+    bar_3_5,
+    bar_3_6,
+    bar_3_3,
+    bar_3_4,
 
     end()};
 
