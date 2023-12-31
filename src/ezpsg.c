@@ -34,6 +34,8 @@ struct channel *channels_free;
 struct channel *channels_playing;
 struct channel *channels_releasing;
 
+unsigned char *ezpsg_song;
+
 static uint16_t notes_enum_to_freq(enum notes note)
 {
     switch (note)
@@ -159,6 +161,8 @@ void ezpsg_init(unsigned addr)
     channels_free = &channels[0];
     channels_playing = NULL;
     channels_releasing = NULL;
+
+    ezpsg_song = NULL;
 }
 
 void ezpsg_play_note(enum notes note,
@@ -203,14 +207,42 @@ void ezpsg_play_note(enum notes note,
     RIA.rw0 = channel->pan | 0x01;
 }
 
-void ezpsg_wait(void)
+void ezpsg_play_song(unsigned char *song)
 {
-    unsigned u;
-    for (u = 22000u; u; u--)
-        ;
+    ezpsg_song = song;
+}
 
+void ezpsg_tick(unsigned tempo)
+{
+    static unsigned ticks = 0;
+    static unsigned duration = 0;
+
+    if (!ezpsg_song || !*ezpsg_song)
+        return;
+
+    if (ticks == 1)
+    {
+        struct channel *channel;
+        while (channels_playing && channels_playing->duration <= 1)
+        {
+            channel = channels_playing;
+            channels_playing = channels_playing->next;
+            channel->next = channels_releasing;
+            channels_releasing = channel;
+            xram0_struct_set(channel->addr, ria_psg_t, pan_gate, (channel->pan & 0xFE));
+        }
+        channel = channels_playing;
+        while (channel)
+        {
+            channel->duration--;
+            channel = channel->next;
+        }
+    }
+
+    if (ticks == 0)
     {
         struct channel *note = channels_releasing;
+        ticks = tempo;
         channels_releasing = NULL;
         while (note)
         {
@@ -219,22 +251,20 @@ void ezpsg_wait(void)
             channels_free = note;
             note = next;
         }
+        if (duration > 1)
+        {
+            duration--;
+            return;
+        }
+
+        while ((int8_t)*ezpsg_song < 0)
+            ezpsg_instruments(&ezpsg_song);
+
+        if ((int8_t)*ezpsg_song > 0)
+            duration = *ezpsg_song++;
+
+        return;
     }
 
-    while (channels_playing && channels_playing->duration <= 1)
-    {
-        struct channel *note = channels_playing;
-        channels_playing = channels_playing->next;
-        note->next = channels_releasing;
-        channels_releasing = note;
-        xram0_struct_set(note->addr, ria_psg_t, pan_gate, (note->pan & 0xFE));
-    }
-    {
-        struct channel *note = channels_playing;
-        while (note)
-        {
-            note->duration--;
-            note = note->next;
-        }
-    }
+    ticks--;
 }

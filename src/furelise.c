@@ -5,6 +5,7 @@
  */
 
 #include "ezpsg.h"
+#include <rp6502.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -28,7 +29,7 @@
                 wait(1),       \
                 piano(c5, 1),  \
                 wait(1)
-#define bar_1_3 piano(a4, 2), \
+#define bar_1_3 piano(a4, 6), \
                 piano(a2, 6), \
                 wait(1),      \
                 piano(e3, 5), \
@@ -41,7 +42,7 @@
                 wait(1),      \
                 piano(a4, 1), \
                 wait(1)
-#define bar_1_4 piano(b4, 2),  \
+#define bar_1_4 piano(b4, 6),  \
                 piano(e2, 6),  \
                 wait(1),       \
                 piano(e3, 5),  \
@@ -54,7 +55,7 @@
                 wait(1),       \
                 piano(b4, 1),  \
                 wait(1)
-#define bar_1_5 piano(c5, 2),  \
+#define bar_1_5 piano(c5, 6),  \
                 piano(a2, 6),  \
                 wait(1),       \
                 piano(e3, 5),  \
@@ -79,7 +80,7 @@
                 wait(1),       \
                 piano(c5, 1),  \
                 wait(1)
-#define bar_1_7 piano(a4, 2), \
+#define bar_1_7 piano(a4, 6), \
                 piano(a2, 6), \
                 wait(1),      \
                 piano(e3, 5), \
@@ -92,7 +93,7 @@
                 wait(1),      \
                 piano(a4, 1), \
                 wait(1)
-#define bar_2_1 piano(b4, 2),  \
+#define bar_2_1 piano(b4, 6),  \
                 piano(e2, 6),  \
                 wait(1),       \
                 piano(e3, 5),  \
@@ -125,7 +126,7 @@
                 wait(1),      \
                 piano(d5, 1), \
                 wait(1)
-#define bar_2_4 piano(e5, 3), \
+#define bar_2_4 piano(e5, 6), \
                 piano(c3, 6), \
                 wait(1),      \
                 piano(g3, 5), \
@@ -187,18 +188,16 @@ void ezpsg_instruments(unsigned char **data)
 
 void main(void)
 {
-    unsigned char *data = song;
+    uint8_t v = RIA.vsync;
 
     ezpsg_init(0xFF00);
-    while (*data)
+    ezpsg_play_song(song);
+
+    while (true)
     {
-        if ((int8_t)*data > 0)
-        {
-            int8_t duration = *data++;
-            while (duration--)
-                ezpsg_wait();
-        }
-        else
-            ezpsg_instruments(&data);
+        if (RIA.vsync == v)
+            continue;
+        v = RIA.vsync;
+        ezpsg_tick(11);
     }
 }
