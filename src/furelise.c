@@ -314,15 +314,56 @@
                 wait(2),      \
                 piano(a3, 2), \
                 wait(2),      \
-                piano(c4, 2), \
                 piano(f5, 3), \
+                piano(c4, 2), \
                 wait(2),      \
                 piano(a3, 2), \
                 wait(1),      \
                 piano(e5, 1), \
                 wait(1)
 
-uint8_t song[] = {
+#define bar_5_1 piano(e5, 4),  \
+                piano(d3, 2),  \
+                wait(2),       \
+                piano(as3, 2), \
+                wait(2),       \
+                piano(d5, 2),  \
+                piano(d4, 2),  \
+                wait(2),       \
+                piano(as3, 2), \
+                wait(2),       \
+                piano(as5, 3), \
+                piano(d4, 2),  \
+                wait(2),       \
+                piano(as3, 2), \
+                wait(1),       \
+                piano(a5, 1),  \
+                wait(1)
+
+#define bar_5_2 piano(a5, 2),  \
+                piano(d3, 2),  \
+                wait(2),       \
+                piano(g5, 2),  \
+                piano(e4, 2),  \
+                wait(2),       \
+                piano(f5, 2),  \
+                piano(d3, 2),  \
+                piano(e3, 2),  \
+                piano(fs3, 2), \
+                wait(2),       \
+                piano(e5, 2),  \
+                piano(e4, 2),  \
+                wait(2),       \
+                piano(d5, 2),  \
+                piano(d3, 2),  \
+                piano(e3, 2),  \
+                piano(fs3, 2), \
+                wait(2),       \
+                piano(c5, 2),  \
+                piano(e4, 2),  \
+                wait(2)
+
+static const uint8_t song[] = {
     wait(1),
 
     bar_1_1,
@@ -376,6 +417,8 @@ uint8_t song[] = {
     bar_4_5,
 
     bar_4_6,
+    bar_5_1,
+    bar_5_2,
 
     end()};
 
