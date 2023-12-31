@@ -66,12 +66,12 @@
 
 typedef struct
 {
-    uint16_t duty;
-    uint16_t freq;
-    uint8_t pan_gate;
-    uint8_t vol_attack;
-    uint8_t vol_decay;
-    uint8_t wave_release;
+    unsigned int freq;
+    unsigned int duty;
+    unsigned char vol_attack;
+    unsigned char vol_decay;
+    unsigned char wave_release;
+    unsigned char pan_gate;
 } ria_psg_t;
 
 struct note
@@ -121,7 +121,7 @@ static void wait(void)
         notes_playing = notes_playing->next;
         note->next = notes_releasing;
         notes_releasing = note;
-        xram0_struct_set(note->addr, ria_psg_t, pan_gate, (uint8_t)(note->pan & 0xFE));
+        xram0_struct_set(note->addr, ria_psg_t, pan_gate, (note->pan & 0xFE));
     }
     {
         struct note *note = notes_playing;
@@ -133,7 +133,13 @@ static void wait(void)
     }
 }
 
-static void play(uint16_t freq, uint16_t duration)
+static void play_note(uint16_t duration,
+                      uint16_t freq,
+                      uint16_t duty,
+                      uint8_t vol_attack,
+                      uint8_t vol_decay,
+                      uint8_t wave_release,
+                      int8_t pan)
 {
     struct note *note = notes_free;
     struct note **insert = &notes_playing;
@@ -145,22 +151,37 @@ static void play(uint16_t freq, uint16_t duration)
     notes_free = note->next;
 
     note->duration = duration;
-    note->pan = 0;
+    note->pan = pan;
 
     while (*insert && duration > (*insert)->duration)
         insert = &(*insert)->next;
     note->next = *insert;
     *insert = note;
 
-    debug_list("free", notes_free);
-    debug_list("playing", notes_playing);
+    RIA.addr0 = note->addr;
+    RIA.step0 = 1;
+    RIA.rw0 = freq & 0xff;
+    RIA.rw0 = (freq >> 8) & 0xff;
+    RIA.rw0 = duty & 0xff;
+    RIA.rw0 = (duty >> 8) & 0xff;
+    RIA.rw0 = vol_attack;
+    RIA.rw0 = vol_decay;
+    RIA.rw0 = wave_release;
+    RIA.rw0 = note->pan | 0x01;
 
-    xram0_struct_set(note->addr, ria_psg_t, duty, 48000u);
-    xram0_struct_set(note->addr, ria_psg_t, freq, freq);
-    xram0_struct_set(note->addr, ria_psg_t, vol_attack, 0x01);
-    xram0_struct_set(note->addr, ria_psg_t, vol_decay, 0xF9);
-    xram0_struct_set(note->addr, ria_psg_t, wave_release, 0x31);
-    xram0_struct_set(note->addr, ria_psg_t, pan_gate, (uint8_t)(note->pan | 0x01));
+    // debug_list("free", notes_free);
+    // debug_list("playing", notes_playing);
+    // debug_list("releasing", notes_releasing);
+}
+
+static void play(uint16_t freq, uint16_t duration)
+{
+    play_note(duration, freq,
+              48000u, // duty
+              0x01,   // vol_attack
+              0xF9,   // vol_decay
+              0x01,   // wave_release
+              0);     // pan
 }
 
 void main(void)
@@ -173,6 +194,7 @@ void main(void)
         RIA.rw0 = 0;
     xreg(0, 1, 0x00, 0xFF00);
 
+    // init linked lists
     for (u = 0; u < PSG_CHANNELS; u++)
     {
         notes[u].addr = 0xFF00 + u * sizeof(ria_psg_t);
@@ -185,11 +207,12 @@ void main(void)
 
     wait();
 
+    // 1-1
     play(e5, 1);
     wait();
     play(ds5, 1);
     wait();
-
+    // 1-2
     play(e5, 1);
     wait();
     play(ds5, 1);
@@ -202,7 +225,62 @@ void main(void)
     wait();
     play(c5, 1);
     wait();
-
+    // 1-3
+    play(a4, 2);
+    play(a2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(a3, 4);
+    wait();
+    play(c4, 3);
+    wait();
+    play(e4, 2);
+    wait();
+    play(a4, 1);
+    wait();
+    // 1-4
+    play(b4, 2);
+    play(e2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(gs3, 4);
+    wait();
+    play(e4, 3);
+    wait();
+    play(gs4, 2);
+    wait();
+    play(b4, 1);
+    wait();
+    // 1-5
+    play(c5, 2);
+    play(a2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(a3, 4);
+    wait();
+    play(e4, 3);
+    wait();
+    play(e5, 2);
+    wait();
+    play(ds5, 1);
+    wait();
+    // 1-6
+    play(e5, 1);
+    wait();
+    play(ds5, 1);
+    wait();
+    play(e5, 1);
+    wait();
+    play(b4, 1);
+    wait();
+    play(d5, 1);
+    wait();
+    play(c5, 1);
+    wait();
+    // 1-7
     play(a4, 2);
     play(a2, 6);
     wait();
@@ -217,6 +295,64 @@ void main(void)
     play(a4, 1);
     wait();
 
+    // 2-1
+    play(b4, 2);
+    play(e2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(gs3, 4);
+    wait();
+    play(d4, 3);
+    wait();
+    play(c5, 2);
+    wait();
+    play(b4, 1);
+    wait();
+
+    // 2-2
+    play(a4, 4);
+    play(a2, 2);
+    wait();
+    play(e3, 2);
+    wait();
+    play(a3, 2);
+    wait();
+    wait();
+
+    // 1-1
+    play(e5, 1);
+    wait();
+    play(ds5, 1);
+    wait();
+    // 1-2
+    play(e5, 1);
+    wait();
+    play(ds5, 1);
+    wait();
+    play(e5, 1);
+    wait();
+    play(b4, 1);
+    wait();
+    play(d5, 1);
+    wait();
+    play(c5, 1);
+    wait();
+    // 1-3
+    play(a4, 2);
+    play(a2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(a3, 4);
+    wait();
+    play(c4, 3);
+    wait();
+    play(e4, 2);
+    wait();
+    play(a4, 1);
+    wait();
+    // 1-4
     play(b4, 2);
     play(e2, 6);
     wait();
@@ -230,7 +366,7 @@ void main(void)
     wait();
     play(b4, 1);
     wait();
-
+    // 1-5
     play(c5, 2);
     play(a2, 6);
     wait();
@@ -244,7 +380,7 @@ void main(void)
     wait();
     play(ds5, 1);
     wait();
-
+    // 1-6
     play(e5, 1);
     wait();
     play(ds5, 1);
@@ -257,7 +393,63 @@ void main(void)
     wait();
     play(c5, 1);
     wait();
-
+    // 1-7
+    play(a4, 2);
+    play(a2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(a3, 4);
+    wait();
+    play(c4, 3);
+    wait();
+    play(e4, 2);
+    wait();
     play(a4, 1);
-    wait(); // 2
+    wait();
+
+    // 2-1
+    play(b4, 2);
+    play(e2, 6);
+    wait();
+    play(e3, 5);
+    wait();
+    play(gs3, 4);
+    wait();
+    play(d4, 3);
+    wait();
+    play(c5, 2);
+    wait();
+    play(b4, 1);
+    wait();
+
+    // 2-3
+    play(a4, 2);
+    play(a2, 1);
+    wait();
+    play(e3, 1);
+    wait();
+    play(a3, 1);
+    wait();
+    play(b4, 1);
+    wait();
+    play(c5, 1);
+    wait();
+    play(d5, 1);
+    wait();
+
+    // 2-4
+    play(e5, 3);
+    play(c3, 6);
+    wait();
+    play(g3, 5);
+    wait();
+    play(c4, 4);
+    wait();
+    play(g4, 3);
+    wait();
+    play(f5, 2);
+    wait();
+    play(e5, 1);
+    wait();
 }
