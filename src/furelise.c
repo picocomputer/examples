@@ -232,11 +232,11 @@
                 wait(2),       \
                 piano(e3, 10), \
                 wait(2),       \
-                piano(gs3, 8),  \
+                piano(gs3, 8), \
                 wait(2),       \
                 piano(e4, 8),  \
                 wait(2),       \
-                piano(gs4, 8),  \
+                piano(gs4, 8), \
                 wait(2),       \
                 piano(b4, 8),  \
                 wait(2)
@@ -251,8 +251,76 @@
                 wait(2),       \
                 piano(e5, 8),  \
                 wait(2),       \
-                piano(ds5, 8),  \
+                piano(ds5, 8), \
                 wait(2)
+#define bar_4_3 piano(b4, 4),  \
+                piano(e2, 12), \
+                wait(2),       \
+                piano(e3, 10), \
+                wait(2),       \
+                piano(gs3, 8), \
+                wait(2),       \
+                piano(d4, 8),  \
+                wait(2),       \
+                piano(c5, 8),  \
+                wait(2),       \
+                piano(b4, 8),  \
+                wait(2)
+#define bar_4_4 piano(a4, 4), \
+                piano(a2, 2), \
+                wait(2),      \
+                piano(e3, 2), \
+                wait(2),      \
+                piano(a3, 2), \
+                wait(2),      \
+                piano(b4, 2), \
+                wait(2),      \
+                piano(c5, 2), \
+                wait(2),      \
+                piano(d5, 2), \
+                wait(2)
+#define bar_4_5 piano(a4, 4),  \
+                piano(a2, 2),  \
+                wait(2),       \
+                piano(e3, 2),  \
+                wait(2),       \
+                piano(a3, 2),  \
+                wait(2),       \
+                piano(as3, 2), \
+                piano(c4, 2),  \
+                piano(e4, 2),  \
+                piano(c5, 2),  \
+                wait(2),       \
+                piano(a3, 2),  \
+                piano(c4, 2),  \
+                piano(f4, 2),  \
+                piano(c5, 2),  \
+                wait(2),       \
+                piano(g3, 2),  \
+                piano(as3, 2), \
+                piano(c4, 2),  \
+                piano(e4, 2),  \
+                piano(g4, 2),  \
+                piano(c5, 2),  \
+                wait(2)
+#define bar_4_6 piano(f4, 2), \
+                piano(a4, 2), \
+                piano(c5, 8), \
+                piano(f3, 2), \
+                wait(2),      \
+                piano(a3, 2), \
+                wait(2),      \
+                piano(c4, 2), \
+                wait(2),      \
+                piano(a3, 2), \
+                wait(2),      \
+                piano(c4, 2), \
+                piano(f5, 3), \
+                wait(2),      \
+                piano(a3, 2), \
+                wait(1),      \
+                piano(e5, 1), \
+                wait(1)
 
 uint8_t song[] = {
     wait(1),
@@ -289,20 +357,40 @@ uint8_t song[] = {
     bar_3_6,
     bar_3_3,
     bar_3_4,
+    bar_4_3,
+    bar_4_4,
+
+    bar_2_4,
+    bar_2_5,
+    bar_2_6,
+    bar_2_7,
+    bar_3_1,
+    bar_3_2,
+    bar_3_3,
+    bar_3_4,
+    bar_3_5,
+    bar_3_6,
+    bar_3_3,
+    bar_3_4,
+    bar_4_3,
+    bar_4_5,
+
+    bar_4_6,
 
     end()};
 
 void ezpsg_instruments(uint8_t **data)
 {
-    switch ((int8_t) * (*data)++)
+    switch ((int8_t) * (*data)++) // instrument
     {
-    case -1: // piano
-        ezpsg_play_note(*(*data)++, *(*data)++,
-                        48000u, // duty
-                        0x01,   // vol_attack
-                        0xF9,   // vol_decay
-                        0x31,   // wave_release
-                        0);     // pan
+    case -1:                        // piano
+        ezpsg_play_note(*(*data)++, // note
+                        *(*data)++, // duration
+                        48000u,     // duty
+                        0x11,       // vol_attack
+                        0xF9,       // vol_decay
+                        0x31,       // wave_release
+                        0);         // pan
         break;
     default:
         puts("Bad instrument.");
