@@ -28,6 +28,13 @@ target_sources(gets PRIVATE
     src/gets.c
 )
 
+add_executable(furelise)
+rp6502_executable(furelise)
+target_sources(furelise PRIVATE
+    src/furelise.c
+    src/ezpsg.c
+)
+
 add_executable(mandelbrot)
 rp6502_executable(mandelbrot)
 target_sources(mandelbrot PRIVATE
