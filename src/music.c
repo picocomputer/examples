@@ -10,58 +10,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define c2 65
-#define cs2 69
-#define d2 73
-#define ds2 78
-#define e2 82
-#define f2 87
-#define fs2 92
-#define g2 98
-#define gs2 104
-#define a2 110
-#define as2 117
-#define b2 123
-
-#define c3 131
-#define cs3 139
-#define d3 147
-#define ds3 156
-#define e3 165
-#define f3 175
-#define fs3 185
-#define g3 196
-#define gs3 208
-#define a3 220
-#define as3 233
-#define b3 247
-
-#define c4 262
-#define cs4 277
-#define d4 294
-#define ds4 311
-#define e4 330
-#define f4 349
-#define fs4 370
-#define g4 392
-#define gs4 415
-#define a4 440
-#define as4 466
-#define b4 494
-
-#define c5 523
-#define cs5 554
-#define d5 587
-#define ds5 622
-#define e5 659
-#define f5 698
-#define fs5 740
-#define g5 784
-#define gs5 831
-#define a5 880
-#define as5 932
-#define b5 988
-
 #define PSG_CHANNELS 8
 
 typedef struct
@@ -74,25 +22,182 @@ typedef struct
     unsigned char pan_gate;
 } ria_psg_t;
 
-struct note
+struct channel
 {
-    struct note *next;
+    struct channel *next;
     uint16_t addr;
     uint16_t duration;
     int16_t pan;
-} notes[PSG_CHANNELS];
+} channels[PSG_CHANNELS];
 
-struct note *notes_free;
-struct note *notes_playing;
-struct note *notes_releasing;
+struct channel *channels_free;
+struct channel *channels_playing;
+struct channel *channels_releasing;
 
-static void debug_list(char *s, struct note *notes)
+enum notes
+{
+    c2 = 16,
+    cs2,
+    d2,
+    ds2,
+    e2,
+    f2,
+    fs2,
+    g2,
+    gs2,
+    a2,
+    as2,
+    b2,
+    c3,
+    cs3,
+    d3,
+    ds3,
+    e3,
+    f3,
+    fs3,
+    g3,
+    gs3,
+    a3,
+    as3,
+    b3,
+    c4,
+    cs4,
+    d4,
+    ds4,
+    e4,
+    f4,
+    fs4,
+    g4,
+    gs4,
+    a4,
+    as4,
+    b4,
+    c5,
+    cs5,
+    d5,
+    ds5,
+    e5,
+    f5,
+    fs5,
+    g5,
+    gs5,
+    a5,
+    as5,
+    b5,
+};
+
+static uint16_t notes_enum_to_freq(enum notes note)
+{
+    switch (note)
+    {
+    case c2:
+        return 65;
+    case cs2:
+        return 69;
+    case d2:
+        return 73;
+    case ds2:
+        return 78;
+    case e2:
+        return 82;
+    case f2:
+        return 87;
+    case fs2:
+        return 92;
+    case g2:
+        return 98;
+    case gs2:
+        return 104;
+    case a2:
+        return 110;
+    case as2:
+        return 117;
+    case b2:
+        return 123;
+    case c3:
+        return 131;
+    case cs3:
+        return 139;
+    case d3:
+        return 147;
+    case ds3:
+        return 156;
+    case e3:
+        return 165;
+    case f3:
+        return 175;
+    case fs3:
+        return 185;
+    case g3:
+        return 196;
+    case gs3:
+        return 208;
+    case a3:
+        return 220;
+    case as3:
+        return 233;
+    case b3:
+        return 247;
+    case c4:
+        return 262;
+    case cs4:
+        return 277;
+    case d4:
+        return 294;
+    case ds4:
+        return 311;
+    case e4:
+        return 330;
+    case f4:
+        return 349;
+    case fs4:
+        return 370;
+    case g4:
+        return 392;
+    case gs4:
+        return 415;
+    case a4:
+        return 440;
+    case as4:
+        return 466;
+    case b4:
+        return 494;
+    case c5:
+        return 523;
+    case cs5:
+        return 554;
+    case d5:
+        return 587;
+    case ds5:
+        return 622;
+    case e5:
+        return 659;
+    case f5:
+        return 698;
+    case fs5:
+        return 740;
+    case g5:
+        return 784;
+    case gs5:
+        return 831;
+    case a5:
+        return 880;
+    case as5:
+        return 932;
+    case b5:
+        return 988;
+    default:
+        return 0;
+    }
+}
+
+static void debug_list(char *s, struct channel *channels)
 {
     printf("%s ", s);
-    while (notes)
+    while (channels)
     {
-        printf("%X ", notes->addr);
-        notes = notes->next;
+        printf("%X ", channels->addr);
+        channels = channels->next;
     }
     printf("\n");
 }
@@ -104,27 +209,27 @@ static void wait(void)
         ;
 
     {
-        struct note *note = notes_releasing;
-        notes_releasing = NULL;
+        struct channel *note = channels_releasing;
+        channels_releasing = NULL;
         while (note)
         {
-            struct note *next = note->next;
-            note->next = notes_free;
-            notes_free = note;
+            struct channel *next = note->next;
+            note->next = channels_free;
+            channels_free = note;
             note = next;
         }
     }
 
-    while (notes_playing && notes_playing->duration <= 1)
+    while (channels_playing && channels_playing->duration <= 1)
     {
-        struct note *note = notes_playing;
-        notes_playing = notes_playing->next;
-        note->next = notes_releasing;
-        notes_releasing = note;
+        struct channel *note = channels_playing;
+        channels_playing = channels_playing->next;
+        note->next = channels_releasing;
+        channels_releasing = note;
         xram0_struct_set(note->addr, ria_psg_t, pan_gate, (note->pan & 0xFE));
     }
     {
-        struct note *note = notes_playing;
+        struct channel *note = channels_playing;
         while (note)
         {
             note->duration--;
@@ -141,14 +246,18 @@ static void play_note(uint16_t duration,
                       uint8_t wave_release,
                       int8_t pan)
 {
-    struct note *note = notes_free;
-    struct note **insert = &notes_playing;
+    struct channel *note = channels_free;
+    struct channel **insert = &channels_playing;
     if (!note)
     {
-        printf("No free notes\n");
+#ifdef NDEBUG
+        return;
+#else
+        printf("No free channels\n");
         exit(1);
+#endif
     }
-    notes_free = note->next;
+    channels_free = note->next;
 
     note->duration = duration;
     note->pan = pan;
@@ -169,13 +278,14 @@ static void play_note(uint16_t duration,
     RIA.rw0 = wave_release;
     RIA.rw0 = note->pan | 0x01;
 
-    // debug_list("free", notes_free);
-    // debug_list("playing", notes_playing);
-    // debug_list("releasing", notes_releasing);
+    // debug_list("free", channels_free);
+    // debug_list("playing", channels_playing);
+    // debug_list("releasing", channels_releasing);
 }
 
-static void play(uint16_t freq, uint16_t duration)
+static void play(uint8_t note, uint16_t duration)
 {
+    uint16_t freq = notes_enum_to_freq(note);
     play_note(duration, freq,
               48000u, // duty
               0x01,   // vol_attack
@@ -197,13 +307,13 @@ void main(void)
     // init linked lists
     for (u = 0; u < PSG_CHANNELS; u++)
     {
-        notes[u].addr = 0xFF00 + u * sizeof(ria_psg_t);
-        notes[u].next = &notes[u + 1];
+        channels[u].addr = 0xFF00 + u * sizeof(ria_psg_t);
+        channels[u].next = &channels[u + 1];
     }
-    notes[PSG_CHANNELS - 1].next = NULL;
-    notes_free = &notes[0];
-    notes_playing = NULL;
-    notes_releasing = NULL;
+    channels[PSG_CHANNELS - 1].next = NULL;
+    channels_free = &channels[0];
+    channels_playing = NULL;
+    channels_releasing = NULL;
 
     wait();
 
