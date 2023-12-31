@@ -379,7 +379,7 @@ uint8_t song[] = {
 
     end()};
 
-void ezpsg_instruments(uint8_t **data)
+void ezpsg_instruments(const uint8_t **data)
 {
     switch ((int8_t) * (*data)++) // instrument
     {
