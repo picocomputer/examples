@@ -64,8 +64,6 @@ enum notes
 
 void ezpsg_init(unsigned addr);
 void ezpsg_tick(unsigned tempo);
-void ezpsg_play_song(unsigned char *song);
-void ezpsg_wait(void);
 void ezpsg_play_note(enum notes note,
                      uint16_t duration,
                      uint16_t duty,
@@ -73,7 +71,9 @@ void ezpsg_play_note(enum notes note,
                      uint8_t vol_decay,
                      uint8_t wave_release,
                      int8_t pan);
+void ezpsg_play_song(uint8_t *song);
+bool ezpsg_playing(void);
 
-void ezpsg_instruments(unsigned char **data);
+void ezpsg_instruments(uint8_t **data);
 
 #endif /* _EZPSG_H_ */

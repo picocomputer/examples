@@ -22,7 +22,7 @@ typedef struct
     unsigned char pan_gate;
 } ria_psg_t;
 
-struct channel
+static struct channel
 {
     struct channel *next;
     uint16_t addr;
@@ -30,11 +30,11 @@ struct channel
     int16_t pan;
 } channels[PSG_CHANNELS];
 
-struct channel *channels_free;
-struct channel *channels_playing;
-struct channel *channels_releasing;
+static struct channel *channels_free;
+static struct channel *channels_playing;
+static struct channel *channels_releasing;
 
-unsigned char *ezpsg_song;
+static uint8_t *ezpsg_song;
 
 static uint16_t notes_enum_to_freq(enum notes note)
 {
@@ -165,60 +165,10 @@ void ezpsg_init(unsigned addr)
     ezpsg_song = NULL;
 }
 
-void ezpsg_play_note(enum notes note,
-                     uint16_t duration,
-                     uint16_t duty,
-                     uint8_t vol_attack,
-                     uint8_t vol_decay,
-                     uint8_t wave_release,
-                     int8_t pan)
-{
-    uint16_t freq = notes_enum_to_freq(note);
-    struct channel *channel = channels_free;
-    struct channel **insert = &channels_playing;
-    if (!channel)
-    {
-#ifdef NDEBUG
-        return;
-#else
-        printf("No free channels\n");
-        exit(1);
-#endif
-    }
-    channels_free = channel->next;
-
-    channel->duration = duration;
-    channel->pan = pan;
-
-    while (*insert && duration > (*insert)->duration)
-        insert = &(*insert)->next;
-    channel->next = *insert;
-    *insert = channel;
-
-    RIA.addr0 = channel->addr;
-    RIA.step0 = 1;
-    RIA.rw0 = freq & 0xff;
-    RIA.rw0 = (freq >> 8) & 0xff;
-    RIA.rw0 = duty & 0xff;
-    RIA.rw0 = (duty >> 8) & 0xff;
-    RIA.rw0 = vol_attack;
-    RIA.rw0 = vol_decay;
-    RIA.rw0 = wave_release;
-    RIA.rw0 = channel->pan | 0x01;
-}
-
-void ezpsg_play_song(unsigned char *song)
-{
-    ezpsg_song = song;
-}
-
 void ezpsg_tick(unsigned tempo)
 {
     static unsigned ticks = 0;
-    static unsigned duration = 0;
-
-    if (!ezpsg_song || !*ezpsg_song)
-        return;
+    static unsigned waits = 0;
 
     if (ticks == 1)
     {
@@ -251,20 +201,73 @@ void ezpsg_tick(unsigned tempo)
             channels_free = note;
             note = next;
         }
-        if (duration > 1)
+        if (waits > 1)
         {
-            duration--;
+            waits--;
             return;
         }
+        if (ezpsg_song)
+        {
+            while ((int8_t)*ezpsg_song < 0)
+                ezpsg_instruments(&ezpsg_song);
 
-        while ((int8_t)*ezpsg_song < 0)
-            ezpsg_instruments(&ezpsg_song);
-
-        if ((int8_t)*ezpsg_song > 0)
-            duration = *ezpsg_song++;
-
+            if ((int8_t)*ezpsg_song > 0)
+                waits = *ezpsg_song++;
+        }
         return;
     }
 
     ticks--;
+}
+
+void ezpsg_play_note(enum notes note,
+                     uint16_t duration,
+                     uint16_t duty,
+                     uint8_t vol_attack,
+                     uint8_t vol_decay,
+                     uint8_t wave_release,
+                     int8_t pan)
+{
+    uint16_t freq = notes_enum_to_freq(note);
+    struct channel *channel = channels_free;
+    struct channel **insert = &channels_playing;
+    if (!channel)
+    {
+#ifdef NDEBUG
+        return;
+#else
+        puts("No free channels.");
+        exit(1);
+#endif
+    }
+    channels_free = channel->next;
+
+    while (*insert && duration > (*insert)->duration)
+        insert = &(*insert)->next;
+    channel->next = *insert;
+    *insert = channel;
+
+    channel->pan = pan;
+    channel->duration = duration;
+
+    RIA.addr0 = channel->addr;
+    RIA.step0 = 1;
+    RIA.rw0 = freq & 0xff;
+    RIA.rw0 = (freq >> 8) & 0xff;
+    RIA.rw0 = duty & 0xff;
+    RIA.rw0 = (duty >> 8) & 0xff;
+    RIA.rw0 = vol_attack;
+    RIA.rw0 = vol_decay;
+    RIA.rw0 = wave_release;
+    RIA.rw0 = channel->pan | 0x01;
+}
+
+void ezpsg_play_song(uint8_t *song)
+{
+    ezpsg_song = song;
+}
+
+bool ezpsg_playing(void)
+{
+    return (ezpsg_song && *ezpsg_song) || channels_playing;
 }

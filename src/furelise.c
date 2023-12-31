@@ -140,7 +140,7 @@
                 piano(e5, 1), \
                 wait(1)
 
-unsigned char song[] = {
+uint8_t song[] = {
     wait(1),
 
     bar_1_1,
@@ -167,7 +167,7 @@ unsigned char song[] = {
 
     end()};
 
-void ezpsg_instruments(unsigned char **data)
+void ezpsg_instruments(uint8_t **data)
 {
     int8_t instrument = *(*data)++;
     switch (instrument)
@@ -177,11 +177,11 @@ void ezpsg_instruments(unsigned char **data)
                         48000u, // duty
                         0x01,   // vol_attack
                         0xF9,   // vol_decay
-                        0x01,   // wave_release
+                        0x31,   // wave_release
                         0);     // pan
         break;
     default:
-        printf("Bad instrument.\n");
+        puts("Bad instrument.");
         exit(1);
     }
 }
@@ -199,5 +199,7 @@ void main(void)
             continue;
         v = RIA.vsync;
         ezpsg_tick(11);
+        if (!ezpsg_playing())
+            break;
     }
 }
