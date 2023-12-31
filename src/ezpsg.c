@@ -136,6 +136,30 @@ static uint16_t notes_enum_to_freq(enum notes note)
         return 932;
     case b5:
         return 988;
+    case c6:
+        return 1047;
+    case cs6:
+        return 1109;
+    case d6:
+        return 1175;
+    case ds6:
+        return 1245;
+    case e6:
+        return 1319;
+    case f6:
+        return 1397;
+    case fs6:
+        return 1480;
+    case g6:
+        return 1568;
+    case gs6:
+        return 1661;
+    case a6:
+        return 1760;
+    case as6:
+        return 1865;
+    case b6:
+        return 1976;
     default:
         return 0;
     }
