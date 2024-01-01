@@ -131,16 +131,17 @@ void ezpsg_init(uint16_t xaddr);
 // equal one duration unit.
 void ezpsg_tick(uint16_t tempo);
 
-// Call play note any time, even from a game engine for sound effects.
-// Typically this is used by the instrument callback.
+// Call play note at any time, even from a game engine for sound effects.
+// Returns XRAM address of PSG config structure used for playback.
+// Returns 0xFFFF when no oscillator channels are available.
 // Pan is -126(left) to +126(right), bit 0 ignored.
-void ezpsg_play_note(uint8_t note,
-                     uint8_t duration,
-                     uint16_t duty,
-                     uint8_t vol_attack,
-                     uint8_t vol_decay,
-                     uint8_t wave_release,
-                     int8_t pan);
+uint16_t ezpsg_play_note(uint8_t note,
+                         uint8_t duration,
+                         uint16_t duty,
+                         uint8_t vol_attack,
+                         uint8_t vol_decay,
+                         uint8_t wave_release,
+                         int8_t pan);
 
 // Play song will move the song pointer to new music.
 void ezpsg_play_song(const uint8_t *song);
@@ -148,7 +149,7 @@ void ezpsg_play_song(const uint8_t *song);
 // Returns true if a song is playing. Turns false at end of song.
 bool ezpsg_playing(void);
 
-// Instruments are implemented by the application using this tracker.
+// Instruments are implemented in this callback. See furelise.c example.
 void ezpsg_instruments(const uint8_t **data);
 
 #endif /* _EZPSG_H_ */

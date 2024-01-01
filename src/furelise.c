@@ -506,9 +506,13 @@ void ezpsg_instruments(const uint8_t **data)
                         0x31,       // wave_release
                         0);         // pan
         break;
+#ifndef NDEBUG
     default:
-        puts("Bad instrument.");
+        // The instrumment you just added probably isn't
+        // consuming the correct number of paramaters.
+        puts("Unknown instrument.");
         exit(1);
+#endif
     }
 }
 

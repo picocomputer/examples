@@ -71,7 +71,6 @@ void ezpsg_tick(uint16_t tempo)
 {
     static unsigned ticks = 0;
     static unsigned waits = 0;
-
     if (ticks == 1)
     {
         struct channel *channel;
@@ -92,7 +91,6 @@ void ezpsg_tick(uint16_t tempo)
             channel = channel->next;
         }
     }
-
     if (ticks == 0)
     {
         struct channel *note = channels_releasing;
@@ -114,45 +112,33 @@ void ezpsg_tick(uint16_t tempo)
         {
             while ((int8_t)*ezpsg_song < 0)
                 ezpsg_instruments(&ezpsg_song);
-
             if ((int8_t)*ezpsg_song > 0)
                 waits = *ezpsg_song++;
         }
         return;
     }
-
     ticks--;
 }
 
-void ezpsg_play_note(uint8_t note,
-                     uint8_t duration,
-                     uint16_t duty,
-                     uint8_t vol_attack,
-                     uint8_t vol_decay,
-                     uint8_t wave_release,
-                     int8_t pan)
+uint16_t ezpsg_play_note(uint8_t note,
+                         uint8_t duration,
+                         uint16_t duty,
+                         uint8_t vol_attack,
+                         uint8_t vol_decay,
+                         uint8_t wave_release,
+                         int8_t pan)
 {
     uint16_t freq = note_to_freq(note);
     struct channel *channel = channels_free;
     struct channel **insert = &channels_playing;
     if (!channel)
-    {
-#ifdef NDEBUG
-        return;
-#else
-        puts("No free channels.");
-        exit(1);
-#endif
-    }
+        return 0xFFFF;
     channels_free = channel->next;
-
     while (*insert && duration > (*insert)->duration)
         insert = &(*insert)->next;
     channel->next = *insert;
     *insert = channel;
-
     channel->duration = duration;
-
     RIA.addr0 = channel->xaddr;
     RIA.step0 = 1;
     RIA.rw0 = freq & 0xff;
@@ -163,6 +149,7 @@ void ezpsg_play_note(uint8_t note,
     RIA.rw0 = vol_decay;
     RIA.rw0 = wave_release;
     RIA.rw0 = pan | 0x01;
+    return channel->xaddr;
 }
 
 void ezpsg_play_song(const uint8_t *song)
