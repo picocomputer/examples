@@ -13,107 +13,107 @@
 #define piano(note, duration) (-1), (note), (duration)
 #define end() (0)
 
-#define bar_1_1 piano(e5, 2),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2)
-#define bar_1_2 piano(e5, 2),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2),       \
-                piano(e5, 2),  \
-                wait(2),       \
-                piano(b4, 2),  \
-                wait(2),       \
-                piano(d5, 2),  \
-                wait(2),       \
-                piano(c5, 2),  \
-                wait(2)
-#define bar_1_3 piano(a4, 12), \
-                piano(a2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(a3, 8),  \
-                wait(2),       \
-                piano(c4, 6),  \
-                wait(2),       \
-                piano(e4, 4),  \
-                wait(2),       \
-                piano(a4, 2),  \
-                wait(2)
-#define bar_1_4 piano(b4, 4),  \
-                piano(e2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(gs3, 8), \
-                wait(2),       \
-                piano(e4, 6),  \
-                wait(2),       \
-                piano(gs4, 4), \
-                wait(2),       \
-                piano(b4, 2),  \
-                wait(2)
-#define bar_1_5 piano(c5, 4),  \
-                piano(a2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(a3, 8),  \
-                wait(2),       \
-                piano(e4, 6),  \
-                wait(2),       \
-                piano(e5, 4),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2)
-#define bar_1_6 piano(e5, 2),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2),       \
-                piano(e5, 2),  \
-                wait(2),       \
-                piano(b4, 2),  \
-                wait(2),       \
-                piano(d5, 2),  \
-                wait(2),       \
-                piano(c5, 2),  \
-                wait(2)
-#define bar_1_7 piano(a4, 4),  \
-                piano(a2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(a3, 8),  \
-                wait(2),       \
-                piano(c4, 6),  \
-                wait(2),       \
-                piano(e4, 4),  \
-                wait(2),       \
-                piano(a4, 2),  \
-                wait(2)
-#define bar_2_1 piano(b4, 4),  \
-                piano(e2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(gs3, 8), \
-                wait(2),       \
-                piano(d4, 6),  \
-                wait(2),       \
-                piano(c5, 4),  \
-                wait(2),       \
-                piano(b4, 2),  \
-                wait(2)
-#define bar_2_2 piano(a4, 8), \
+#define bar_0 piano(e5, 2),  \
+              wait(2),       \
+              piano(ds5, 2), \
+              wait(2)
+#define bar_1 piano(e5, 2),  \
+              wait(2),       \
+              piano(ds5, 2), \
+              wait(2),       \
+              piano(e5, 2),  \
+              wait(2),       \
+              piano(b4, 2),  \
+              wait(2),       \
+              piano(d5, 2),  \
+              wait(2),       \
+              piano(c5, 2),  \
+              wait(2)
+#define bar_2 piano(a4, 12), \
+              piano(a2, 12), \
+              wait(2),       \
+              piano(e3, 10), \
+              wait(2),       \
+              piano(a3, 8),  \
+              wait(2),       \
+              piano(c4, 6),  \
+              wait(2),       \
+              piano(e4, 4),  \
+              wait(2),       \
+              piano(a4, 2),  \
+              wait(2)
+#define bar_3 piano(b4, 4),  \
+              piano(e2, 12), \
+              wait(2),       \
+              piano(e3, 10), \
+              wait(2),       \
+              piano(gs3, 8), \
+              wait(2),       \
+              piano(e4, 6),  \
+              wait(2),       \
+              piano(gs4, 4), \
+              wait(2),       \
+              piano(b4, 2),  \
+              wait(2)
+#define bar_4 piano(c5, 4),  \
+              piano(a2, 12), \
+              wait(2),       \
+              piano(e3, 10), \
+              wait(2),       \
+              piano(a3, 8),  \
+              wait(2),       \
+              piano(e4, 6),  \
+              wait(2),       \
+              piano(e5, 4),  \
+              wait(2),       \
+              piano(ds5, 2), \
+              wait(2)
+#define bar_5 piano(e5, 2),  \
+              wait(2),       \
+              piano(ds5, 2), \
+              wait(2),       \
+              piano(e5, 2),  \
+              wait(2),       \
+              piano(b4, 2),  \
+              wait(2),       \
+              piano(d5, 2),  \
+              wait(2),       \
+              piano(c5, 2),  \
+              wait(2)
+#define bar_6 piano(a4, 4),  \
+              piano(a2, 12), \
+              wait(2),       \
+              piano(e3, 10), \
+              wait(2),       \
+              piano(a3, 8),  \
+              wait(2),       \
+              piano(c4, 6),  \
+              wait(2),       \
+              piano(e4, 4),  \
+              wait(2),       \
+              piano(a4, 2),  \
+              wait(2)
+#define bar_7 piano(b4, 4),  \
+              piano(e2, 12), \
+              wait(2),       \
+              piano(e3, 10), \
+              wait(2),       \
+              piano(gs3, 8), \
+              wait(2),       \
+              piano(d4, 6),  \
+              wait(2),       \
+              piano(c5, 4),  \
+              wait(2),       \
+              piano(b4, 2),  \
+              wait(2)
+#define bar_8_1 piano(a4, 8), \
                 piano(a2, 2), \
                 wait(2),      \
                 piano(e3, 2), \
                 wait(2),      \
                 piano(a3, 2), \
                 wait(4)
-#define bar_2_3 piano(a4, 4), \
+#define bar_8_2 piano(a4, 4), \
                 piano(a2, 2), \
                 wait(2),      \
                 piano(e3, 2), \
@@ -126,299 +126,297 @@
                 wait(2),      \
                 piano(d5, 2), \
                 wait(2)
-#define bar_2_4 piano(e5, 6),  \
-                piano(c3, 12), \
-                wait(2),       \
-                piano(g3, 10), \
-                wait(2),       \
-                piano(c4, 8),  \
-                wait(2),       \
-                piano(g4, 6),  \
-                wait(2),       \
-                piano(f5, 4),  \
-                wait(2),       \
-                piano(e5, 2),  \
-                wait(2)
-#define bar_2_5 piano(d5, 6),  \
-                piano(g2, 12), \
-                wait(2),       \
-                piano(g3, 10), \
-                wait(2),       \
-                piano(b3, 8),  \
-                wait(2),       \
-                piano(f4, 6),  \
-                wait(2),       \
-                piano(e5, 4),  \
-                wait(2),       \
-                piano(d5, 2),  \
-                wait(2)
-#define bar_2_6 piano(c5, 6),  \
-                piano(a2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(a3, 8),  \
-                wait(2),       \
-                piano(e4, 8),  \
-                wait(2),       \
-                piano(d5, 8),  \
-                wait(2),       \
-                piano(c5, 8),  \
-                wait(2)
-#define bar_2_7 piano(b4, 8), \
-                piano(e2, 8), \
-                wait(2),      \
-                piano(e3, 8), \
-                wait(2),      \
-                piano(e4, 8), \
-                wait(2),      \
-                piano(e4, 8), \
-                wait(2),      \
-                piano(e5, 8), \
-                wait(2),      \
-                piano(e4, 8), \
-                wait(2)
-#define bar_3_1 piano(e5, 8),  \
-                wait(2),       \
-                piano(e5, 8),  \
-                wait(2),       \
-                piano(e6, 8),  \
-                wait(2),       \
-                piano(ds5, 6), \
-                wait(2),       \
-                piano(e5, 4),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2)
-#define bar_3_2 piano(e5, 4),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2),       \
-                piano(e5, 2),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2),       \
-                piano(e5, 2),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2)
-#define bar_3_3 piano(e5, 2),  \
-                wait(2),       \
-                piano(ds5, 2), \
-                wait(2),       \
-                piano(e5, 2),  \
-                wait(2),       \
-                piano(b4, 2),  \
-                wait(2),       \
-                piano(d5, 2),  \
-                wait(2),       \
-                piano(c5, 2),  \
-                wait(2)
-#define bar_3_4 piano(a4, 4),  \
-                piano(a2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(a3, 8),  \
-                wait(2),       \
-                piano(c4, 8),  \
-                wait(2),       \
-                piano(e4, 8),  \
-                wait(2),       \
-                piano(a4, 8),  \
-                wait(2)
-#define bar_3_5 piano(b4, 4),  \
-                piano(e2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(gs3, 8), \
-                wait(2),       \
-                piano(e4, 8),  \
-                wait(2),       \
-                piano(gs4, 8), \
-                wait(2),       \
-                piano(b4, 8),  \
-                wait(2)
-#define bar_3_6 piano(c5, 4),  \
-                piano(a2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(a3, 8),  \
-                wait(2),       \
-                piano(e4, 8),  \
-                wait(2),       \
-                piano(e5, 8),  \
-                wait(2),       \
-                piano(ds5, 8), \
-                wait(2)
-#define bar_4_3 piano(b4, 4),  \
-                piano(e2, 12), \
-                wait(2),       \
-                piano(e3, 10), \
-                wait(2),       \
-                piano(gs3, 8), \
-                wait(2),       \
-                piano(d4, 8),  \
-                wait(2),       \
-                piano(c5, 8),  \
-                wait(2),       \
-                piano(b4, 8),  \
-                wait(2)
-#define bar_4_4 piano(a4, 4), \
-                piano(a2, 2), \
-                wait(2),      \
-                piano(e3, 2), \
-                wait(2),      \
-                piano(a3, 2), \
-                wait(2),      \
-                piano(b4, 2), \
-                wait(2),      \
-                piano(c5, 2), \
-                wait(2),      \
-                piano(d5, 2), \
-                wait(2)
-#define bar_4_5 piano(a4, 4),  \
-                piano(a2, 2),  \
-                wait(2),       \
-                piano(e3, 2),  \
-                wait(2),       \
-                piano(a3, 2),  \
-                wait(2),       \
-                piano(as3, 2), \
-                piano(c4, 2),  \
-                piano(e4, 2),  \
-                piano(c5, 2),  \
-                wait(2),       \
-                piano(a3, 2),  \
-                piano(c4, 2),  \
-                piano(f4, 2),  \
-                piano(c5, 2),  \
-                wait(2),       \
-                piano(g3, 2),  \
-                piano(as3, 2), \
-                piano(c4, 2),  \
-                piano(e4, 2),  \
-                piano(g4, 2),  \
-                piano(c5, 2),  \
-                wait(2)
-#define bar_4_6 piano(f4, 2), \
-                piano(a4, 2), \
-                piano(c5, 8), \
-                piano(f3, 2), \
-                wait(2),      \
-                piano(a3, 2), \
-                wait(2),      \
-                piano(c4, 2), \
-                wait(2),      \
-                piano(a3, 2), \
-                wait(2),      \
-                piano(f5, 3), \
-                piano(c4, 2), \
-                wait(2),      \
-                piano(a3, 2), \
-                wait(1),      \
-                piano(e5, 1), \
-                wait(1)
-
-#define bar_5_1 piano(e5, 4),  \
-                piano(d3, 2),  \
-                wait(2),       \
-                piano(as3, 2), \
-                wait(2),       \
-                piano(d5, 2),  \
-                piano(d4, 2),  \
-                wait(2),       \
-                piano(as3, 2), \
-                wait(2),       \
-                piano(as5, 3), \
-                piano(d4, 2),  \
-                wait(2),       \
-                piano(as3, 2), \
-                wait(1),       \
-                piano(a5, 1),  \
-                wait(1)
-
-#define bar_5_2 piano(a5, 2),  \
-                piano(d3, 2),  \
-                wait(2),       \
-                piano(g5, 2),  \
-                piano(e4, 2),  \
-                wait(2),       \
-                piano(f5, 2),  \
-                piano(d3, 2),  \
-                piano(e3, 2),  \
-                piano(fs3, 2), \
-                wait(2),       \
-                piano(e5, 2),  \
-                piano(e4, 2),  \
-                wait(2),       \
-                piano(d5, 2),  \
-                piano(d3, 2),  \
-                piano(e3, 2),  \
-                piano(fs3, 2), \
-                wait(2),       \
-                piano(c5, 2),  \
-                piano(e4, 2),  \
-                wait(2)
+#define bar_9 piano(e5, 6),  \
+              piano(c3, 12), \
+              wait(2),       \
+              piano(g3, 10), \
+              wait(2),       \
+              piano(c4, 8),  \
+              wait(2),       \
+              piano(g4, 6),  \
+              wait(2),       \
+              piano(f5, 4),  \
+              wait(2),       \
+              piano(e5, 2),  \
+              wait(2)
+#define bar_10 piano(d5, 6),  \
+               piano(g2, 12), \
+               wait(2),       \
+               piano(g3, 10), \
+               wait(2),       \
+               piano(b3, 8),  \
+               wait(2),       \
+               piano(f4, 6),  \
+               wait(2),       \
+               piano(e5, 4),  \
+               wait(2),       \
+               piano(d5, 2),  \
+               wait(2)
+#define bar_11 piano(c5, 6),  \
+               piano(a2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(a3, 8),  \
+               wait(2),       \
+               piano(e4, 8),  \
+               wait(2),       \
+               piano(d5, 8),  \
+               wait(2),       \
+               piano(c5, 8),  \
+               wait(2)
+#define bar_12 piano(b4, 8), \
+               piano(e2, 8), \
+               wait(2),      \
+               piano(e3, 8), \
+               wait(2),      \
+               piano(e4, 8), \
+               wait(2),      \
+               piano(e4, 8), \
+               wait(2),      \
+               piano(e5, 8), \
+               wait(2),      \
+               piano(e4, 8), \
+               wait(2)
+#define bar_13 piano(e5, 8),  \
+               wait(2),       \
+               piano(e5, 8),  \
+               wait(2),       \
+               piano(e6, 8),  \
+               wait(2),       \
+               piano(ds5, 6), \
+               wait(2),       \
+               piano(e5, 4),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2)
+#define bar_14 piano(e5, 4),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2)
+#define bar_15 piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(b4, 2),  \
+               wait(2),       \
+               piano(d5, 2),  \
+               wait(2),       \
+               piano(c5, 2),  \
+               wait(2)
+#define bar_16 piano(a4, 4),  \
+               piano(a2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(a3, 8),  \
+               wait(2),       \
+               piano(c4, 8),  \
+               wait(2),       \
+               piano(e4, 8),  \
+               wait(2),       \
+               piano(a4, 8),  \
+               wait(2)
+#define bar_17 piano(b4, 4),  \
+               piano(e2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(gs3, 8), \
+               wait(2),       \
+               piano(e4, 8),  \
+               wait(2),       \
+               piano(gs4, 8), \
+               wait(2),       \
+               piano(b4, 8),  \
+               wait(2)
+#define bar_18 piano(c5, 4),  \
+               piano(a2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(a3, 8),  \
+               wait(2),       \
+               piano(e4, 8),  \
+               wait(2),       \
+               piano(e5, 8),  \
+               wait(2),       \
+               piano(ds5, 8), \
+               wait(2)
+#define bar_21 piano(b4, 4),  \
+               piano(e2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(gs3, 8), \
+               wait(2),       \
+               piano(d4, 8),  \
+               wait(2),       \
+               piano(c5, 8),  \
+               wait(2),       \
+               piano(b4, 8),  \
+               wait(2)
+#define bar_22_1 piano(a4, 4), \
+                 piano(a2, 2), \
+                 wait(2),      \
+                 piano(e3, 2), \
+                 wait(2),      \
+                 piano(a3, 2), \
+                 wait(2),      \
+                 piano(b4, 2), \
+                 wait(2),      \
+                 piano(c5, 2), \
+                 wait(2),      \
+                 piano(d5, 2), \
+                 wait(2)
+#define bar_22_2 piano(a4, 4),  \
+                 piano(a2, 2),  \
+                 wait(2),       \
+                 piano(e3, 2),  \
+                 wait(2),       \
+                 piano(a3, 2),  \
+                 wait(2),       \
+                 piano(as3, 2), \
+                 piano(c4, 2),  \
+                 piano(e4, 2),  \
+                 piano(c5, 2),  \
+                 wait(2),       \
+                 piano(a3, 2),  \
+                 piano(c4, 2),  \
+                 piano(f4, 2),  \
+                 piano(c5, 2),  \
+                 wait(2),       \
+                 piano(g3, 2),  \
+                 piano(as3, 2), \
+                 piano(c4, 2),  \
+                 piano(e4, 2),  \
+                 piano(g4, 2),  \
+                 piano(c5, 2),  \
+                 wait(2)
+#define bar_23 piano(f4, 2), \
+               piano(a4, 2), \
+               piano(c5, 8), \
+               piano(f3, 2), \
+               wait(2),      \
+               piano(a3, 2), \
+               wait(2),      \
+               piano(c4, 2), \
+               wait(2),      \
+               piano(a3, 2), \
+               wait(2),      \
+               piano(f5, 3), \
+               piano(c4, 2), \
+               wait(2),      \
+               piano(a3, 2), \
+               wait(1),      \
+               piano(e5, 1), \
+               wait(1)
+#define bar_24 piano(e5, 4),  \
+               piano(d3, 2),  \
+               wait(2),       \
+               piano(as3, 2), \
+               wait(2),       \
+               piano(d5, 2),  \
+               piano(d4, 2),  \
+               wait(2),       \
+               piano(as3, 2), \
+               wait(2),       \
+               piano(as5, 3), \
+               piano(d4, 2),  \
+               wait(2),       \
+               piano(as3, 2), \
+               wait(1),       \
+               piano(a5, 1),  \
+               wait(1)
+#define bar_25 piano(a5, 2),  \
+               piano(d3, 2),  \
+               wait(2),       \
+               piano(g5, 2),  \
+               piano(e4, 2),  \
+               wait(2),       \
+               piano(f5, 2),  \
+               piano(d3, 2),  \
+               piano(e3, 2),  \
+               piano(fs3, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               piano(e4, 2),  \
+               wait(2),       \
+               piano(d5, 2),  \
+               piano(d3, 2),  \
+               piano(e3, 2),  \
+               piano(fs3, 2), \
+               wait(2),       \
+               piano(c5, 2),  \
+               piano(e4, 2),  \
+               wait(2)
 
 static const uint8_t song[] = {
     wait(1),
 
-    bar_1_1,
-    bar_1_2,
-    bar_1_3,
-    bar_1_4,
-    bar_1_5,
-    bar_1_6,
-    bar_1_7,
-    bar_2_1,
-    bar_2_2,
+    bar_0,
+    bar_1,
+    bar_2,
+    bar_3,
+    bar_4,
+    bar_5,
+    bar_6,
+    bar_7,
+    bar_8_1,
 
-    bar_1_1,
-    bar_1_2,
-    bar_1_3,
-    bar_1_4,
-    bar_1_5,
-    bar_1_6,
-    bar_1_7,
-    bar_2_1,
-    bar_2_3,
+    bar_0,
+    bar_1,
+    bar_2,
+    bar_3,
+    bar_4,
+    bar_5,
+    bar_6,
+    bar_7,
+    bar_8_2,
 
-    bar_2_4,
-    bar_2_5,
-    bar_2_6,
-    bar_2_7,
-    bar_3_1,
-    bar_3_2,
-    bar_3_3,
-    bar_3_4,
-    bar_3_5,
-    bar_3_6,
-    bar_3_3,
-    bar_3_4,
-    bar_4_3,
-    bar_4_4,
+    bar_9,
+    bar_10,
+    bar_11,
+    bar_12,
+    bar_13,
+    bar_14,
+    bar_15,
+    bar_16,
+    bar_17,
+    bar_18,
+    bar_15,
+    bar_16,
+    bar_21,
+    bar_22_1,
 
-    bar_2_4,
-    bar_2_5,
-    bar_2_6,
-    bar_2_7,
-    bar_3_1,
-    bar_3_2,
-    bar_3_3,
-    bar_3_4,
-    bar_3_5,
-    bar_3_6,
-    bar_3_3,
-    bar_3_4,
-    bar_4_3,
-    bar_4_5,
+    bar_9,
+    bar_10,
+    bar_11,
+    bar_12,
+    bar_13,
+    bar_14,
+    bar_15,
+    bar_16,
+    bar_17,
+    bar_18,
+    bar_15,
+    bar_16,
+    bar_21,
+    bar_22_2,
 
-    bar_4_6,
-    bar_5_1,
-    bar_5_2,
+    bar_23,
+    bar_24,
+    bar_25,
 
     end()};
 
