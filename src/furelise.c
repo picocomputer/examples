@@ -503,7 +503,7 @@ void ezpsg_instruments(const uint8_t **data)
                         48000u,     // duty
                         0x11,       // vol_attack
                         0xF9,       // vol_decay
-                        0x31,       // wave_release
+                        0x30,       // wave_release
                         0);         // pan
         break;
 #ifndef NDEBUG
