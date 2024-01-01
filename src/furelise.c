@@ -360,6 +360,75 @@
                piano(c5, 2),  \
                piano(e4, 2),  \
                wait(2)
+#define bar_26 piano(as4, 4), \
+               piano(f3, 2),  \
+               wait(2),       \
+               piano(a3, 2),  \
+               wait(2),       \
+               piano(a4, 4),  \
+               piano(c4, 2),  \
+               wait(2),       \
+               piano(as4, 4), \
+               piano(a3, 2),  \
+               wait(2),       \
+               piano(a4, 1),  \
+               piano(c4, 2),  \
+               wait(1),       \
+               piano(g4, 1),  \
+               wait(1),       \
+               piano(a4, 1),  \
+               piano(a3, 2),  \
+               wait(1),       \
+               piano(as4, 1), \
+               wait(1)
+#define bar_27 piano(c5, 8),  \
+               piano(f3, 2),  \
+               wait(2),       \
+               piano(a3, 2),  \
+               wait(2),       \
+               piano(c4, 2),  \
+               wait(2),       \
+               piano(a3, 2),  \
+               wait(2),       \
+               piano(d5, 2),  \
+               piano(c4, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               piano(a3, 2),  \
+               wait(2)
+#define bar_28 piano(e5, 6), \
+               piano(e3, 2), \
+               wait(2),      \
+               piano(a3, 2), \
+               wait(2),      \
+               piano(c4, 2), \
+               wait(2),      \
+               piano(e5, 2), \
+               piano(a3, 2), \
+               wait(2),      \
+               piano(f5, 2), \
+               piano(d4, 2), \
+               piano(d3, 2), \
+               wait(2),      \
+               piano(a4, 2), \
+               piano(f3, 2), \
+               wait(2)
+#define bar_29 piano(c5, 8), \
+               piano(g3, 2), \
+               wait(2),      \
+               piano(e4, 2), \
+               wait(2),      \
+               piano(g3, 2), \
+               wait(2),      \
+               piano(f4, 2), \
+               wait(2),      \
+               piano(d5, 3), \
+               piano(g3, 2), \
+               wait(2),      \
+               piano(f4, 2), \
+               wait(1),      \
+               piano(b4, 1), \
+               wait(1)
 
 static const uint8_t song[] = {
     wait(1),
@@ -417,6 +486,10 @@ static const uint8_t song[] = {
     bar_23,
     bar_24,
     bar_25,
+    bar_26,
+    bar_27,
+    bar_28,
+    bar_29,
 
     end()};
 
