@@ -2,6 +2,7 @@
  * Copyright (c) 2023 Rumbledethumps
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ * SPDX-License-Identifier: Unlicense
  */
 
 #include "ezpsg.h"
@@ -29,7 +30,7 @@
               wait(2),       \
               piano(c5, 2),  \
               wait(2)
-#define bar_2 piano(a4, 12), \
+#define bar_2 piano(a4, 4),  \
               piano(a2, 12), \
               wait(2),       \
               piano(e3, 10), \
@@ -660,10 +661,11 @@ void ezpsg_instruments(const uint8_t **data)
     case -1:                        // piano
         ezpsg_play_note(*(*data)++, // note
                         *(*data)++, // duration
+                        1,          // release
                         48000u,     // duty
                         0x11,       // vol_attack
                         0xF9,       // vol_decay
-                        0x30,       // wave_release
+                        0x34,       // wave_release
                         0);         // pan
         break;
 #ifndef NDEBUG

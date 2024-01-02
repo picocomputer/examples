@@ -137,6 +137,7 @@ void ezpsg_tick(uint16_t tempo);
 // Pan is -126(left) to +126(right), bit 0 ignored.
 uint16_t ezpsg_play_note(uint8_t note,
                          uint8_t duration,
+                         uint8_t release,
                          uint16_t duty,
                          uint8_t vol_attack,
                          uint8_t vol_decay,
@@ -149,7 +150,8 @@ void ezpsg_play_song(const uint8_t *song);
 // Returns true if a song is playing. Turns false at end of song.
 bool ezpsg_playing(void);
 
-// Instruments are implemented in this callback. See furelise.c example.
+// Instruments are implemented in this callback.
+// See furelise.c and poprock.c examples.
 void ezpsg_instruments(const uint8_t **data);
 
 #endif /* _EZPSG_H_ */

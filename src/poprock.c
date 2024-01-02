@@ -2,6 +2,7 @@
  * Copyright (c) 2023 Rumbledethumps
  *
  * SPDX-License-Identifier: BSD-3-Clause
+ * SPDX-License-Identifier: Unlicense
  */
 
 #include "ezpsg.h"
@@ -16,10 +17,6 @@
 #define end() (0)
 
 #define bar_1 hihat(), \
-              wait(4), \
-              hihat(), \
-              wait(4), \
-              hihat(), \
               wait(4), \
               hihat(), \
               wait(4)
@@ -82,6 +79,7 @@ void ezpsg_instruments(const uint8_t **data)
     case -1:                   // hihat
         ezpsg_play_note(e5,    // note
                         2,     // duration
+                        0,     // release
                         35000, // duty
                         0x51,  // vol_attack
                         0xF8,  // vol_decay
@@ -91,6 +89,7 @@ void ezpsg_instruments(const uint8_t **data)
     case -2:                        // kick
         ezpsg_play_note(d1,         // note
                         *(*data)++, // duration
+                        0,          // release
                         5000,       // duty
                         0x01,       // vol_attack
                         0xF9,       // vol_decay
@@ -100,6 +99,7 @@ void ezpsg_instruments(const uint8_t **data)
     case -3:                   // snare
         ezpsg_play_note(c3,    // note
                         4,     // duration
+                        0,     // release
                         15000, // duty
                         0x01,  // vol_attack
                         0xF8,  // vol_decay

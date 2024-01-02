@@ -28,6 +28,7 @@ static struct channel
     struct channel *next;
     uint16_t xaddr;
     uint8_t duration;
+    uint8_t release;
 } ezpsg_channels[PSG_CHANNELS];
 
 static struct channel *ezpsg_channels_free;
@@ -64,19 +65,22 @@ void ezpsg_tick(uint16_t tempo)
 {
     static unsigned ticks = 0;
     static unsigned durations = 0;
+    struct channel *channel;
     // Just before the last tick we release everything that's done playing.
     if (ticks == 1)
     {
         // A channel is done after its duration countdown.
-        struct channel *channel;
         while (ezpsg_channels_playing && ezpsg_channels_playing->duration <= 1)
         {
+            struct channel **releasing = &ezpsg_channels_releasing;
             // Remove from playing list.
             channel = ezpsg_channels_playing;
             ezpsg_channels_playing = ezpsg_channels_playing->next;
-            // Move to releasing list.
-            channel->next = ezpsg_channels_releasing;
-            ezpsg_channels_releasing = channel;
+            // Move to releasing list, ordered by release countdown.
+            while (*releasing && channel->release > (*releasing)->release)
+                releasing = &(*releasing)->next;
+            channel->next = *releasing;
+            *releasing = channel;
             // Clear gate bit.
             RIA.addr0 = channel->xaddr + (unsigned)(&((ria_psg_t *)0)->pan_gate);
             RIA.step0 = 0;
@@ -93,18 +97,23 @@ void ezpsg_tick(uint16_t tempo)
     // On the final tick of a duration.
     if (ticks == 0)
     {
-        // Move all the releasing channels back to the free list.
-        // They have had 1 tick, about 10-17ms, to release. This greatly
-        // simplifies the logic but limits the release rate to 0 (6ms).
-        struct channel *releasing = ezpsg_channels_releasing;
         ticks = tempo;
-        ezpsg_channels_releasing = NULL;
-        while (releasing)
+        // A channel is free after its release countdown.
+        while (ezpsg_channels_releasing && ezpsg_channels_releasing->release == 0)
         {
-            struct channel *next = releasing->next;
-            releasing->next = ezpsg_channels_free;
-            ezpsg_channels_free = releasing;
-            releasing = next;
+            // Remove from releasing list.
+            channel = ezpsg_channels_releasing;
+            ezpsg_channels_releasing = ezpsg_channels_releasing->next;
+            // Move to free list.
+            channel->next = ezpsg_channels_free;
+            ezpsg_channels_free = channel;
+        }
+        // Decrement everything still releasing.
+        channel = ezpsg_channels_releasing;
+        while (channel)
+        {
+            channel->release--;
+            channel = channel->next;
         }
         // We may have been asked to wait multiple durations.
         if (durations > 1)
@@ -122,12 +131,13 @@ void ezpsg_tick(uint16_t tempo)
         }
         return;
     }
-    // Tempo+1 ticks per duration.
+    // Tempo+1 ticks per duration/release.
     ticks--;
 }
 
 uint16_t ezpsg_play_note(uint8_t note,
                          uint8_t duration,
+                         uint8_t release,
                          uint16_t duty,
                          uint8_t vol_attack,
                          uint8_t vol_decay,
@@ -148,8 +158,9 @@ uint16_t ezpsg_play_note(uint8_t note,
         playing = &(*playing)->next;
     channel->next = *playing;
     *playing = channel;
-    // Set the duration countdown
+    // Set the countdowns
     channel->duration = duration;
+    channel->release = release;
     // Program the XRAM registers
     RIA.addr0 = channel->xaddr;
     RIA.step0 = 1;
