@@ -555,6 +555,34 @@
                wait(1),      \
                piano(d5, 1), \
                wait(1)
+#define bar_34 piano(e5, 1),  \
+               piano(b3, 4),  \
+               piano(gs4, 4), \
+               wait(1),       \
+               piano(f5, 1),  \
+               wait(1),       \
+               piano(e5, 1),  \
+               wait(1),       \
+               piano(ds5, 1), \
+               wait(1),       \
+               piano(e5, 1),  \
+               wait(1),       \
+               piano(b4, 1),  \
+               wait(1),       \
+               piano(e5, 1),  \
+               wait(1),       \
+               piano(ds5, 1), \
+               wait(1),       \
+               piano(e5, 1),  \
+               wait(1),       \
+               piano(b4, 1),  \
+               wait(1),       \
+               piano(e5, 1),  \
+               wait(1),       \
+               piano(ds5, 1), \
+               wait(1)
+#define bar_35 piano(e5, 6), \
+               wait(12)
 
 static const uint8_t song[] = {
     wait(1),
@@ -620,6 +648,8 @@ static const uint8_t song[] = {
     bar_31,
     bar_32,
     bar_33,
+    bar_34,
+    bar_35,
 
     end()};
 
