@@ -71,6 +71,13 @@ target_sources(palette PRIVATE
     src/palette.c
 )
 
+add_executable(poprock)
+rp6502_executable(poprock)
+target_sources(poprock PRIVATE
+    src/poprock.c
+    src/ezpsg.c
+)
+
 add_executable(raspberry)
 rp6502_executable(raspberry)
 target_sources(raspberry PRIVATE
