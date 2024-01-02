@@ -39,7 +39,7 @@ static const uint8_t *ezpsg_song;
 void ezpsg_init(uint16_t xaddr)
 {
     unsigned u;
-    // Clear RIA PSG XRASM.
+    // Clear RIA PSG XRAM.
     RIA.addr0 = xaddr;
     RIA.step0 = 1;
     for (u = 0; u < PSG_CHANNELS * sizeof(ria_psg_t); u++)
