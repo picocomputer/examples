@@ -16,11 +16,12 @@
 typedef struct
 {
     unsigned int freq;
-    unsigned int duty;
+    unsigned char duty;
     unsigned char vol_attack;
     unsigned char vol_decay;
     unsigned char wave_release;
     unsigned char pan_gate;
+    unsigned char unused;
 } ria_psg_t;
 
 static struct channel
@@ -138,7 +139,7 @@ void ezpsg_tick(uint16_t tempo)
 uint16_t ezpsg_play_note(uint8_t note,
                          uint8_t duration,
                          uint8_t release,
-                         uint16_t duty,
+                         uint8_t duty,
                          uint8_t vol_attack,
                          uint8_t vol_decay,
                          uint8_t wave_release,
@@ -166,8 +167,7 @@ uint16_t ezpsg_play_note(uint8_t note,
     RIA.step0 = 1;
     RIA.rw0 = freq & 0xff;
     RIA.rw0 = (freq >> 8) & 0xff;
-    RIA.rw0 = duty & 0xff;
-    RIA.rw0 = (duty >> 8) & 0xff;
+    RIA.rw0 = duty;
     RIA.rw0 = vol_attack;
     RIA.rw0 = vol_decay;
     RIA.rw0 = wave_release;

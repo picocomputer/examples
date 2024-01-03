@@ -662,7 +662,7 @@ void ezpsg_instruments(const uint8_t **data)
         ezpsg_play_note(*(*data)++, // note
                         *(*data)++, // duration
                         1,          // release
-                        48000u,     // duty
+                        192,        // duty
                         0x11,       // vol_attack
                         0xF9,       // vol_decay
                         0x34,       // wave_release

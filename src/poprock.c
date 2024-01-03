@@ -76,35 +76,35 @@ void ezpsg_instruments(const uint8_t **data)
 {
     switch ((int8_t) * (*data)++) // instrument
     {
-    case -1:                   // hihat
-        ezpsg_play_note(e5,    // note
-                        2,     // duration
-                        0,     // release
-                        35000, // duty
-                        0x51,  // vol_attack
-                        0xF8,  // vol_decay
-                        0x40,  // wave_release
-                        0);    // pan
+    case -1:                  // hihat
+        ezpsg_play_note(e5,   // note
+                        2,    // duration
+                        0,    // release
+                        12,   // duty
+                        0x61, // vol_attack
+                        0xF7, // vol_decay
+                        0x10, // wave_release
+                        0);   // pan
         break;
     case -2:                        // kick
         ezpsg_play_note(d1,         // note
                         *(*data)++, // duration
                         0,          // release
-                        5000,       // duty
+                        32,         // duty
                         0x01,       // vol_attack
                         0xF9,       // vol_decay
                         0x40,       // wave_release
                         0);         // pan
         break;
-    case -3:                   // snare
-        ezpsg_play_note(c3,    // note
-                        4,     // duration
-                        0,     // release
-                        15000, // duty
-                        0x01,  // vol_attack
-                        0xF8,  // vol_decay
-                        0x40,  // wave_release
-                        0);    // pan
+    case -3:                  // snare
+        ezpsg_play_note(c3,   // note
+                        4,    // duration
+                        0,    // release
+                        64,   // duty
+                        0x01, // vol_attack
+                        0xF8, // vol_decay
+                        0x40, // wave_release
+                        0);   // pan
         break;
 #ifndef NDEBUG
     default:

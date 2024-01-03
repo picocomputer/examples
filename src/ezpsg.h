@@ -138,7 +138,7 @@ void ezpsg_tick(uint16_t tempo);
 uint16_t ezpsg_play_note(uint8_t note,
                          uint8_t duration,
                          uint8_t release,
-                         uint16_t duty,
+                         uint8_t duty,
                          uint8_t vol_attack,
                          uint8_t vol_decay,
                          uint8_t wave_release,
