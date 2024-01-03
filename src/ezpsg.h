@@ -123,13 +123,15 @@ enum ezpsg_notes
                          2794, 2960, 3136, 3322, 3520, 3729, 3951, 4186
 
 // Call init with a valid xram address to turn on RIA PSG sound.
-// Call with 0xFFFF to turn off PSG sound. Requires 64 bytes of xram.
+// Requires 64 bytes of xram.
 void ezpsg_init(uint16_t xaddr);
 
 // Call tick 60-100 times per second. RIA.vsync is usually good enough,
 // but a 6522 timer can be used for precision bpm. Tempo is how many ticks+1
-// equal one duration unit.
-void ezpsg_tick(uint16_t tempo);
+// equal one duration unit. Return value is true when work was done. Work is
+// always done in two adjacent ticks once every duration unit. Use the return
+// value to defer other non-time-critical tasks in a game loop.
+bool ezpsg_tick(uint16_t tempo);
 
 // Call play note at any time, even from a game engine for sound effects.
 // Returns XRAM address of PSG config structure used for playback.

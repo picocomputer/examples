@@ -62,7 +62,7 @@ void ezpsg_init(uint16_t xaddr)
     ezpsg_song = NULL;
 }
 
-void ezpsg_tick(uint16_t tempo)
+bool ezpsg_tick(uint16_t tempo)
 {
     static unsigned ticks = 0;
     static unsigned durations = 0;
@@ -94,11 +94,12 @@ void ezpsg_tick(uint16_t tempo)
             channel->duration--;
             channel = channel->next;
         }
+        ticks--;
+        return true;
     }
     // On the final tick of a duration.
     if (ticks == 0)
     {
-        ticks = tempo;
         // A channel is free after its release countdown.
         while (ezpsg_channels_releasing && ezpsg_channels_releasing->release == 0)
         {
@@ -118,22 +119,21 @@ void ezpsg_tick(uint16_t tempo)
         }
         // We may have been asked to wait multiple durations.
         if (durations > 1)
-        {
             durations--;
-            return;
-        }
         // Play all the instruments then go back to waiting.
-        if (ezpsg_song)
+        else if (ezpsg_song)
         {
             while ((int8_t)*ezpsg_song < 0)
                 ezpsg_instruments(&ezpsg_song);
             if ((int8_t)*ezpsg_song > 0)
                 durations = *ezpsg_song++;
         }
-        return;
+        ticks = tempo;
+        return true;
     }
     // Tempo+1 ticks per duration/release.
     ticks--;
+    return false;
 }
 
 uint16_t ezpsg_play_note(uint8_t note,
