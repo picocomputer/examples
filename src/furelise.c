@@ -908,6 +908,186 @@
                wait(2),       \
                piano(a2, 2),  \
                wait(2)
+#define bar_64 piano(f4, 8), \
+               piano(d5, 8), \
+               piano(a2, 2), \
+               piano(d2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               piano(d2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               piano(d2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               piano(d2, 2), \
+               wait(2),      \
+               piano(e4, 2), \
+               piano(c5, 2), \
+               piano(a2, 2), \
+               piano(d2, 2), \
+               wait(2),      \
+               piano(d4, 2), \
+               piano(b4, 2), \
+               piano(a2, 2), \
+               piano(d2, 2), \
+               wait(2)
+#define bar_65 piano(c4, 8),  \
+               piano(fs4, 8), \
+               piano(a4, 8),  \
+               piano(a2, 2),  \
+               piano(ds2, 2), \
+               wait(2),       \
+               piano(a2, 2),  \
+               piano(ds2, 2), \
+               wait(2),       \
+               piano(a2, 2),  \
+               piano(ds2, 2), \
+               wait(2),       \
+               piano(a2, 2),  \
+               piano(ds2, 2), \
+               wait(2),       \
+               piano(c4, 4),  \
+               piano(a4, 4),  \
+               piano(a2, 2),  \
+               piano(ds2, 2), \
+               wait(2),       \
+               piano(a2, 2),  \
+               piano(ds2, 2), \
+               wait(2)
+#define bar_66 piano(c4, 4),  \
+               piano(a4, 4),  \
+               piano(a2, 2),  \
+               piano(e2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               piano(e2, 2),  \
+               wait(2),       \
+               piano(e4, 4),  \
+               piano(c5, 4),  \
+               piano(a2, 2),  \
+               piano(e2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               piano(e2, 2),  \
+               wait(2),       \
+               piano(d4, 4),  \
+               piano(b4, 4),  \
+               piano(gs2, 2), \
+               piano(e2, 2),  \
+               wait(2),       \
+               piano(gs2, 2), \
+               piano(e2, 2),  \
+               wait(2)
+#define bar_67 piano(c4, 12), \
+               piano(a4, 12), \
+               piano(a1, 2),  \
+               piano(a2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               wait(2),       \
+               piano(a2, 2),  \
+               wait(2)
+#define bar_70 piano(d5, 8), \
+               piano(f5, 8), \
+               piano(a2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               wait(2),      \
+               piano(d5, 4), \
+               piano(f5, 4), \
+               piano(a2, 2), \
+               wait(2),      \
+               piano(a2, 2), \
+               wait(2)
+#define bar_71 piano(d5, 12), \
+               piano(f5, 12), \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2)
+#define bar_72 piano(g4, 8),  \
+               piano(ds5, 8), \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(f4, 2),  \
+               piano(d5, 2),  \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(ds4, 2), \
+               piano(c5, 2),  \
+               piano(as2, 2), \
+               wait(2)
+#define bar_73 piano(d4, 8),  \
+               piano(f4, 8),  \
+               piano(as4, 8), \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(d4, 4),  \
+               piano(f4, 4),  \
+               piano(a4, 4),  \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2)
+#define bar_74 piano(d4, 8),  \
+               piano(f4, 8),  \
+               piano(gs4, 8), \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(d4, 4),  \
+               piano(f4, 4),  \
+               piano(gs4, 4), \
+               piano(as2, 2), \
+               wait(2),       \
+               piano(as2, 2), \
+               wait(2)
+#define bar_75 piano(c3, 8), \
+               piano(c4, 8), \
+               piano(e4, 8), \
+               piano(a4, 8), \
+               wait(12)
+#define bar_76 piano(e3, 4),  \
+               piano(gs3, 4), \
+               piano(e4, 4),  \
+               piano(b4, 4),  \
+               wait(12)
 
 static const uint8_t song[] = {
     wait(1),
@@ -1007,6 +1187,20 @@ static const uint8_t song[] = {
     bar_61,
     bar_62,
     bar_63,
+    bar_64,
+    bar_65,
+    bar_66,
+    bar_67,
+    bar_60,
+    bar_61,
+
+    bar_70,
+    bar_71,
+    bar_72,
+    bar_73,
+    bar_74,
+    bar_75,
+    bar_76,
 
     end()};
 
