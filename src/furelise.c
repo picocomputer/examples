@@ -582,8 +582,150 @@
                wait(1),       \
                piano(ds5, 1), \
                wait(1)
-#define bar_35 piano(e5, 6), \
-               wait(12)
+#define bar_35 piano(e5, 6),  \
+               wait(6),       \
+               piano(b4, 2),  \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2)
+#define bar_36 piano(e5, 6),  \
+               wait(6),       \
+               piano(b4, 2),  \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2)
+#define bar_37 piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2)
+#define bar_38 piano(e5, 2),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2),       \
+               piano(b4, 2),  \
+               wait(2),       \
+               piano(d5, 2),  \
+               wait(2),       \
+               piano(c5, 2),  \
+               wait(2)
+#define bar_39 piano(a4, 4),  \
+               piano(a2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(a3, 8),  \
+               wait(2),       \
+               piano(c4, 6),  \
+               wait(2),       \
+               piano(e4, 4),  \
+               wait(2),       \
+               piano(a4, 2),  \
+               wait(2)
+#define bar_40 piano(b4, 4),  \
+               piano(c2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(gs3, 8), \
+               wait(2),       \
+               piano(e4, 6),  \
+               wait(2),       \
+               piano(gs4, 4), \
+               wait(2),       \
+               piano(b4, 2),  \
+               wait(2)
+#define bar_41 piano(c5, 4),  \
+               piano(a2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(a3, 8),  \
+               wait(2),       \
+               piano(e4, 6),  \
+               wait(2),       \
+               piano(e5, 4),  \
+               wait(2),       \
+               piano(ds5, 2), \
+               wait(2)
+#define bar_44 piano(b4, 4),  \
+               piano(e2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(gs3, 8), \
+               wait(2),       \
+               piano(d4, 6),  \
+               wait(2),       \
+               piano(c5, 4),  \
+               wait(2),       \
+               piano(b4, 2),  \
+               wait(2)
+#define bar_45 piano(a4, 4), \
+               piano(a2, 2), \
+               wait(2),      \
+               piano(e3, 2), \
+               wait(2),      \
+               piano(a3, 2), \
+               wait(2),      \
+               piano(b4, 2), \
+               wait(2),      \
+               piano(c5, 2), \
+               wait(2),      \
+               piano(d5, 2), \
+               wait(2)
+#define bar_46 piano(e5, 6),  \
+               piano(c3, 12), \
+               wait(2),       \
+               piano(g3, 10), \
+               wait(2),       \
+               piano(c4, 8),  \
+               wait(2),       \
+               piano(g4, 6),  \
+               wait(2),       \
+               piano(f5, 4),  \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2)
+#define bar_47 piano(d5, 6),  \
+               piano(g2, 12), \
+               wait(2),       \
+               piano(g3, 10), \
+               wait(2),       \
+               piano(b3, 8),  \
+               wait(2),       \
+               piano(g4, 6),  \
+               wait(2),       \
+               piano(f5, 4),  \
+               wait(2),       \
+               piano(e5, 2),  \
+               wait(2)
+#define bar_48 piano(c5, 6),  \
+               piano(a2, 12), \
+               wait(2),       \
+               piano(e3, 10), \
+               wait(2),       \
+               piano(a3, 8),  \
+               wait(2),       \
+               piano(e4, 6),  \
+               wait(2),       \
+               piano(d5, 4),  \
+               wait(2),       \
+               piano(c5, 2),  \
+               wait(2)
 
 static const uint8_t song[] = {
     wait(1),
@@ -645,12 +787,27 @@ static const uint8_t song[] = {
     bar_27,
     bar_28,
     bar_29,
+
     bar_30,
     bar_31,
     bar_32,
     bar_33,
     bar_34,
     bar_35,
+    bar_36,
+    bar_37,
+    bar_38,
+    bar_39,
+
+    bar_40,
+    bar_41,
+    bar_38,
+    bar_39,
+    bar_44,
+    bar_45,
+    bar_46,
+    bar_47,
+    bar_48,
 
     end()};
 
@@ -681,6 +838,15 @@ void ezpsg_instruments(const uint8_t **data)
 void main(void)
 {
     uint8_t v = RIA.vsync;
+
+    int cp = codepage();
+    char u = 'u';
+    if (cp == 437 || cp == 850)
+        u = 0x81; //  u diaeresis
+    putchar('F');
+    putchar(u);
+    puts("r Elise");
+    puts("by Ludwig van Beethoven");
 
     ezpsg_init(0xFF00);
     ezpsg_play_song(song);
