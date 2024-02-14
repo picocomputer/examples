@@ -35,6 +35,12 @@ target_sources(furelise PRIVATE
     src/ezpsg.c
 )
 
+add_executable(gamepad)
+rp6502_executable(gamepad)
+target_sources(gamepad PRIVATE
+    src/gamepad.c
+)
+
 add_executable(mandelbrot)
 rp6502_executable(mandelbrot)
 target_sources(mandelbrot PRIVATE
