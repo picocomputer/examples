@@ -18,15 +18,6 @@ void main()
     unsigned u;
     xreg_ria_gamepad(0xFF00);
 
-    // Detect if gamepad connected
-    // Set dpad to 0xF, which is invalid, and wait for it to change
-    RIA.addr0 = 0xFF04;
-    RIA.step0 = 0;
-    RIA.rw0 = 0xFF;
-    printf("Waiting on gamepad.\n");
-    while (RIA.rw0 == 0xFF)
-        ;
-
     while (1)
     {
         // Read all the values. Note that you can ignore the analog inputs
@@ -38,6 +29,12 @@ void main()
         btns2 = RIA.rw0;
         btns3 = RIA.rw0;
         printf("l2:%3u r2:%3u ", RIA.rw0, RIA.rw0);
+
+        if (btns1 & 0x0F == 0xF)
+        {
+            printf("Disconnected\n");
+            continue;
+        }
 
         printf("%s", dpad[btns1 & 0xf]);
         if (btns1 & 0x10)
