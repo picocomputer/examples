@@ -112,4 +112,5 @@ function(rp6502_asset name addr in_file)
             -o "${CMAKE_CURRENT_BINARY_DIR}/${out_file}"
             create "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
     )
+    add_dependencies(${name} ${custom_target_name})
 endfunction()
