@@ -4,6 +4,7 @@
     "C_Cpp.default.systemIncludePath": [
         "/share/cc65/include",
         "/usr/share/cc65/include",
+        "C:/cc65/include",
     ],
     "C_Cpp.default.defines": [
         "__cdecl__=",
@@ -12,6 +13,7 @@
     ],
     "cmake.showSystemKits": false,
     "cmake.preferredGenerators": [
-        "Unix Makefiles"
+        "Ninja",
+        "Unix Makefiles",
     ],
 }

@@ -55,8 +55,17 @@ function(rp6502_executable name)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(tool_command "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
-        -a "${start_addr}" -r "${reset_addr}"
     )
+    if (NOT start_addr STREQUAL "none")
+        list(APPEND tool_command
+            -a "${start_addr}"
+        )
+    endif ()
+    if (NOT reset_addr STREQUAL "none")
+        list(APPEND tool_command
+            -r "${reset_addr}"
+        )
+    endif ()
     if (NOT irq_addr STREQUAL "none")
         list(APPEND tool_command
             -i "${irq_addr}"
@@ -73,8 +82,9 @@ function(rp6502_executable name)
         -- ${extra_roms}
     )
     add_custom_command(TARGET ${name} POST_BUILD
-        COMMAND ${tool_command}
-        DEPENDS ${name})
+        COMMAND ${tool_command})
+    set_property( TARGET ${name} APPEND PROPERTY
+        LINK_DEPENDS ${extra_roms})
 endfunction()
 
 # Package anything as an RP6502 ROM.
