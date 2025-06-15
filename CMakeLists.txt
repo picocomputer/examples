@@ -96,6 +96,12 @@ target_sources(rtc PRIVATE
     src/rtc.c
 )
 
+add_executable(term)
+rp6502_executable(term DATA 0x200 RESET 0x200)
+target_sources(term PRIVATE
+    src/term.c
+)
+
 add_executable(vsync)
 rp6502_executable(vsync DATA 0x200 RESET 0x200)
 target_sources(vsync PRIVATE

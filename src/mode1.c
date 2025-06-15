@@ -94,8 +94,6 @@ void main()
     RIA.rw0 = 12;
     RIA.rw0 = 14;
 
-    // while (1)
-    //     ;
     scroll(true, true);
 
     printf("\n");
