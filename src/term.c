@@ -23,7 +23,15 @@ void main()
 {
     char rx_char, tx_char;
     bool rx_mode, tx_mode;
-    int fd = open("AT:", 0);
+    int fd, cp;
+
+    cp = codepage(437);
+    if (cp != 437)
+    {
+        print("Code page 437 not found.\r\n");
+    }
+
+    fd = open("AT:", 0);
     if (fd < 0)
     {
         print("Modem not found.\r\n");
