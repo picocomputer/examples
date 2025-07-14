@@ -13,52 +13,54 @@
 
 void show()
 {
-    const char *dpad[] = {"N ", "NE ", "E ", "SE ", "S ", "SW ", "W ", "NW ", ""};
-    uint8_t btns1, btns2, btns3;
+    const char *dpad[] = {"N ", "NE ", "E ", "SE ", "S ", "SW ", "W ", "NW ", "",
+                          "Error", "Error", "Error", "Error", "Error", "Error",
+                          "Disconnected"};
+    uint8_t hat, btns0, btns1, btns2;
 
-    printf("lx:%3u ly:%3u rx:%3u ry:%3u ", RIA.rw0, RIA.rw0, RIA.rw0, RIA.rw0);
+    printf("lx:%3u ly:%3u ", RIA.rw0, RIA.rw0);
+    printf("rx:%3u ry:%3u ", RIA.rw0, RIA.rw0);
+    printf("lt:%3u rt:%3u ", RIA.rw0, RIA.rw0);
+    hat = RIA.rw0;
+    btns0 = RIA.rw0;
     btns1 = RIA.rw0;
     btns2 = RIA.rw0;
-    btns3 = RIA.rw0;
-    printf("l2:%3u r2:%3u ", RIA.rw0, RIA.rw0);
 
-    if (btns1 & 0x0F == 0xF)
-    {
-        printf("Disconnected\n");
-        return;
-    }
+    printf("%s", dpad[hat & 0xf]);
 
-    printf("%s", dpad[btns1 & 0xf]);
-    if (btns1 & 0x10)
-        printf("Square ");
-    if (btns1 & 0x20)
-        printf("Cross ");
-    if (btns1 & 0x40)
-        printf("Circle ");
-    if (btns1 & 0x80)
-        printf("Triangle ");
-
-    if (btns2 & 0x01)
+    if (btns0 & 0x01)
+        printf("A ");
+    if (btns0 & 0x02)
+        printf("B ");
+    if (btns0 & 0x04)
+        printf("X ");
+    if (btns0 & 0x08)
+        printf("Y ");
+    if (btns0 & 0x10)
         printf("L1 ");
-    if (btns2 & 0x02)
+    if (btns0 & 0x20)
         printf("R1 ");
-    if (btns2 & 0x04)
+    if (btns0 & 0x40)
         printf("L2 ");
-    if (btns2 & 0x08)
+    if (btns0 & 0x80)
         printf("R2 ");
-    if (btns2 & 0x10)
-        printf("Share ");
-    if (btns2 & 0x20)
-        printf("Option ");
-    if (btns2 & 0x40)
-        printf("L3 ");
-    if (btns2 & 0x80)
-        printf("R3 ");
 
-    if (btns3 & 0x01)
-        printf("PS ");
-    if (btns3 & 0x02)
-        printf("Tpad ");
+    if (btns1 & 0x01)
+        printf("BK ");
+    if (btns1 & 0x02)
+        printf("ST ");
+    if (btns1 & 0x04)
+        printf("L3 ");
+    if (btns1 & 0x08)
+        printf("R3 ");
+    if (btns1 & 0x10)
+        printf("() ");
+
+    if (btns1 & 0xE0)
+        printf("1:%02X ", btns1 & 0xE0);
+
+    if (btns2)
+        printf("2:%02X ", btns2);
 
     printf("\n");
 }
@@ -72,13 +74,16 @@ void main()
     {
         while (--u)
             ;
-        // Read all the values. Note that you can ignore the analog inputs
-        // and any button set you don't care about.
         RIA.addr0 = 0xFF00;
         RIA.step0 = 1;
-        printf("\nP1 ");
+        printf("P1 ");
         show();
         printf("P2 ");
         show();
+        printf("P3 ");
+        show();
+        printf("P4 ");
+        show();
+        printf("\n");
     }
 }
