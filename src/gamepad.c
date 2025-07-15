@@ -47,12 +47,9 @@ void show(int player)
 
     if (!(hat & 0x80))
     {
-        printf("\33[K\n\33[K\n\n");
+        printf("\33[K\n\033[90m   Disconnected\033[0m\33[K\n\n");
         return;
     }
-
-    if (hat & 0x40)
-        printf("Sony");
 
     printf("\n   ");
 
@@ -84,11 +81,8 @@ void show(int player)
 
     // Unknown buttons
     if (btns1 & 0xE0)
-        printf("0x%02X ", btns1 & 0xE0);
-    else
-        printf("\33[K");
-
-    printf("\n\n");
+        printf("\033[90m0x%02X\033[0m", btns1 & 0xE0);
+    printf("\33[K\n\n");
 }
 
 void main()
