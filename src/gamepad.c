@@ -28,7 +28,10 @@ void print(bool enabled, const char *str)
 
 void show(int player)
 {
-    const char *dpad[] = {"N ", "NE", "E ", "SE", "S ", "SW", "W ", "NW", "- "};
+    const char *dpad[] = {"0 ", "N ", "S ", "ER",
+                          "W ", "NW", "SW", "ER",
+                          "E ", "NE", "SE", "ER",
+                          "ER", "ER", "ER", "ER"};
     uint8_t hat, sticks, btns0, btns1;
 
     printf("P%d ", player);
@@ -38,8 +41,8 @@ void show(int player)
     btns0 = RIA.rw0;
     btns1 = RIA.rw0;
 
-    printf("lx:%3u ly:%3u ", RIA.rw0, RIA.rw0);
-    printf("rx:%3u ry:%3u ", RIA.rw0, RIA.rw0);
+    printf("lx:%4d ly:%4d ", (int8_t)RIA.rw0, (int8_t)RIA.rw0);
+    printf("rx:%4d ry:%4d ", (int8_t)RIA.rw0, (int8_t)RIA.rw0);
     printf("lt:%3u rt:%3u ", RIA.rw0, RIA.rw0);
     printf("L:%s ", dpad[sticks & 0xF]);
     printf("R:%s ", dpad[(sticks & 0xF0) >> 4]);
@@ -70,11 +73,11 @@ void show(int player)
 
     print(btns0 & 0x10, "L1");
     print(btns0 & 0x20, "R1");
-    print(btns0 & 0x40, "L2");
-    print(btns0 & 0x80, "R2");
+    print(btns0 & 0x40, "BK");
+    print(btns0 & 0x80, "ST");
 
-    print(btns1 & 0x01, "BK");
-    print(btns1 & 0x02, "ST");
+    print(btns1 & 0x01, "L2");
+    print(btns1 & 0x02, "R2");
     print(btns1 & 0x04, "L3");
     print(btns1 & 0x08, "R3");
     print(btns1 & 0x10, "(*)");
