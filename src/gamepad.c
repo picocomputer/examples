@@ -90,11 +90,11 @@ void show(int player)
 
 void main()
 {
-    printf("\30\33cPicocomputer 6502 Gamepad Tester");
+    printf("\30\33c\nPicocomputer 6502 Gamepad Tester");
     xreg_ria_gamepad(0xFF00);
     while (1)
     {
-        printf("\33[H\33[2B");
+        printf("\33[H\33[3B");
         RIA.addr0 = 0xFF00;
         RIA.step0 = 1;
         show(1);
