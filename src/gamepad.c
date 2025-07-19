@@ -73,14 +73,14 @@ void show(int player)
 
     print(btns0 & 0x10, "L1");
     print(btns0 & 0x20, "R1");
-    print(btns0 & 0x40, "BK");
-    print(btns0 & 0x80, "ST");
+    print(btns0 & 0x40, "Select");
+    print(btns0 & 0x80, "Start");
 
     print(btns1 & 0x01, "L2");
     print(btns1 & 0x02, "R2");
     print(btns1 & 0x04, "L3");
     print(btns1 & 0x08, "R3");
-    print(btns1 & 0x10, "(*)");
+    print(btns1 & 0x10, "Home");
 
     // Unknown buttons
     if (btns1 & 0xE0)
