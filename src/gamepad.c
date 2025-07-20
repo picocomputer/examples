@@ -10,7 +10,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifndef xreg_ria_gamepad
 #define xreg_ria_gamepad(...) xreg(0, 0, 2, __VA_ARGS__)
+#endif
 
 void print(bool enabled, const char *str)
 {
