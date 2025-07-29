@@ -62,31 +62,38 @@ void show(int player)
     {
         print(btns0 & 0x01, "Cross");
         print(btns0 & 0x02, "Circle");
-        print(btns0 & 0x04, "Square");
-        print(btns0 & 0x08, "Triangle");
+        print(btns0 & 0x08, "Square");
+        print(btns0 & 0x10, "Triangle");
     }
     else
     {
         print(btns0 & 0x01, "A");
         print(btns0 & 0x02, "B");
-        print(btns0 & 0x04, "X");
-        print(btns0 & 0x08, "Y");
+        print(btns0 & 0x08, "X");
+        print(btns0 & 0x10, "Y");
     }
 
-    print(btns0 & 0x10, "L1");
-    print(btns0 & 0x20, "R1");
-    print(btns0 & 0x40, "Select");
-    print(btns0 & 0x80, "Start");
-
+    print(btns0 & 0x40, "L1");
+    print(btns0 & 0x80, "R1");
     print(btns1 & 0x01, "L2");
     print(btns1 & 0x02, "R2");
-    print(btns1 & 0x04, "L3");
-    print(btns1 & 0x08, "R3");
-    print(btns1 & 0x10, "Home");
 
-    // Unknown buttons
-    if (btns1 & 0xE0)
-        printf("\033[90m0x%02X\033[0m", btns1 & 0xE0);
+    print(btns1 & 0x04, "Select");
+    print(btns1 & 0x08, "Start");
+    print(btns1 & 0x10, "Home");
+    print(btns1 & 0x20, "L3");
+    print(btns1 & 0x40, "R3");
+
+    // Rare C and Z buttons
+    if (btns0 & 0x04)
+        printf("\033[90mC\033[0m ");
+    if (btns0 & 0x20)
+        printf("\033[90mZ\033[0m ");
+
+    // Extra button
+    if (btns1 & 0x80)
+        printf("\033[90m?\033[0m");
+
     printf("\33[K\n\n");
 }
 
