@@ -69,8 +69,10 @@ void show(int player)
     {
         print(btns0 & 0x01, "A");
         print(btns0 & 0x02, "B");
+        print(btns0 & 0x04, "C");
         print(btns0 & 0x08, "X");
         print(btns0 & 0x10, "Y");
+        print(btns0 & 0x20, "Z");
     }
 
     print(btns0 & 0x40, "L1");
@@ -84,15 +86,7 @@ void show(int player)
     print(btns1 & 0x20, "L3");
     print(btns1 & 0x40, "R3");
 
-    // Rare C and Z buttons
-    if (btns0 & 0x04)
-        printf("\033[30;42mC\033[0m ");
-    if (btns0 & 0x20)
-        printf("\033[30;42mZ\033[0m ");
-
-    // Extra button
-    if (btns1 & 0x80)
-        printf("\033[30;42m?\033[0m");
+    print(btns1 & 0x80, "?");
 
     printf("\33[K\n\n");
 }
