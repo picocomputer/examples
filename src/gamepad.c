@@ -86,13 +86,13 @@ void show(int player)
 
     // Rare C and Z buttons
     if (btns0 & 0x04)
-        printf("\033[90mC\033[0m ");
+        printf("\033[30;42mC\033[0m ");
     if (btns0 & 0x20)
-        printf("\033[90mZ\033[0m ");
+        printf("\033[30;42mZ\033[0m ");
 
     // Extra button
     if (btns1 & 0x80)
-        printf("\033[90m?\033[0m");
+        printf("\033[30;42m?\033[0m");
 
     printf("\33[K\n\n");
 }
