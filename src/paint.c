@@ -14,7 +14,7 @@
 #define CANVAS_HEIGHT 240
 
 // Mouse speed divider
-#define MOUSE_DIV 4
+#define MOUSE_DIV 2
 
 // XRAM locations
 #define CANVAS_STRUCT 0xFF00
