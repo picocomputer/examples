@@ -11,7 +11,7 @@
 // Example where assets are loaded to xram via CMakeLists.txt:
 //   rp6502_asset(altair 0x10000 src/altair.pal.bin)
 //   rp6502_asset(altair 0x10200 src/altair.dat.bin)
-//   rp6502_executable(altair 0x0200 0x0200
+//   rp6502_executable(altair DATA 0x200 RESET 0x200
 //       altair.pal.rp6502
 //       altair.dat.rp6502
 //   )
