@@ -22,10 +22,10 @@ target_sources(altair PRIVATE
     src/altair.c
 )
 
-add_executable(gets)
-rp6502_executable(gets DATA 0x200 RESET 0x200)
-target_sources(gets PRIVATE
-    src/gets.c
+add_executable(dir)
+rp6502_executable(dir DATA 0x200 RESET 0x200)
+target_sources(dir PRIVATE
+    src/dir.c
 )
 
 add_executable(furelise)
@@ -39,6 +39,12 @@ add_executable(gamepad)
 rp6502_executable(gamepad DATA 0x200 RESET 0x200)
 target_sources(gamepad PRIVATE
     src/gamepad.c
+)
+
+add_executable(gets)
+rp6502_executable(gets DATA 0x200 RESET 0x200)
+target_sources(gets PRIVATE
+    src/gets.c
 )
 
 add_executable(mandelbrot)
