@@ -1544,7 +1544,7 @@ static const uint8_t song[] = {
 void ezpsg_instruments(const uint8_t **data)
 {
     uint8_t note, vol_decay;
-    switch ((int8_t) * (*data)++) // instrument
+    switch ((int8_t)*(*data)++) // instrument
     {
     case -1: // piano
         // higher notes decay faster
@@ -1565,8 +1565,8 @@ void ezpsg_instruments(const uint8_t **data)
         break;
 #ifndef NDEBUG
     default:
-        // The instrumment you just added probably isn't
-        // consuming the correct number of paramaters.
+        // The instrument you just added probably isn't
+        // consuming the correct number of parameters.
         puts("Unknown instrument.");
         exit(1);
 #endif
@@ -1577,7 +1577,7 @@ void main(void)
 {
     uint8_t v = RIA.vsync;
 
-    int cp = codepage(0);
+    int cp = code_page(0);
     char u = 'u';
     if (cp == 437 || cp == 850)
         u = 0x81; //  u diaeresis

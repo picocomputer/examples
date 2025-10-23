@@ -25,7 +25,7 @@ void main()
     bool rx_mode, tx_mode;
     int fd, cp;
 
-    cp = codepage(437);
+    cp = code_page(437);
     if (cp != 437)
     {
         print("Code page 437 not found.\r\n");
