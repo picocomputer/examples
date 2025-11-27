@@ -10,8 +10,8 @@
 #include <stdint.h>
 
 // 320x180 and 320x240 supported
-#define CANVAS_WIDTH 320
-#define CANVAS_HEIGHT 240
+#define CANVAS_WIDTH 320u
+#define CANVAS_HEIGHT 240u
 
 // Mouse speed divider
 #define MOUSE_DIV 2

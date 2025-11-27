@@ -79,17 +79,17 @@ void main()
     char s[256];
     unsigned long free_blocks, total_blocks;
 
-    if (0 > f_getlabel("", &s))
+    if (0 > f_getlabel("", s))
         err();
     printf("LABEL: %s\n", s);
 
-    if (0 > f_getcwd(&s, sizeof(s)))
+    if (0 > f_getcwd(s, sizeof(s)))
         err();
     printf("PATH : %s\n", s);
 
     dir("");
 
-    if (0 > f_getfree(&s, &free_blocks, &total_blocks))
+    if (0 > f_getfree(s, &free_blocks, &total_blocks))
         err();
     printf("FREE: %lu of %lu 512 byte blocks\n", free_blocks, total_blocks);
 }
