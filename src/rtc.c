@@ -5,7 +5,7 @@
  * SPDX-License-Identifier: Unlicense
  */
 
- #include <rp6502.h>
+#include <rp6502.h>
 #include <stdio.h>
 #include <time.h>
 
