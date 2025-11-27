@@ -17,12 +17,15 @@ cmake_path(APPEND CC65_SYSTEM_INCLUDE_DIR ".." "include")
 cmake_path(ABSOLUTE_PATH CC65_SYSTEM_INCLUDE_DIR)
 include_directories(BEFORE SYSTEM ${CC65_SYSTEM_INCLUDE_DIR})
 
-# Evil hack to get IntelliSense working by wrapping cl65.
+# Evil hack to get IntelliSense and problem matchers working by wrapping cl65.
 # Comment out these lines to completely disable hack.
-set(CC65_C_COMPILER "${CMAKE_C_COMPILER}" CACHE FILEPATH "Real cc65 compiler path")
+add_compile_options("$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_SOURCE_DIR}/tools/intellisense_fix.h>")
+set(CC65_C_COMPILER "${CMAKE_C_COMPILER}" CACHE FILEPATH "Real cc65 C compiler")
 set(CMAKE_C_COMPILER ${CMAKE_COMMAND})
 set(CMAKE_C_COMPILER_ARG1 "-P ${CMAKE_CURRENT_LIST_DIR}/cc65_wrapper.cmake -- ${CC65_C_COMPILER}")
-add_compile_options("$<$<COMPILE_LANGUAGE:C>:SHELL:-include ${CMAKE_SOURCE_DIR}/tools/intellisense_fix.h>")
+set(CC65_ASM_COMPILER "${CMAKE_ASM_COMPILER}" CACHE FILEPATH "Real cc65 ASM compiler")
+set(CMAKE_ASM_COMPILER ${CMAKE_COMMAND})
+set(CMAKE_ASM_COMPILER_ARG1 "-P ${CMAKE_CURRENT_LIST_DIR}/cc65_wrapper.cmake -- ${CC65_ASM_COMPILER}")
 
 # Override CMake internals to work with cc65.
 set(CMAKE_C_COMPILE_OBJECT "<CMAKE_C_COMPILER> <DEFINES> <INCLUDES> <FLAGS> -o <OBJECT> --add-source -l <OBJECT>.s -c <SOURCE>")

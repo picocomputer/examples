@@ -1,4 +1,4 @@
-# Wrapper script to filter out arguments that cc65 doesn't support.
+# Wrapper to filter out arguments that cc65 doesn't support.
 # This enables passing extra arguments to IntelliSense.
 
 # Args 0-3 are the cmake call to this script.
