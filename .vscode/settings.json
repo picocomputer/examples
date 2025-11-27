@@ -1,6 +1,6 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "C_Cpp.default.cStandard": "c99",
+    "C_Cpp.default.cStandard": "c89",
     "C_Cpp.default.defines": [
         "__cdecl__=",
         "__fastcall__=",
