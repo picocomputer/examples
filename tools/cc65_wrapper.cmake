@@ -1,5 +1,6 @@
 # Wrapper to filter out arguments that cc65 doesn't support.
 # This enables passing extra arguments to IntelliSense.
+# Errors and warnings adjusted for standard problem matcher.
 
 # Args 0-3 are the cmake call to this script.
 if(NOT CMAKE_ARGV3 STREQUAL "--")
