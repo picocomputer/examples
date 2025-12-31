@@ -1,11 +1,12 @@
 /*
- * Copyright (c) 2023 Rumbledethumps
+ * Copyright (c) 2025 Rumbledethumps
  *
  * SPDX-License-Identifier: BSD-3-Clause
  * SPDX-License-Identifier: Unlicense
  */
 
 #include <rp6502.h>
+#include <6502.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -13,16 +14,16 @@
 #define CANVAS_WIDTH 320u
 #define CANVAS_HEIGHT 240u
 
-// Mouse speed divider
+// Mouse speed divider, 1 for 640, 2 for 320
 #define MOUSE_DIV 2
 
 // XRAM locations
-#define CANVAS_STRUCT 0xFF00
-#define PICKER_STRUCT 0xFF10
-#define POINTER_STRUCT 0xFF20
 #define CANVAS_DATA 0x0000
 #define PICKER_DATA 0xA000
 #define POINTER_DATA 0xB000
+#define CANVAS_STRUCT 0xFF00
+#define PICKER_STRUCT 0xFF10
+#define POINTER_STRUCT 0xFF20
 #define MOUSE_INPUT 0xFFA0
 
 // Color Picker, do not change
@@ -36,6 +37,72 @@ static bool is_drawing;
 static bool is_dragging;
 static int picker_x, picker_y;
 static int drag_x, drag_y;
+static int line_x, line_y;
+
+static uint8_t mouse_stack[8];
+static int16_t mouse_pos_x;
+static int16_t mouse_pos_y;
+
+unsigned char mouse_irq_fn(void)
+{
+    static int16_t raw_x, raw_y;
+    static uint8_t prev_x, prev_y;
+    uint8_t rw;
+    uint8_t save_step0;
+    uint16_t save_addr0;
+
+    // ISR stuff
+    VIA.ifr = 0x40;
+    save_addr0 = RIA.addr0;
+    save_step0 = RIA.step0;
+
+    RIA.addr0 = MOUSE_INPUT + 1;
+    rw = RIA.rw0;
+    raw_x += (int8_t)(rw - prev_x);
+    prev_x = rw;
+    if (raw_x < 0)
+        raw_x = 0;
+    if (raw_x > (CANVAS_WIDTH - 1) * MOUSE_DIV)
+        raw_x = (CANVAS_WIDTH - 1) * MOUSE_DIV;
+
+    RIA.addr0 = MOUSE_INPUT + 2;
+    rw = RIA.rw0;
+    raw_y += (int8_t)(rw - prev_y);
+    prev_y = rw;
+    if (raw_y < 0)
+        raw_y = 0;
+    if (raw_y > (CANVAS_HEIGHT - 1) * MOUSE_DIV)
+        raw_y = (CANVAS_HEIGHT - 1) * MOUSE_DIV;
+
+    // Compute the real coords and update the mouse pointer
+    mouse_pos_x = raw_x / MOUSE_DIV;
+    mouse_pos_y = raw_y / MOUSE_DIV;
+    xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, x_pos_px, mouse_pos_x - 1);
+    xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, y_pos_px, mouse_pos_y - 1);
+
+    // Many applications would benefit from click and keyboard events generated
+    // here in this ISR. This paint example isn't yet complex enough to need one.
+    // Don't forget to increase the stack as necessary.
+
+    // ISR stuff
+    RIA.addr0 = save_addr0;
+    RIA.step0 = save_step0;
+    return IRQ_HANDLED;
+}
+
+static void mouse_init(void)
+{
+    // 125Hz from the VIA
+    unsigned timer_val = (phi2() * 8) - 2;
+    VIA.t1l_lo = timer_val & 0xFF;
+    VIA.t1l_hi = timer_val >> 8;
+    VIA.t1_lo = timer_val & 0xFF;
+    VIA.t1_hi = timer_val >> 8;
+    VIA.acr = 0x40;
+    VIA.ier = 0xC0;
+    xreg_ria_mouse(MOUSE_INPUT);
+    set_irq(mouse_irq_fn, &mouse_stack, sizeof(mouse_stack));
+}
 
 static void erase_canvas(void)
 {
@@ -120,6 +187,16 @@ static void move_picker(int x, int y)
     xram0_struct_set(PICKER_STRUCT, vga_mode3_config_t, y_pos_px, picker_y);
 }
 
+static void draw_pixel(int x, int y)
+{
+    RIA.step0 = 0;
+    RIA.addr0 = y * 160 + x / 2;
+    if (x & 1)
+        RIA.rw0 = (RIA.rw0 & 0xF0) | active_color;
+    else
+        RIA.rw0 = (RIA.rw0 & 0x0F) | active_color << 4;
+}
+
 static void move(int x, int y)
 {
     if (is_dragging)
@@ -128,12 +205,48 @@ static void move(int x, int y)
     }
     else if (is_drawing)
     {
-        RIA.step0 = 0;
-        RIA.addr0 = y * 160 + x / 2;
-        if (x & 1)
-            RIA.rw0 = (RIA.rw0 & 0xF0) | active_color;
+        // Bresenham's line algorithm
+        int dx = x - line_x;
+        int dy = y - line_y;
+        int ax = dx < 0 ? -dx : dx;
+        int ay = dy < 0 ? -dy : dy;
+        int sx = dx < 0 ? -1 : 1;
+        int sy = dy < 0 ? -1 : 1;
+        int cx = line_x;
+        int cy = line_y;
+        if (ax > ay)
+        {
+            int d = 2 * ay - ax;
+            while (cx != x)
+            {
+                draw_pixel(cx, cy);
+                if (d > 0)
+                {
+                    cy += sy;
+                    d -= 2 * ax;
+                }
+                d += 2 * ay;
+                cx += sx;
+            }
+        }
         else
-            RIA.rw0 = (RIA.rw0 & 0x0F) | active_color << 4;
+        {
+            int d = 2 * ax - ay;
+            while (cy != y)
+            {
+                draw_pixel(cx, cy);
+                if (d > 0)
+                {
+                    cx += sx;
+                    d -= 2 * ay;
+                }
+                d += 2 * ax;
+                cy += sy;
+            }
+        }
+        draw_pixel(x, y);
+        line_x = x;
+        line_y = y;
     }
 }
 
@@ -180,6 +293,8 @@ static void left_press(int x, int y)
     {
         is_drawing = true;
         active_color = left_color;
+        line_x = x;
+        line_y = y;
     }
     if (num >= 0 && num <= 15)
         change_left_color(num);
@@ -206,6 +321,8 @@ static void right_press(int x, int y)
     {
         is_drawing = true;
         active_color = right_color;
+        line_x = x;
+        line_y = y;
     }
     if (num >= 0 && num <= 15)
         change_right_color(num);
@@ -218,42 +335,17 @@ static void right_release(void)
 
 static void mouse(void)
 {
-    static int sx, sy;
-    static uint8_t mb, mx, my;
-
+    static uint8_t mb;
     int x, y;
     uint8_t rw, changed, pressed, released;
 
-    RIA.addr0 = MOUSE_INPUT + 1;
-    rw = RIA.rw0;
-    if (mx != rw)
-    {
-        sx += (int8_t)(rw - mx);
-        mx = rw;
-        if (sx < -MOUSE_DIV)
-            sx = -MOUSE_DIV;
-        if (sx > (CANVAS_WIDTH - 2) * MOUSE_DIV)
-            sx = (CANVAS_WIDTH - 2) * MOUSE_DIV;
-    }
+    // Atomically obtain the mouse position
+    SEI();
+    x = mouse_pos_x;
+    y = mouse_pos_y;
+    CLI();
 
-    RIA.addr0 = MOUSE_INPUT + 2;
-    rw = RIA.rw0;
-    if (my != rw)
-    {
-        sy += (int8_t)(rw - my);
-        my = rw;
-        if (sy < -MOUSE_DIV)
-            sy = -MOUSE_DIV;
-        if (sy > (CANVAS_HEIGHT - 2) * MOUSE_DIV)
-            sy = (CANVAS_HEIGHT - 2) * MOUSE_DIV;
-    }
-
-    x = sx / MOUSE_DIV;
-    y = sy / MOUSE_DIV;
-    xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, x_pos_px, x);
-    xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, y_pos_px, y);
-    x++, y++;
-
+    // Dispatch button events
     RIA.addr0 = MOUSE_INPUT + 0;
     rw = RIA.rw0;
     changed = mb ^ rw;
@@ -333,7 +425,7 @@ void main()
     xreg_vga_mode(3, 3, PICKER_STRUCT, 1);
     xreg_vga_mode(3, 3, POINTER_STRUCT, 2);
 
-    xreg_ria_mouse(MOUSE_INPUT);
+    mouse_init();
     while (1)
         mouse();
 }
