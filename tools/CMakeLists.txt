@@ -1,9 +1,10 @@
 # Add cmake commands: rp6502_executable() and rp6502_asset()
+cmake_minimum_required(VERSION 3.17)
 
-# Package a CC65 executable target as an RP6502 ROM.
+# Package the target as an RP6502 ROM.
 #
-# RP6502 Executables
-# ^^^^^^^^^^^^^^^^^^
+# RP6502 Executable ROM
+# ^^^^^^^^^^^^^^^^^^^^^
 #
 #  rp6502_executable(<name>
 #                    [DATA <addr>]
@@ -12,7 +13,8 @@
 #                    [IRQ <addr>]
 #                    roms...)
 #
-# Packages executable target ``<name>`` into RP6502 ROM format.
+# Packages the ``<name>`` into RP6502 ROM format merged with
+# additional asset ``roms...`` created with rp6502_asset().
 # The word `file` may be used for any <addr> indicating the
 # address is to be read from the linker output in this order:
 # ``DATA <addr>`` Starting memory address to load data.
@@ -50,7 +52,7 @@ function(rp6502_executable name)
     endforeach()
     # Remove old ROM
     add_custom_command(TARGET ${name} PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E remove
+        COMMAND ${CMAKE_COMMAND} -E rm -f
         "${CMAKE_CURRENT_BINARY_DIR}/${name}.rp6502"
     )
     # Create new ROM
@@ -97,8 +99,8 @@ endfunction()
 
 # Package anything as an RP6502 ROM.
 #
-# RP6502 ROMs
-# ^^^^^^^^^^^
+# RP6502 Asset ROM
+# ^^^^^^^^^^^^^^^^
 #
 #  rp6502_asset(<name> addr in_file [out_file])
 #
