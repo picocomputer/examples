@@ -13,8 +13,8 @@ cmake_minimum_required(VERSION 3.17)
 #                    [IRQ <addr>]
 #                    roms...)
 #
-# Packages the ``<name>`` into RP6502 ROM format merged with
-# additional asset ``roms...`` created with rp6502_asset().
+# Packages the ``<name>`` into RP6502 ROM format. Merges with
+# specified ``roms...`` and those created with rp6502_asset().
 # The word `file` may be used for any <addr> indicating the
 # address is to be read from the linker output in this order:
 # ``DATA <addr>`` Starting memory address to load data.
@@ -111,16 +111,17 @@ function(rp6502_executable name)
     )
 endfunction()
 
-# Package anything as an RP6502 ROM.
+# Package anything in RP6502 ROM.
 #
 # RP6502 Asset ROM
 # ^^^^^^^^^^^^^^^^
 #
-#  rp6502_asset(<name> addr in_file)
+#  rp6502_asset(<name> address in_file)
 #
-# Packages the ``in_file`` into RP6502 ROM format.
-# Output (.rp6502) lands in CMakeFiles/<name>.dir/ alongside object files.
-# Use `none` for addr to produce a raw ROM with no load address.
+# If the address is numeric, the in_file will be loaded into
+# RAM ($0-FFFF) or XRAM ($10000-1FFFF) when the ROM is loaded.
+# Non-numeric addresses become filenames that can be opened
+# with "ROM:filename" from a micro filesystem in the ROM.
 #
 function(rp6502_asset name addr in_file)
     get_filename_component(out_name "${in_file}" NAME)
@@ -129,11 +130,7 @@ function(rp6502_asset name addr in_file)
     set(asset_command
         "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
-    )
-    if (NOT addr STREQUAL "none")
-        list(APPEND asset_command -a "${addr}")
-    endif()
-    list(APPEND asset_command
+        -a "${addr}"
         -o "${out_file}"
         create "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
     )

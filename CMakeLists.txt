@@ -21,8 +21,8 @@ target_sources(altair1 PRIVATE
 )
 
 add_executable(altair2)
-rp6502_asset(altair2 none src/altair.pal.bin)
-rp6502_asset(altair2 none src/altair.dat.bin)
+rp6502_asset(altair2 altair.pal src/altair.pal.bin)
+rp6502_asset(altair2 altair.dat src/altair.dat.bin)
 rp6502_executable(altair2 DATA 0x200 RESET 0x200
     src/altair.hlp.rp6502
 )

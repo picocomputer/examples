@@ -607,7 +607,7 @@ class ROM:
         self.help = []
         self.data = {}
         self.alloc = {}
-        self.raw = b""
+        self.assets = []  # list of (name, bytes)
 
     def add_help(self, string: str):
         """Add help string."""
@@ -615,13 +615,15 @@ class ROM:
             raise ROMException("Help line > 80 cols")
         self.help.append(string)
 
-    def add_raw_data(self, data: bytes):
-        """Append unaddressed raw data (stored after #!END in ROM file)."""
-        self.raw += data
+    def add_asset(self, name: str, data: bytes):
+        """Append a named asset (stored after #!ASSETS in ROM file)."""
+        if any(n == name for n, _ in self.assets):
+            raise ROMException(f"Asset name already exists: {name}")
+        self.assets.append((name, data))
 
-    def has_raw_data(self) -> bool:
-        """Returns true if there is raw data."""
-        return len(self.raw) > 0
+    def has_assets(self) -> bool:
+        """Returns true if there are named assets."""
+        return len(self.assets) > 0
 
     def add_binary_data(self, data: bytes, addr: int):
         """Add binary data to ROM."""
@@ -703,8 +705,23 @@ class ROM:
                 command = f.readline().decode("ascii").rstrip()
                 if len(command) == 0:
                     break
-                if re.match(r"^#!END$", command, re.IGNORECASE):
-                    self.raw += f.read()
+                if re.match(r"^#!ASSETS$", command, re.IGNORECASE):
+                    while True:
+                        header = f.readline().decode("ascii").rstrip("\n")
+                        if not header:
+                            break
+                        m = re.match(r"^(\$[0-9A-Fa-f]+|\d+) (.+)$", header.rstrip())
+                        if not m:
+                            raise ROMException(f"Invalid asset header: {header!r}")
+                        len_str = re.sub(r"^\$", "0x", m.group(1))
+                        asset_len = int(len_str, 0)
+                        asset_name = m.group(2)
+                        asset_data = f.read(asset_len)
+                        if len(asset_data) != asset_len:
+                            raise ROMException(
+                                f"Truncated asset data for: {asset_name}"
+                            )
+                        self.add_asset(asset_name, asset_data)
                     break
                 help_match = re.search(r"^ *(# )", command)
                 if help_match:
@@ -796,36 +813,42 @@ def exec_args():
                 nargs=nargs,
                 help="Local filename." if nargs == 1 else "Local filename(s).",
             )
-
-    parser.add_argument("-o", dest="out", metavar="name", help="Output path/filename.")
-    parser.add_argument(
+    parsers["create"].add_argument(
         "-a",
         "--address",
         dest="address",
         metavar="addr",
-        help="Starting address of data or `file` to read from file.",
+        required=True,
+        help="Asset name (string) or starting address of binary data.",
     )
-    parser.add_argument(
+    parsers["upload"].add_argument(
+        "-o", dest="out", metavar="name", help="Output path/filename."
+    )
+    parsers["create"].add_argument(
+        "-o", dest="out", metavar="name", required=True, help="Output path/filename."
+    )
+    parsers["create"].add_argument(
         "-n",
         "--nmi",
         dest="nmi",
         metavar="addr",
         help="NMI vector for $FFFA-$FFFB or `file` to read from file.",
     )
-    parser.add_argument(
+    parsers["create"].add_argument(
         "-r",
         "--reset",
         dest="reset",
         metavar="addr",
         help="Reset vector for $FFFC-$FFFD or `file` to read from file.",
     )
-    parser.add_argument(
+    parsers["create"].add_argument(
         "-i",
         "--irq",
         dest="irq",
         metavar="addr",
         help="IRQ vector for $FFFE-$FFFF or `file` to read from file.",
     )
+
     parser.add_argument(
         "-c",
         "--config",
@@ -890,10 +913,14 @@ def exec_args():
             else:
                 parser.error(f"argument {errmsg}: invalid address: '{str}'")
 
-    args.address = str_to_address(parser, args.address, "-a/--address")
-    args.nmi = str_to_address(parser, args.nmi, "-n/--nmi")
-    args.reset = str_to_address(parser, args.reset, "-r/--reset")
-    args.irq = str_to_address(parser, args.irq, "-i/--irq")
+    def str_to_address_or_name(str):
+        """For --address: returns int for a parseable number, else treats as asset name."""
+        if str:
+            converted = re.sub("^\\$", "0x", str)
+            if re.match("^(0x)?[0-9A-Fa-f]+$", converted):
+                return int(converted, 0)
+            return str  # asset filename
+        return None
 
     # Open console and extend error with a hint about the config file
     if args.command in ["term", "run", "upload", "basic"]:
@@ -913,10 +940,8 @@ def exec_args():
         print(f"[{SCRIPT_FILE}] Reading ROM {args.filename[0]}")
         rom = ROM()
         rom.add_rom_file(args.filename[0])
-        if args.reset != None:
-            rom.add_reset_vector(args.reset)
-        if rom.has_raw_data():
-            print(f"[{SCRIPT_FILE}] Uploading ROM (raw data detected)")
+        if rom.has_assets():
+            print(f"[{SCRIPT_FILE}] Uploading ROM (assets detected)")
             with open(args.filename[0], "rb") as f:
                 console.upload(f, os.path.basename(args.filename[0]))
             print(f"[{SCRIPT_FILE}] Loading ROM")
@@ -968,14 +993,16 @@ def exec_args():
             console.terminal(code_page)
 
     if args.command == "create":
-        if args.out == None:
-            parser.error(f"argument -o required")
+        args.address = str_to_address_or_name(args.address)
+        args.nmi = str_to_address(parser, args.nmi, "-n/--nmi")
+        args.reset = str_to_address(parser, args.reset, "-r/--reset")
+        args.irq = str_to_address(parser, args.irq, "-i/--irq")
         print(f"[{os.path.basename(__file__)}] Creating {args.out}")
         rom = ROM()
         print(f"[{os.path.basename(__file__)}] Adding binary asset {args.filename[0]}")
-        if args.address is None:
+        if isinstance(args.address, str):
             with open(args.filename[0], "rb") as f:
-                rom.add_raw_data(f.read())
+                rom.add_asset(args.address, f.read())
         else:
             rom.add_binary_file(
                 args.filename[0],
@@ -1002,9 +1029,11 @@ def exec_args():
                 file.write(data)
                 addr += len(data)
                 addr, data = rom.next_rom_data(addr)
-            if rom.has_raw_data():
-                file.write(b"#!END\n")
-                file.write(rom.raw)
+            if rom.has_assets():
+                file.write(b"#!ASSETS\n")
+                for asset_name, asset_data in rom.assets:
+                    file.write(f"${len(asset_data):08X} {asset_name}\n".encode("ascii"))
+                    file.write(asset_data)
 
 
 # This file may be included or run like a program.
@@ -1019,6 +1048,9 @@ if __name__ == "__main__":
     except (ROMException, FileNotFoundError, TimeoutError, RuntimeError) as e:
         # Unresolved variable substitutions like ${command:cmake.launchTargetPath}
         if re.search(r"\$\{[^}]*\}", str(e)):
-            print(f"[{os.path.basename(__file__)}] Check build for failures")
-        print(f"[{os.path.basename(__file__)}] {e}")
+            print(
+                f"[{os.path.basename(__file__)}] Check build for failures",
+                file=sys.stderr,
+            )
+        print(f"[{os.path.basename(__file__)}] {e}", file=sys.stderr)
         os._exit(1)  # special exit without raising
