@@ -124,15 +124,23 @@ function(rp6502_asset name addr in_file)
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${out_file}
     )
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(asset_command
+        "${Python3_EXECUTABLE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
+    )
+    # addr of "none" produces a raw-data-only ROM (no memory load address)
+    # addr of 0 is a valid load address and is passed through normally
+    if (NOT addr STREQUAL "none")
+        list(APPEND asset_command -a "${addr}")
+    endif()
+    list(APPEND asset_command
+        -o "${CMAKE_CURRENT_BINARY_DIR}/${out_file}"
+        create "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
+    )
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${out_file}
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${in_file}
-        COMMAND
-            "${Python3_EXECUTABLE}"
-            "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
-            -a "${addr}"
-            -o "${CMAKE_CURRENT_BINARY_DIR}/${out_file}"
-            create "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
+        COMMAND ${asset_command}
     )
     add_dependencies(${name} ${custom_target_name})
 endfunction()

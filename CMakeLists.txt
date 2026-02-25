@@ -11,19 +11,25 @@ target_sources(affine PRIVATE
 )
 
 add_executable(altair1)
-rp6502_asset(altair1 0x10000 src/altair.pal.bin)
-rp6502_asset(altair1 0x10200 src/altair.dat.bin)
+# rp6502_asset(altair1 0x10000 src/altair.pal.bin)
+# rp6502_asset(altair1 0x10200 src/altair.dat.bin)
 rp6502_executable(altair1 DATA 0x200 RESET 0x200
     ${CMAKE_CURRENT_LIST_DIR}/src/altair.hlp.rp6502
-    altair.pal.bin.rp6502
-    altair.dat.bin.rp6502
+    # altair.pal.bin.rp6502
+    # altair.dat.bin.rp6502
 )
 target_sources(altair1 PRIVATE
     src/altair1.c
 )
 
 add_executable(altair2)
-rp6502_executable(altair2 DATA 0x200 RESET 0x200)
+rp6502_asset(altair2 none src/altair.pal.bin)
+rp6502_asset(altair2 none src/altair.dat.bin)
+rp6502_executable(altair2 DATA 0x200 RESET 0x200
+    ${CMAKE_CURRENT_LIST_DIR}/src/altair.hlp.rp6502
+    altair.pal.bin.rp6502
+    altair.dat.bin.rp6502
+)
 target_sources(altair2 PRIVATE
     src/altair2.c
 )

@@ -42,22 +42,6 @@ SCRIPT_NAME = os.path.splitext(SCRIPT_FILE)[0].upper()
 # so short that it becomes suspect.
 RESPONSE_TIMEOUT = 2.0
 
-# TODO
-# The rom format has been extended to support #!END at the end of rom
-# data and the start of raw data. We need to accumulate this extra data
-# similar to how we accumulate memory data. data with an address of
-# none is considered raw data. also look in tools/cmakelists.txt to
-# make sure rp6502_asset supports addr of 0. Note that a file without
-# #!END is still valid, but has no raw data.
-#
-# Once that is done, the run command will need to detect rom files with
-# non-empty raw data. These need to be uploaded and executed with the
-# upload and load commands. Load is just load filename.rp6502 on the remote.
-#
-# we need to os._exit(1) at the end for com port timeouts and "?error" errors.
-# Look into how we branch normal 6502 dev process errors vs python script bug.
-# and make improvements if necessary.
-
 
 class SerialPort:
     """Cross-platform serial port implementation."""
@@ -607,7 +591,7 @@ class Console:
                 break
             if len(data) == 0:
                 if time.monotonic() - start > timeout:
-                    raise TimeoutError()
+                    raise TimeoutError("Timeout: console did not respond")
 
 
 class ROMException(Exception):
@@ -623,12 +607,21 @@ class ROM:
         self.help = []
         self.data = {}
         self.alloc = {}
+        self.raw = b""
 
     def add_help(self, string: str):
         """Add help string."""
         if len(string) > 80:
             raise ROMException("Help line > 80 cols")
         self.help.append(string)
+
+    def add_raw_data(self, data: bytes):
+        """Append unaddressed raw data (stored after #!END in ROM file)."""
+        self.raw += data
+
+    def has_raw_data(self) -> bool:
+        """Returns true if there is raw data."""
+        return len(self.raw) > 0
 
     def add_binary_data(self, data: bytes, addr: int):
         """Add binary data to ROM."""
@@ -709,6 +702,9 @@ class ROM:
             while True:
                 command = f.readline().decode("ascii").rstrip()
                 if len(command) == 0:
+                    break
+                if re.match(r"^#!END$", command, re.IGNORECASE):
+                    self.raw += f.read()
                     break
                 help_match = re.search(r"^ *(# )", command)
                 if help_match:
@@ -917,8 +913,16 @@ def exec_args():
         rom.add_rom_file(args.filename[0])
         if args.reset != None:
             rom.add_reset_vector(args.reset)
-        print(f"[{SCRIPT_FILE}] Sending ROM")
-        console.send_rom(rom)
+        if rom.has_raw_data():
+            print(f"[{SCRIPT_FILE}] ROM has raw data, uploading {args.filename[0]}")
+            with open(args.filename[0], "rb") as f:
+                console.upload(f, os.path.basename(args.filename[0]))
+            print(f"[{SCRIPT_FILE}] Loading ROM via LOAD command")
+            # TODO 
+            console.command(f"LOAD {os.path.basename(args.filename[0])}")
+        else:
+            print(f"[{SCRIPT_FILE}] Sending ROM")
+            console.send_rom(rom)
         if args.term:
             code_page = console.code_page()
         if rom.has_reset_vector():
@@ -964,18 +968,20 @@ def exec_args():
     if args.command == "create":
         if args.out == None:
             parser.error(f"argument -o required")
-        if args.address == None:
-            parser.error(f"argument -a/--address required")
         print(f"[{os.path.basename(__file__)}] Creating {args.out}")
         rom = ROM()
         print(f"[{os.path.basename(__file__)}] Adding binary asset {args.filename[0]}")
-        rom.add_binary_file(
-            args.filename[0],
-            data=args.address,
-            nmi=args.nmi,
-            reset=args.reset,
-            irq=args.irq,
-        )
+        if args.address is None:
+            with open(args.filename[0], "rb") as f:
+                rom.add_raw_data(f.read())
+        else:
+            rom.add_binary_file(
+                args.filename[0],
+                data=args.address,
+                nmi=args.nmi,
+                reset=args.reset,
+                irq=args.irq,
+            )
         for file in args.filename[1:]:
             print(f"[{os.path.basename(__file__)}] Adding ROM asset {file}")
             rom.add_rom_file(file)
@@ -994,6 +1000,9 @@ def exec_args():
                 file.write(data)
                 addr += len(data)
                 addr, data = rom.next_rom_data(addr)
+            if rom.has_raw_data():
+                file.write(b"#!END\n")
+                file.write(rom.raw)
 
 
 # This file may be included or run like a program.
@@ -1005,10 +1014,9 @@ if __name__ == "__main__":
     # It's annoying when a debugger catches them so we intercept to exit cleanly.
     try:
         exec_args()
-    except (ROMException, FileNotFoundError) as e:
-        error_msg = str(e)
+    except (ROMException, FileNotFoundError, TimeoutError, RuntimeError) as e:
         # Unresolved variable substitutions like ${command:cmake.launchTargetPath}
-        if re.search(r"\$\{[^}]*\}", error_msg):
+        if re.search(r"\$\{[^}]*\}", str(e)):
             print(f"[{os.path.basename(__file__)}] Check build for failures")
-        print(error_msg)
+        print(f"[{os.path.basename(__file__)}] {e}")
         os._exit(1)  # special exit without raising
