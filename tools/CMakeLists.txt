@@ -50,6 +50,20 @@ function(rp6502_executable name)
             list(APPEND extra_roms ${X})
         endif ()
     endforeach()
+    # Resolve relative extra_roms against current source dir
+    set(all_extra_roms)
+    foreach(rom IN LISTS extra_roms)
+        if (IS_ABSOLUTE "${rom}")
+            list(APPEND all_extra_roms "${rom}")
+        else()
+            list(APPEND all_extra_roms "${CMAKE_CURRENT_SOURCE_DIR}/${rom}")
+        endif()
+    endforeach()
+    # Collect asset ROMs registered by rp6502_asset()
+    get_target_property(asset_roms ${name} RP6502_ASSET_ROMS)
+    if (asset_roms)
+        list(APPEND all_extra_roms ${asset_roms})
+    endif()
     # Remove old ROM
     add_custom_command(TARGET ${name} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E rm -f
@@ -87,13 +101,13 @@ function(rp6502_executable name)
     list(APPEND tool_command
         -o "${CMAKE_CURRENT_BINARY_DIR}/${name}.rp6502"
         create "${CMAKE_CURRENT_BINARY_DIR}/${name}"
-        -- ${extra_roms}
+        -- ${all_extra_roms}
     )
     add_custom_command(TARGET ${name} POST_BUILD
         COMMAND ${tool_command}
     )
     set_property(TARGET ${name} APPEND PROPERTY
-        LINK_DEPENDS ${extra_roms}
+        LINK_DEPENDS ${all_extra_roms}
     )
 endfunction()
 
@@ -102,45 +116,34 @@ endfunction()
 # RP6502 Asset ROM
 # ^^^^^^^^^^^^^^^^
 #
-#  rp6502_asset(<name> addr in_file [out_file])
+#  rp6502_asset(<name> addr in_file)
 #
 # Packages the ``in_file`` into RP6502 ROM format.
-# ``out_file`` defaults to ``in_file`` plus ``.rp6502``
-# Use `file` for the addr to get the address from the
-# first two bytes of in_file.
+# Output (.rp6502) lands in CMakeFiles/<name>.dir/ alongside object files.
+# Use `none` for addr to produce a raw ROM with no load address.
 #
 function(rp6502_asset name addr in_file)
-    # Parse optional args
-    get_filename_component(out_file ${in_file} NAME)
-    set(out_file "${out_file}.rp6502")
-    set(custom_target_name "${name}.${addr}.${out_file}")
-    set(extra_args ${ARGN})
-    list(LENGTH extra_args extra_count)
-    if (${extra_count} GREATER 0)
-        list(GET ${ARGN} 0 out_file)
-    endif ()
-    add_custom_target(
-        ${custom_target_name} ALL
-        DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${out_file}
-    )
+    get_filename_component(out_name "${in_file}" NAME)
+    set(out_file "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${name}.rp6502/${out_name}")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(asset_command
         "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
     )
-    # addr of "none" produces a raw-data-only ROM (no memory load address)
-    # addr of 0 is a valid load address and is passed through normally
     if (NOT addr STREQUAL "none")
         list(APPEND asset_command -a "${addr}")
     endif()
     list(APPEND asset_command
-        -o "${CMAKE_CURRENT_BINARY_DIR}/${out_file}"
+        -o "${out_file}"
         create "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
     )
     add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${out_file}
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${in_file}
+        OUTPUT "${out_file}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
         COMMAND ${asset_command}
     )
-    add_dependencies(${name} ${custom_target_name})
+    target_sources(${name} PRIVATE "${out_file}")
+    set_property(TARGET ${name} APPEND PROPERTY
+        RP6502_ASSET_ROMS "${out_file}"
+    )
 endfunction()
