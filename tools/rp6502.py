@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) 2025 Rumbledethumps
+# Copyright (c) 2026 Rumbledethumps
 #
 # SPDX-License-Identifier: BSD-3-Clause
 # SPDX-License-Identifier: Unlicense
 
-# RIA Developer tool
+# RP6502-RIA Developer tool
 
 import os
 import re
@@ -602,6 +602,14 @@ class ROMException(Exception):
 class ROM:
     """Virtual ROM builder."""
 
+    @staticmethod
+    def parse_int(s: str) -> int:
+        """Parse a numeric string with support for MOS $FFFF format."""
+        s = re.sub(r"^\$", "0x", s)
+        if not re.match(r"^(0x)?[0-9A-Fa-f]+$", s):
+            raise ValueError(f"Invalid hex address: {s!r}")
+        return int(s, 0)
+
     def __init__(self):
         """ROMs begin with up to a screen of help text"""
         """followed by a sparse array of virtual ROM."""
@@ -711,11 +719,13 @@ class ROM:
                         header = f.readline().decode("ascii").rstrip("\n")
                         if not header:
                             break
-                        m = re.match(r"^(\$[0-9A-Fa-f]+|\d+) (.+)$", header.rstrip())
+                        m = re.match(r"^(\S+) (.+)$", header.rstrip())
                         if not m:
                             raise ROMException(f"Invalid asset header: {header!r}")
-                        len_str = re.sub(r"^\$", "0x", m.group(1))
-                        asset_len = int(len_str, 0)
+                        try:
+                            asset_len = ROM.parse_int(m.group(1))
+                        except ValueError as e:
+                            raise ROMException(str(e)) from e
                         asset_name = m.group(2)
                         asset_data = f.read(asset_len)
                         if len(asset_data) != asset_len:
@@ -733,19 +743,12 @@ class ROM:
                     continue
                 data_match = re.search(r"^ *([^ ]+) *([^ ]+) *([^ ]+) *$", command)
                 if data_match:
-
-                    def str_to_address(addr_str: str) -> int:
-                        """Supports $FFFF number format."""
-                        if addr_str:
-                            addr_str = re.sub(r"^\$", "0x", addr_str)
-                        if re.match(r"^(0x|)[0-9A-Fa-f]*$", addr_str):
-                            return int(addr_str, 0)
-                        else:
-                            raise ROMException(f"Invalid address: {addr_str}")
-
-                    addr = str_to_address(data_match.group(1))
-                    length = str_to_address(data_match.group(2))
-                    crc = str_to_address(data_match.group(3))
+                    try:
+                        addr = ROM.parse_int(data_match.group(1))
+                        length = ROM.parse_int(data_match.group(2))
+                        crc = ROM.parse_int(data_match.group(3))
+                    except ValueError as e:
+                        raise ROMException(str(e)) from e
                     self.allocate_rom(addr, length)
                     data = f.read(length)
                     if len(data) != length or crc != binascii.crc32(data):
@@ -814,35 +817,31 @@ def exec_args():
                 nargs=nargs,
                 help="Local filename." if nargs == 1 else "Local filename(s).",
             )
-    parsers["create"].add_argument(
+    parser.add_argument(
         "-a",
         "--address",
         dest="address",
         metavar="addr",
-        required=True,
         help="Asset name (string) or starting address of binary data.",
     )
-    parsers["upload"].add_argument(
+    parser.add_argument(
         "-o", dest="out", metavar="name", help="Output path/filename."
     )
-    parsers["create"].add_argument(
-        "-o", dest="out", metavar="name", required=True, help="Output path/filename."
-    )
-    parsers["create"].add_argument(
+    parser.add_argument(
         "-n",
         "--nmi",
         dest="nmi",
         metavar="addr",
         help="NMI vector for $FFFA-$FFFB or `file` to read from file.",
     )
-    parsers["create"].add_argument(
+    parser.add_argument(
         "-r",
         "--reset",
         dest="reset",
         metavar="addr",
         help="Reset vector for $FFFC-$FFFD or `file` to read from file.",
     )
-    parsers["create"].add_argument(
+    parser.add_argument(
         "-i",
         "--irq",
         dest="irq",
@@ -903,24 +902,23 @@ def exec_args():
         args.term = False
 
     # Additional validation and conversion
-    def str_to_address(parser, str, errmsg):
-        """Supports $FFFF number format."""
-        if str:
-            str = re.sub("^\\$", "0x", str)
-            if re.match("^(0x|)[0-9A-Fa-f]*$", str):
-                return int(str, 0)
-            elif str.lower() == "file":
+    def str_to_address(parser, s, errmsg):
+        """Parse an address string; returns int, True for 'file', or calls parser.error."""
+        if s:
+            if s.lower() == "file":
                 return True
-            else:
-                parser.error(f"argument {errmsg}: invalid address: '{str}'")
+            try:
+                return ROM.parse_int(s)
+            except ValueError:
+                parser.error(f"argument {errmsg}: invalid address: '{s}'")
 
-    def str_to_address_or_name(str):
-        """For --address: returns int for a parseable number, else treats as asset name."""
-        if str:
-            converted = re.sub("^\\$", "0x", str)
-            if re.match("^(0x)?[0-9A-Fa-f]+$", converted):
-                return int(converted, 0)
-            return str  # asset filename
+    def str_to_address_or_name(s):
+        """Returns int for a parseable hex number, otherwise the string (asset name)."""
+        if s:
+            try:
+                return ROM.parse_int(s)
+            except ValueError:
+                return s
         return None
 
     # Open console and extend error with a hint about the config file

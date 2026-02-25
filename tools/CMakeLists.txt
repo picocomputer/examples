@@ -124,19 +124,23 @@ endfunction()
 # with "ROM:filename" from a micro filesystem in the ROM.
 #
 function(rp6502_asset name addr in_file)
-    get_filename_component(out_name "${in_file}" NAME)
-    set(out_file "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${name}.rp6502/${out_name}")
+    get_filename_component(src_file "${in_file}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    file(RELATIVE_PATH rel_path "${CMAKE_SOURCE_DIR}" "${src_file}")
+    if (rel_path MATCHES "^\\.\\.")
+        get_filename_component(rel_path "${src_file}" NAME)
+    endif()
+    set(out_file "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${name}.rp6502/${rel_path}")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(asset_command
         "${Python3_EXECUTABLE}"
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/rp6502.py"
         -a "${addr}"
         -o "${out_file}"
-        create "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
+        create "${src_file}"
     )
     add_custom_command(
         OUTPUT "${out_file}"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${in_file}"
+        DEPENDS "${src_file}"
         COMMAND ${asset_command}
     )
     target_sources(${name} PRIVATE "${out_file}")
