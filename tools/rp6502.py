@@ -304,6 +304,7 @@ class Console:
         self.serial.write(b"set cp\r")
         self.wait_for_prompt(":", timeout)
         result = self.serial.read_until().decode("ascii")
+        self.wait_for_prompt("]", timeout)
         return f"cp{re.sub(r'[^0-9]', '', result)}"
 
     def terminal(self, cp):
