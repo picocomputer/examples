@@ -7,25 +7,23 @@
 
 #include <rp6502.h>
 #include <stdio.h>
-
-// In the other example altair1.c these assets are loaded to xram via CMakeLists.txt:
-//   rp6502_asset(altair 0x10000 src/altair.pal.bin)
-//   rp6502_asset(altair 0x10200 src/altair.dat.bin)
-//   rp6502_executable(altair DATA 0x200 RESET 0x200
-//       altair.pal.rp6502
-//       altair.dat.rp6502
-//   )
-
-/* TODO
-
-This version will use raw data.
-
-*/
-
+#include <fcntl.h>
+#include <unistd.h>
 
 void main()
 {
-    // You could put this in the ROM too
+    int fd;
+    unsigned xram_addr;
+    int bytes_read;
+
+    // Load palette and pixel data from raw ROM data into xram.
+    fd = open("ROM:", O_RDONLY);
+    xram_addr = 0;
+    while ((bytes_read = read_xram(xram_addr, 0x7FFF, fd)) > 0)
+        xram_addr += bytes_read;
+    close(fd);
+
+    // Mode 3 config
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_wrap, 0);
     xram0_struct_set(0xFF00, vga_mode3_config_t, y_wrap, 0);
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, 0);

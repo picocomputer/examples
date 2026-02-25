@@ -908,27 +908,29 @@ def exec_args():
         console.terminal(code_page)
 
     if args.command == "run":
-        print(f"[{SCRIPT_FILE}] Loading ROM {args.filename[0]}")
+        if args.term:
+            code_page = console.code_page()
+        print(f"[{SCRIPT_FILE}] Reading ROM {args.filename[0]}")
         rom = ROM()
         rom.add_rom_file(args.filename[0])
         if args.reset != None:
             rom.add_reset_vector(args.reset)
         if rom.has_raw_data():
-            print(f"[{SCRIPT_FILE}] ROM has raw data, uploading {args.filename[0]}")
+            print(f"[{SCRIPT_FILE}] Uploading ROM (raw data detected)")
             with open(args.filename[0], "rb") as f:
                 console.upload(f, os.path.basename(args.filename[0]))
-            print(f"[{SCRIPT_FILE}] Loading ROM via LOAD command")
-            # TODO 
-            console.command(f"LOAD {os.path.basename(args.filename[0])}")
+            print(f"[{SCRIPT_FILE}] Loading ROM")
+            console.serial.write(
+                f"LOAD {os.path.basename(args.filename[0])}\r".encode("ascii")
+            )
+            console.serial.read_until()
         else:
             print(f"[{SCRIPT_FILE}] Sending ROM")
             console.send_rom(rom)
-        if args.term:
-            code_page = console.code_page()
-        if rom.has_reset_vector():
-            console.reset()
-        else:
-            print(f"[{SCRIPT_FILE}] No reset vector")
+            if rom.has_reset_vector():
+                console.reset()
+            else:
+                print(f"[{SCRIPT_FILE}] No reset vector")
         if args.term:
             console.terminal(code_page)
 
