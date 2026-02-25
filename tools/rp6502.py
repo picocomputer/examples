@@ -42,6 +42,22 @@ SCRIPT_NAME = os.path.splitext(SCRIPT_FILE)[0].upper()
 # so short that it becomes suspect.
 RESPONSE_TIMEOUT = 2.0
 
+# TODO
+# The rom format has been extended to support #!END at the end of rom
+# data and the start of raw data. We need to accumulate this extra data
+# similar to how we accumulate memory data. data with an address of
+# none is considered raw data. also look in tools/cmakelists.txt to
+# make sure rp6502_asset supports addr of 0. Note that a file without
+# #!END is still valid, but has no raw data.
+#
+# Once that is done, the run command will need to detect rom files with
+# non-empty raw data. These need to be uploaded and executed with the
+# upload and load commands. Load is just load filename.rp6502 on the remote.
+#
+# we need to os._exit(1) at the end for com port timeouts and "?error" errors.
+# Look into how we branch normal 6502 dev process errors vs python script bug.
+# and make improvements if necessary.
+
 
 class SerialPort:
     """Cross-platform serial port implementation."""
