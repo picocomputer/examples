@@ -119,3 +119,30 @@ rp6502_executable(vsync DATA 0x200 RESET 0x200)
 target_sources(vsync PRIVATE
     src/vsync.c
 )
+
+add_executable(clock)
+rp6502_executable(clock)
+target_sources(clock PRIVATE
+    src/clock.c
+)
+target_link_libraries(clock PRIVATE
+    rp6502
+)
+
+add_executable(set-time)
+rp6502_executable(set-time)
+target_sources(set-time PRIVATE
+    src/set-time.c
+)
+target_link_libraries(set-time PRIVATE
+    rp6502
+)
+
+add_executable(print-time)
+rp6502_executable(print-time)
+target_sources(print-time PRIVATE
+    src/print-time.c
+)
+target_link_libraries(print-time PRIVATE
+    rp6502
+)
