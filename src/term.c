@@ -8,6 +8,11 @@
 #include <rp6502.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+// argc/argv requires memory
+void *__fastcall__ argv_mem(size_t size) { return malloc(size); }
 
 // An extremely simple terminal for the Pico RIA W modem.
 // Uses the terminal built in to the Pico VGA.
@@ -19,11 +24,15 @@ void print(char *s)
             RIA.tx = *s++;
 }
 
-void main()
+void main(int argc, char *argv[])
 {
     char rx_char, tx_char;
     bool rx_mode, tx_mode;
-    int fd, cp;
+    int fd, cp, i;
+
+    printf("argc: %d\n", argc);
+    for (i = 0; i < argc; i++)
+        printf("%d: %s\r\n", i, argv[i]);
 
     cp = code_page(437);
     if (cp != 437)
