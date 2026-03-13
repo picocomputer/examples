@@ -8,15 +8,16 @@
 #include <rp6502.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <stdio.h>
 #include <stdlib.h>
 
-// argc/argv requires memory
+// An example terminal app for the RP6502-RIA-W modem.
+// Uses the ANSI terminal built in to the Pico VGA.
+
+// Up to 512 bytes are needed for argv (one xstack size).
+// Applications must opt-in to argc/argv by providing this memory.
 void *__fastcall__ argv_mem(size_t size) { return malloc(size); }
 
-// An extremely simple terminal for the Pico RIA W modem.
-// Uses the terminal built in to the Pico VGA.
-
+// RIA.tx and RIA.rx have no canonical mode or newline translation.
 void print(char *s)
 {
     while (*s)
@@ -28,11 +29,17 @@ void main(int argc, char *argv[])
 {
     char rx_char, tx_char;
     bool rx_mode, tx_mode;
-    int fd, cp, i;
+    int fd, cp;
 
-    printf("argc: %d\n", argc);
-    for (i = 0; i < argc; i++)
-        printf("%d: %s\r\n", i, argv[i]);
+    const char *device = "AT:";
+    if (argc == 2)
+        device = argv[1];
+
+    if (argc > 2)
+    {
+        print("Argument error.\r\n");
+        return;
+    }
 
     cp = code_page(437);
     if (cp != 437)
@@ -40,13 +47,16 @@ void main(int argc, char *argv[])
         print("Code page 437 not found.\r\n");
     }
 
-    fd = open("AT:", 0);
+    fd = open(device, 0);
     if (fd < 0)
     {
         print("Modem not found.\r\n");
         return;
     }
     print("Modem online.\r\n");
+
+    // The argv memory can be reclaimed
+    free(argv);
 
     while (true)
     {
