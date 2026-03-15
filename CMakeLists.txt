@@ -34,6 +34,12 @@ target_sources(dir PRIVATE
     src/dir.c
 )
 
+add_executable(exec)
+rp6502_executable(exec DATA 0x200 RESET 0x200)
+target_sources(exec PRIVATE
+    src/exec.c
+)
+
 add_executable(furelise)
 rp6502_executable(furelise DATA 0x200 RESET 0x200)
 target_sources(furelise PRIVATE
