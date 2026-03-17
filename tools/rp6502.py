@@ -183,8 +183,11 @@ class SerialPort:
         if self._is_posix:
             total_written = 0
             while total_written < len(data):
-                written = os.write(self._fd, data[total_written:])
-                total_written += written
+                try:
+                    written = os.write(self._fd, data[total_written:])
+                    total_written += written
+                except BlockingIOError:
+                    select.select([], [self._fd], [])
         else:
             written = wintypes.DWORD()
             buffer = ctypes.create_string_buffer(bytes(data))

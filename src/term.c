@@ -9,27 +9,22 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 // An example terminal app for the RP6502-RIA-W modem.
 // Uses the ANSI terminal built in to the Pico VGA.
 
 // Up to 512 bytes are needed for argv (one xstack size).
 // Applications must opt-in to argc/argv by providing this memory.
+// With malloc, you can free(argv) after using it.
 void *__fastcall__ argv_mem(size_t size) { return malloc(size); }
 
-// RIA.tx and RIA.rx have no canonical mode or newline translation.
-void print(char *s)
+int main(int argc, char *argv[])
 {
-    while (*s)
-        if (RIA.ready & RIA_READY_TX_BIT)
-            RIA.tx = *s++;
-}
-
-void main(int argc, char *argv[])
-{
-    char rx_char, tx_char;
-    bool rx_mode, tx_mode;
-    int fd, cp;
+    int fd_std, fd_dev, i;
+    char rx_buf[32], tx_buf[32];
+    unsigned char rx_buf_len = 0, tx_buf_len = 0;
 
     const char *device = "AT:";
     if (argc == 2)
@@ -37,52 +32,70 @@ void main(int argc, char *argv[])
 
     if (argc > 2)
     {
-        print("Argument error.\r\n");
-        return;
+        printf("Argument error.\n");
+        return 1;
     }
 
-    cp = code_page(437);
-    if (cp != 437)
+    if (code_page(437) != 437)
     {
-        print("Code page 437 not found.\r\n");
+        printf("Code page 437 not found.\n");
+        return 1;
     }
 
-    fd = open(device, 0);
-    if (fd < 0)
+    fd_std = open("STD:", 0);
+    if (fd_std < 0)
     {
-        print("Modem not found.\r\n");
-        return;
+        printf("STD: not found.\n");
+        return 1;
     }
-    print("Modem online.\r\n");
 
-    // The argv memory can be reclaimed
-    free(argv);
+    fd_dev = open(device, 0);
+    if (fd_dev < 0)
+    {
+        printf("%s not found.\n", device);
+        return 1;
+    }
+
+    printf("Modem online.\n");
 
     while (true)
     {
-        if (!rx_mode)
+        if (rx_buf_len)
         {
-            ria_push_char(1);
-            ria_set_ax(fd);
-            rx_mode = ria_call_int(RIA_OP_READ_XSTACK);
-            rx_char = ria_pop_char();
-        }
-        else if ((RIA.ready & RIA_READY_TX_BIT))
-        {
-            RIA.tx = rx_char;
-            rx_mode = false;
+            i = write_xstack(rx_buf, rx_buf_len, fd_std);
+            if (i < 0)
+                goto fail;
+            memmove(rx_buf, rx_buf + i, rx_buf_len - i);
+            rx_buf_len -= i;
         }
 
-        if (tx_mode)
+        if (rx_buf_len < sizeof(rx_buf))
         {
-            ria_push_char(tx_char);
-            ria_set_ax(fd);
-            tx_mode = !ria_call_int(RIA_OP_WRITE_XSTACK);
+            i = read_xstack(rx_buf + rx_buf_len, sizeof(rx_buf) - rx_buf_len, fd_dev);
+            if (i < 0)
+                goto fail;
+            rx_buf_len += i;
         }
-        else if (RIA.ready & RIA_READY_RX_BIT)
+
+        if (tx_buf_len)
         {
-            tx_char = RIA.rx;
-            tx_mode = true;
+            i = write_xstack(tx_buf, tx_buf_len, fd_dev);
+            if (i < 0)
+                goto fail;
+            memmove(tx_buf, tx_buf + i, tx_buf_len - i);
+            tx_buf_len -= i;
+        }
+
+        if (tx_buf_len < sizeof(tx_buf))
+        {
+            i = read_xstack(tx_buf + tx_buf_len, sizeof(tx_buf) - tx_buf_len, fd_std);
+            if (i < 0)
+                goto fail;
+            tx_buf_len += i;
         }
     }
+
+fail:
+    printf("Unpossible IO error.\n");
+    return 1;
 }
