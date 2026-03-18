@@ -42,10 +42,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    fd_std = open("STD:", 0);
+    fd_std = open("TTY:", 0);
     if (fd_std < 0)
     {
-        printf("STD: not found.\n");
+        printf("TTY: not found.\n");
         return 1;
     }
 
