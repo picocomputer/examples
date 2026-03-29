@@ -1577,7 +1577,7 @@ void main(void)
 {
     uint8_t v = RIA.vsync;
 
-    int cp = code_page(0);
+    int cp = ria_attr_get(RIA_ATTR_CODE_PAGE);
     char u = 'u';
     if (cp == 437 || cp == 850)
         u = 0x81; //  u diaeresis
