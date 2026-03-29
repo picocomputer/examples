@@ -36,7 +36,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (code_page(437) != 437)
+    ria_attr_set(437, RIA_ATTR_CODE_PAGE);
+    if (ria_attr_get(RIA_ATTR_CODE_PAGE) != 437)
     {
         printf("Code page 437 not found.\n");
         return 1;

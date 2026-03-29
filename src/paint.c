@@ -93,7 +93,7 @@ unsigned char mouse_irq_fn(void)
 static void mouse_init(void)
 {
     // 125Hz from the VIA
-    unsigned timer_val = (phi2() * 8) - 2;
+    unsigned timer_val = (ria_attr_get(RIA_ATTR_PHI2_KHZ) * 8) - 2;
     VIA.t1l_lo = timer_val & 0xFF;
     VIA.t1l_hi = timer_val >> 8;
     VIA.t1_lo = timer_val & 0xFF;
