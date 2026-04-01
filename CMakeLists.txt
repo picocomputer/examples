@@ -34,6 +34,12 @@ target_sources(attr PRIVATE
     src/attr.c
 )
 
+add_executable(bench)
+rp6502_executable(bench DATA 0x200 RESET 0x200)
+target_sources(bench PRIVATE
+    src/bench.c
+)
+
 add_executable(dir)
 rp6502_executable(dir DATA 0x200 RESET 0x200)
 target_sources(dir PRIVATE

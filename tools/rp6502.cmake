@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 
 # Select the target system and processor.
 set(CC65_SYSTEM_TARGET rp6502)
+set(CC65_DEFINE_TARGET RP6502)
 set(CMAKE_SYSTEM_PROCESSOR 65c02)
 
 # Find the executables we'll be using.
@@ -27,6 +28,7 @@ include_directories(BEFORE SYSTEM ${CC65_SYSTEM_INCLUDE_DIR})
 # Comment out these lines to completely disable hack.
 add_compile_options("$<$<COMPILE_LANGUAGE:C>:SHELL:-D__fastcall__=>")
 add_compile_options("$<$<COMPILE_LANGUAGE:C>:SHELL:-D__cdecl__=>")
+add_compile_options("$<$<COMPILE_LANGUAGE:C>:SHELL:-D__${CC65_DEFINE_TARGET}__=>")
 set(CMAKE_C_COMPILER ${CMAKE_COMMAND})
 set(CMAKE_C_COMPILER_ARG1 "-P ${CMAKE_CURRENT_LIST_DIR}/cc65.cmake -- ${CC65_C_COMPILER}")
 set(CC65_ASM_COMPILER "${CMAKE_ASM_COMPILER}" CACHE FILEPATH "Real cc65 ASM compiler")
