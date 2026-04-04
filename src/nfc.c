@@ -14,8 +14,8 @@
 #include <unistd.h>
 
 #define NFC_CMD_WRITE 0x01
-#define NFC_CMD_READ 0x02
-#define NFC_CMD_CANCEL 0x03
+#define NFC_CMD_CANCEL 0x02
+#define NFC_CMD_READ 0x03
 #define NFC_CMD_SUCCESS1 0x04
 #define NFC_CMD_SUCCESS2 0x05
 #define NFC_CMD_ERROR 0x06
@@ -23,8 +23,9 @@
 #define NFC_RESP_NO_READER 0x01
 #define NFC_RESP_NO_CARD 0x02
 #define NFC_RESP_CARD_INSERTED 0x03
-#define NFC_RESP_WRITE 0x04
-#define NFC_RESP_READ 0x05
+#define NFC_RESP_CARD_READY 0x04
+#define NFC_RESP_WRITE 0x05
+#define NFC_RESP_READ 0x06
 
 // Up to 512 bytes are needed for argv (one xstack size).
 // Applications must opt-in to argc/argv by providing this memory.
@@ -212,26 +213,21 @@ static void decode_tlv(const unsigned char *buf, unsigned len)
 
 static void handle_read(int fd)
 {
-    unsigned char hdr[7];
+    unsigned char hdr[2];
     unsigned char *nfcbuf;
     unsigned len, i;
 
     send_cmd(fd, NFC_CMD_SUCCESS1);
     send_cmd(fd, NFC_CMD_SUCCESS2);
-    send_cmd(fd, NFC_CMD_READ);
 
-    if (read_exact(fd, hdr, 7) < 0)
+    if (read_exact(fd, hdr, 2) < 0)
     {
         puts("Read header failed");
         return;
     }
 
-    // hdr[0] = age in 0.1s, hdr[1..4] = CC, hdr[5..6] = tag data length
-    len = hdr[5] | ((unsigned)hdr[6] << 8);
-    printf("Age   %u.%us\nCC   ", hdr[0] / 10, hdr[0] % 10);
-    for (i = 1; i < 5; i++)
-        printf(" %02X", hdr[i]);
-    putchar('\n');
+    // raw tag data from page 0: pages 0-2=UID/lock, page 3=CC, pages 4+=user data
+    len = hdr[0] | ((unsigned)hdr[1] << 8);
     if (len)
     {
         nfcbuf = malloc(len);
@@ -242,12 +238,14 @@ static void handle_read(int fd)
         }
         if (read_exact(fd, nfcbuf, len) < 0)
         {
-            puts("Read NDEF failed");
+            puts("Read failed");
             free(nfcbuf);
             return;
         }
         print_hex(nfcbuf, len);
-        decode_tlv(nfcbuf, len);
+        // user data starts at page 4 (offset 16)
+        if (len > 16)
+            decode_tlv(nfcbuf + 16, len - 16);
         free(nfcbuf);
     }
 }
@@ -347,13 +345,14 @@ static int build_ndef(int argc, char *argv[])
 
 static void arm_write(int fd)
 {
-    unsigned char whdr[3];
+    unsigned char whdr[4];
     // nfcbuf[9..] is the text payload (ASCII-safe by construction)
     printf("Write armed: %.*s\n", (int)(nfcbuf_len - 10), (char *)(nfcbuf + 9));
     whdr[0] = NFC_CMD_WRITE;
-    whdr[1] = nfcbuf_len & 0xFF;
-    whdr[2] = (nfcbuf_len >> 8) & 0xFF;
-    write_exact(fd, whdr, 3);
+    whdr[1] = 4; // start page (page 4 = start of user data)
+    whdr[2] = nfcbuf_len & 0xFF;
+    whdr[3] = (nfcbuf_len >> 8) & 0xFF;
+    write_exact(fd, whdr, 4);
     write_exact(fd, nfcbuf, nfcbuf_len);
 }
 
@@ -363,14 +362,15 @@ int main(int argc, char *argv[])
     bool writing, had_card;
     unsigned char last_floor, resp, key;
 
-    if (argc < 2 || (strcmp(argv[1], "-r") && strcmp(argv[1], "-w") && strcmp(argv[1], "-W")))
+    if (argc < 2 || (strcmp(argv[1], "-r") && strcmp(argv[1], "-R") &&
+                     strcmp(argv[1], "-w") && strcmp(argv[1], "-W")))
     {
         print_help();
         return (argc < 2) ? 0 : 1;
     }
 
     writing = !strcmp(argv[1], "-w") || !strcmp(argv[1], "-W");
-    continuous = !strcmp(argv[1], "-W");
+    continuous = !strcmp(argv[1], "-W") || !strcmp(argv[1], "-R");
     if (writing && build_ndef(argc, argv))
         return 1;
 
@@ -386,10 +386,6 @@ int main(int argc, char *argv[])
 
     puts("Press Ctrl+C to exit");
 
-    if (!writing)
-        send_cmd(fd, NFC_CMD_READ);
-
-    last_floor = 0;
     had_card = false;
     while (1)
     {
@@ -407,32 +403,34 @@ int main(int argc, char *argv[])
         switch (resp)
         {
         case NFC_RESP_NO_READER:
-            if (last_floor != resp)
-                puts("No NFC reader");
-            last_floor = resp;
+            puts("No NFC reader");
             break;
 
         case NFC_RESP_NO_CARD:
-            if (last_floor != resp)
-            {
-                if (had_card)
-                    puts("Card removed");
-                if (writing)
-                    arm_write(fd);
-                puts("Insert card...");
-            }
-            last_floor = resp;
+            if (had_card)
+                puts("Card removed");
+            if (writing)
+                arm_write(fd);
+            puts("Insert card...");
             break;
 
         case NFC_RESP_CARD_INSERTED:
-            if (last_floor != resp)
-                puts("Card detected");
+            puts("Card detected");
             had_card = true;
-            last_floor = resp;
+            break;
+
+        case NFC_RESP_CARD_READY:
+            if (!writing)
+                send_cmd(fd, NFC_CMD_READ);
             break;
 
         case NFC_RESP_READ:
             handle_read(fd);
+            if (!continuous)
+            {
+                close(fd);
+                return 0;
+            }
             break;
 
         case NFC_RESP_WRITE:

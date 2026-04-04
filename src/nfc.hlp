@@ -1,3 +1,4 @@
-Usage: nfc -r            Read cards continuously
+Usage: nfc -r            Read one card
+       nfc -R            Read cards continuously
        nfc -w <text>     Write NDEF Text Record to one card
        nfc -W <text>     Write NDEF Text Record continuously
