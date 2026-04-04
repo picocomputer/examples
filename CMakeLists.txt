@@ -65,12 +65,6 @@ target_sources(gamepad PRIVATE
     src/gamepad.c
 )
 
-add_executable(launch)
-rp6502_executable(launch DATA 0x200 RESET 0x200)
-target_sources(launch PRIVATE
-    src/launch.c
-)
-
 add_executable(mandelbrot)
 rp6502_executable(mandelbrot DATA 0x200 RESET 0x200)
 target_sources(mandelbrot PRIVATE
