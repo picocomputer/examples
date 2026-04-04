@@ -95,6 +95,13 @@ target_sources(mode3 PRIVATE
     src/mode3.c
 )
 
+add_executable(nfc)
+rp6502_asset(nfc help src/nfc.hlp)
+rp6502_executable(nfc DATA 0x200 RESET 0x200)
+target_sources(nfc PRIVATE
+    src/nfc.c
+)
+
 add_executable(paint)
 rp6502_executable(paint DATA 0x200 RESET 0x200)
 target_sources(paint PRIVATE
