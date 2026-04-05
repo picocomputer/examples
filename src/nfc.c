@@ -20,12 +20,12 @@
 #define NFC_CMD_SUCCESS2 0x05
 #define NFC_CMD_ERROR 0x06
 
-#define NFC_RESP_NO_READER 0x01
-#define NFC_RESP_NO_CARD 0x02
-#define NFC_RESP_CARD_INSERTED 0x03
-#define NFC_RESP_CARD_READY 0x04
-#define NFC_RESP_WRITE 0x05
-#define NFC_RESP_READ 0x06
+#define NFC_RESP_READ 0x01
+#define NFC_RESP_WRITE 0x02
+#define NFC_RESP_NO_READER 0x03
+#define NFC_RESP_NO_CARD 0x04
+#define NFC_RESP_CARD_INSERTED 0x05
+#define NFC_RESP_CARD_READY 0x06
 
 // Up to 512 bytes are needed for argv (one xstack size).
 // Applications must opt-in to argc/argv by providing this memory.
@@ -215,7 +215,7 @@ static void handle_read(int fd)
 {
     unsigned char hdr[2];
     unsigned char *nfcbuf;
-    unsigned len, i;
+    unsigned len;
 
     send_cmd(fd, NFC_CMD_SUCCESS1);
     send_cmd(fd, NFC_CMD_SUCCESS2);
@@ -360,7 +360,7 @@ int main(int argc, char *argv[])
 {
     int fd, tty;
     bool writing, had_card;
-    unsigned char last_floor, resp, key;
+    unsigned char resp, key;
 
     if (argc < 2 || (strcmp(argv[1], "-r") && strcmp(argv[1], "-R") &&
                      strcmp(argv[1], "-w") && strcmp(argv[1], "-W")))
