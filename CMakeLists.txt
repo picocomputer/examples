@@ -65,12 +65,6 @@ target_sources(gamepad PRIVATE
     src/gamepad.c
 )
 
-add_executable(launch)
-rp6502_executable(launch DATA 0x200 RESET 0x200)
-target_sources(launch PRIVATE
-    src/launch.c
-)
-
 add_executable(mandelbrot)
 rp6502_executable(mandelbrot DATA 0x200 RESET 0x200)
 target_sources(mandelbrot PRIVATE
@@ -93,6 +87,13 @@ add_executable(mode3)
 rp6502_executable(mode3 DATA 0x200 RESET 0x200)
 target_sources(mode3 PRIVATE
     src/mode3.c
+)
+
+add_executable(nfc)
+rp6502_asset(nfc help src/nfc.hlp)
+rp6502_executable(nfc DATA 0x200 RESET 0x200)
+target_sources(nfc PRIVATE
+    src/nfc.c
 )
 
 add_executable(paint)
