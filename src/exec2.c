@@ -27,6 +27,7 @@ int main(int argc, char *argv[])
     if (argc == 1)
     {
         char arg[] = "Foo";
+        ria_attr_set(1,RIA_ATTR_LAUNCHER);
         printf("Executing self with arg: %s\n", arg);
         ria_execl(argv[0], arg, NULL);
     } else if (argc == 2 && !strcmp("Foo",argv[1])) {
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
     } else if (argc == 2 && !strcmp("Prefinish",argv[1])) {
         char arg[] = "End";
         printf("Executing self with arg: %s\n", arg);
-        ria_execl(argv[0], arg, NULL);
+        ria_execl(argv[0], arg);
     }
     // The argv memory can be reclaimed.
     // (not useful here in the example)
