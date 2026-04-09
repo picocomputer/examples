@@ -12,8 +12,15 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#define NUM_RUNNERS 64 // 1-1024
-#define NUM_STARS 512  // 1-1024
+#define ASTEROID_TYPE 4 // 0=none, 1=16x16, 2=32x32, 3=64x64, 4=128x128, 5=256x256
+#define ASTEROID_SIZE (1u << (ASTEROID_TYPE + 3)) // pixels per side
+#define ASTEROID_HALF (ASTEROID_SIZE / 2u)         // center offset
+#define ASTEROID_R    (ASTEROID_HALF * 15u / 16u)  // nominal radius (linear)
+#define ASTEROID_R2   (ASTEROID_R * ASTEROID_R)    // radius squared (for dist comparison)
+#define ASTEROID_VAR  (ASTEROID_R2 / 25u)          // jagged boundary variation per step
+#define ASTEROID_EDGE (ASTEROID_R2 / 18u)          // dark edge band width
+#define NUM_RUNNERS 64  // 0-1024
+#define NUM_STARS 128   // 0-1024
 #define STARS_PER_FRAME 16
 
 #define NUM_STAR_TYPES 4
@@ -26,9 +33,13 @@
 #define XRAM_RUNNER_FRAMES 0x0020
 #define XRAM_RUNNER_PALETTE 0x0820
 #define XRAM_STAR_PALETTES 0x0840
+/* Asteroid: 2bpp bitmap (ASTEROID_SIZE^2/4 bytes), 4-color palette */
+#define XRAM_ASTEROID_PALETTE (XRAM_STAR_PALETTES + (unsigned)NUM_STARS * 4u)
+#define XRAM_ASTEROID_BITMAP (XRAM_ASTEROID_PALETTE + 8u)
 /* Configs packed at top of 64K XRAM */
 #define XRAM_RUNNER_CONFIG (0u - (unsigned)NUM_RUNNERS * 8u)
 #define XRAM_STAR_CONFIG (XRAM_RUNNER_CONFIG - (unsigned)NUM_STARS * 8u)
+#define XRAM_ASTEROID_CONFIG (XRAM_STAR_CONFIG - 8u)
 
 #define COLOR_FROM_RGB5(r, g, b) \
     (((unsigned)(b) << 11) | ((unsigned)(g) << 6) | (unsigned)(r))
@@ -76,6 +87,16 @@ static const unsigned runner_palette[16] = {
     0, 0, 0, 0, 0, 0, 0, 0                     /* 8-15 unused */
 };
 
+#if ASTEROID_TYPE
+/* Asteroid palette: 4 colors x 2 bytes (2bpp) */
+static const unsigned asteroid_palette[4] = {
+    0x0000,                                    /* 0  transparent */
+    COLOR_FROM_RGB5(8, 8, 8) | COLOR_ALPHA,    /* 1  dark grey */
+    COLOR_FROM_RGB5(18, 18, 18) | COLOR_ALPHA, /* 2  mid grey */
+    COLOR_FROM_RGB5(28, 28, 28) | COLOR_ALPHA, /* 3  light grey */
+};
+#endif
+
 /* Star colors (cycled for NUM_STARS > NUM_STAR_COLORS) */
 static const unsigned star_colors[NUM_STAR_COLORS] = {
     COLOR_FROM_RGB5(31, 0, 0) | COLOR_ALPHA,
@@ -102,6 +123,9 @@ static struct
 
 static int runner_dir;
 static unsigned char frame_timer;
+#if ASTEROID_TYPE
+static int asteroid_x, asteroid_y, asteroid_dx, asteroid_dy;
+#endif
 
 /* Set a 4bpp pixel in a zeroed row buffer */
 static void set_pixel(unsigned char *buf, int col, unsigned char color)
@@ -121,7 +145,9 @@ void main()
     unsigned u, c;
     unsigned char f, row, i;
     uint8_t v;
+#if NUM_STARS > 0
     unsigned star_idx;
+#endif
 
     _randomize();
 
@@ -249,15 +275,89 @@ void main()
         RIA.rw0 = (u >> 8) & 0xFF;
     }
 
+#if ASTEROID_TYPE
+    /* === Generate and upload asteroid bitmap (2bpp, ASTEROID_SIZE x ASTEROID_SIZE) === */
+    /* 4 pixels/byte, ASTEROID_SIZE/4 bytes/row, bits 7:6=px0, 5:4=px1, 3:2=px2, 1:0=px3 */
+    printf("Generating asteroid...\n");
+    RIA.addr0 = XRAM_ASTEROID_BITMAP;
+    RIA.step0 = 1;
+    for (u = 0; u < ASTEROID_SIZE; u++)
+    {
+        int dy = (int)u - (int)ASTEROID_HALF;
+        if ((u & (ASTEROID_SIZE / 8u - 1u)) == 0)
+            printf("\r%u%%", u * 100u / ASTEROID_SIZE);
+        for (i = 0; i < ASTEROID_SIZE / 4u; i++)
+        {
+            unsigned char byte = 0;
+            unsigned char p;
+            for (p = 0; p < 4; p++)
+            {
+                int col = i * 4 + p;
+                int dx = col - (int)ASTEROID_HALF;
+                unsigned int dist = (unsigned int)dx * (unsigned int)dx + (unsigned int)dy * (unsigned int)dy;
+                unsigned int radius = ASTEROID_R2 - ((u ^ (unsigned)col) & 3u) * ASTEROID_VAR;
+                unsigned char color;
+                if (dist > radius)
+                    color = 0; /* transparent outside */
+                else if (dist > radius - ASTEROID_EDGE)
+                    color = 1; /* dark edge */
+                else if (dx + dy < 0)
+                    color = 3; /* light upper-left */
+                else
+                    color = 2; /* mid lower-right */
+                byte |= (color << (6 - p * 2));
+            }
+            RIA.rw0 = byte;
+        }
+    }
+    printf("\r100%%\n");
+
+    /* === Upload asteroid palette === */
+    RIA.addr0 = XRAM_ASTEROID_PALETTE;
+    RIA.step0 = 1;
+    for (u = 0; u < 4; u++)
+    {
+        RIA.rw0 = asteroid_palette[u] & 0xFF;
+        RIA.rw0 = (asteroid_palette[u] >> 8) & 0xFF;
+    }
+
+    /* === Initialize asteroid sprite config === */
+    asteroid_x = 80;
+    asteroid_y = 60;
+    asteroid_dx = 1;
+    asteroid_dy = 1;
+    RIA.addr0 = XRAM_ASTEROID_CONFIG;
+    RIA.step0 = 1;
+    RIA.rw0 = (unsigned)asteroid_x & 0xFF;
+    RIA.rw0 = ((unsigned)asteroid_x >> 8) & 0xFF;
+    RIA.rw0 = (unsigned)asteroid_y & 0xFF;
+    RIA.rw0 = ((unsigned)asteroid_y >> 8) & 0xFF;
+    u = XRAM_ASTEROID_BITMAP;
+    RIA.rw0 = u & 0xFF;
+    RIA.rw0 = (u >> 8) & 0xFF;
+    u = XRAM_ASTEROID_PALETTE;
+    RIA.rw0 = u & 0xFF;
+    RIA.rw0 = (u >> 8) & 0xFF;
+#endif
+
     /* === Program VGA === */
     xreg_vga_canvas(1);
     xreg_vga_mode(0, 1);
+#if NUM_STARS > 0
     xreg_vga_mode(5, 0x00, XRAM_STAR_CONFIG, NUM_STARS, 0);
+#endif
+#if NUM_RUNNERS > 0
     xreg_vga_mode(5, 0x0A, XRAM_RUNNER_CONFIG, NUM_RUNNERS, 1);
+#endif
+#if ASTEROID_TYPE
+    xreg_vga_mode(5, (ASTEROID_TYPE << 3) | 1, XRAM_ASTEROID_CONFIG, 1, 2);
+#endif
 
     /* === Main loop === */
     v = RIA.vsync;
+#if NUM_STARS > 0
     star_idx = 0;
+#endif
 
     while (1)
     {
@@ -265,6 +365,7 @@ void main()
             continue;
         v = RIA.vsync;
 
+#if NUM_STARS > 0
         /* Write star positions (optimized dual-port) */
         RIA.step0 = 8;
         RIA.step1 = 8;
@@ -284,6 +385,7 @@ void main()
             RIA.rw0 = val & 0xFF;
             RIA.rw1 = (val >> 8) & 0xFF;
         }
+#endif
 
         /* Write runner positions (optimized dual-port) */
         RIA.step0 = 8;
@@ -320,6 +422,7 @@ void main()
             }
         }
 
+#if NUM_STARS > 0
         /* Move stars opposite to runner */
         for (i = 0; i < STARS_PER_FRAME; i++)
         {
@@ -330,5 +433,28 @@ void main()
                 star_pos[star_idx].x = -8;
             star_idx = (star_idx + 1) % NUM_STARS;
         }
+#endif
+
+#if ASTEROID_TYPE
+        /* Move asteroid diagonally, wrap at screen edges */
+        asteroid_x += asteroid_dx;
+        asteroid_y += asteroid_dy;
+        if (asteroid_x > 319)
+            asteroid_x = -(int)ASTEROID_SIZE;
+        if (asteroid_x < -(int)ASTEROID_SIZE)
+            asteroid_x = 319;
+        if (asteroid_y > 239)
+            asteroid_y = -(int)ASTEROID_SIZE;
+        if (asteroid_y < -(int)ASTEROID_SIZE)
+            asteroid_y = 239;
+
+        /* Write asteroid position */
+        RIA.step0 = 1;
+        RIA.addr0 = XRAM_ASTEROID_CONFIG;
+        RIA.rw0 = (unsigned)asteroid_x & 0xFF;
+        RIA.rw0 = ((unsigned)asteroid_x >> 8) & 0xFF;
+        RIA.rw0 = (unsigned)asteroid_y & 0xFF;
+        RIA.rw0 = ((unsigned)asteroid_y >> 8) & 0xFF;
+#endif
     }
 }
