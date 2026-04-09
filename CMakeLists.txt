@@ -77,6 +77,12 @@ target_sources(mandelbrot PRIVATE
     src/mandelbrot.c
 )
 
+add_executable(mathcop)
+rp6502_executable(mathcop DATA 0x200 RESET 0x200)
+target_sources(mathcop PRIVATE
+    src/mathcop.c
+)
+
 add_executable(mode1)
 rp6502_executable(mode1 DATA 0x200 RESET 0x200)
 target_sources(mode1 PRIVATE
