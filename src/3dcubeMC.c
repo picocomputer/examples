@@ -52,8 +52,8 @@
 /* Half-size of the cube: edges are 60 px long (= 2 * HALF) */
 #define HALF 50
 
-/* 8 vertices of the cube + 1 face-center marker, stored as signed bytes */
-static const signed char verts[9][3] = {
+/* 8 vertices of the cube stored as signed bytes */
+static const signed char verts[8][3] = {
     {-HALF, -HALF, -HALF}, /* 0 back-bottom-left  */
     {+HALF, -HALF, -HALF}, /* 1 back-bottom-right */
     {+HALF, +HALF, -HALF}, /* 2 back-top-right    */
@@ -62,7 +62,6 @@ static const signed char verts[9][3] = {
     {+HALF, -HALF, +HALF}, /* 5 front-bottom-right*/
     {+HALF, +HALF, +HALF}, /* 6 front-top-right   */
     {-HALF, +HALF, +HALF}, /* 7 front-top-left    */
-    {    0,     0, +HALF}, /* 8 front face center  */
 };
 
 /* 12 edges: each entry is a pair of vertex indices */
@@ -205,7 +204,7 @@ static void project_vertices(int angle)
     sin_a = mth_sinf(fa);
     cos_a = mth_cosf(fa);
 
-    for (i = 0; i < 9; i++)
+    for (i = 0; i < 8; i++)
     {
         fx = mth_itof((int)verts[i][0]);
         fy = mth_itof((int)verts[i][1]);
@@ -273,13 +272,12 @@ void main(void)
             for (e = 0; e < 12; e++)
                 draw_line(proj_x[edges[e][0]], proj_y[edges[e][0]],
                           proj_x[edges[e][1]], proj_y[edges[e][1]]);
-            // draw_circle(proj_x[8], proj_y[8], proj_r[8]); /* front face center */
         }
         else
         {
             for (e = 0; e < 8; e++)
-                draw_circle(proj_x[e], proj_y[e], proj_r[e]);
-            // draw_circle(proj_x[8], proj_y[8], proj_r[8]); /* front face center */
+                // draw_circle(proj_x[e], proj_y[e], proj_r[e]);
+                set_pixel(proj_x[e], proj_y[e]);
         }
 
         /* Wait for next vsync */

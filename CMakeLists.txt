@@ -89,10 +89,22 @@ target_sources(3dcube PRIVATE
     src/3dcube.c
 )
 
+add_executable(3dcubePRE)
+rp6502_executable(3dcubePRE DATA 0x200 RESET 0x200)
+target_sources(3dcubePRE PRIVATE
+    src/3dcubePRE.c
+)
+
 add_executable(3dcubeMC)
 rp6502_executable(3dcubeMC DATA 0x200 RESET 0x200)
 target_sources(3dcubeMC PRIVATE
     src/3dcubeMC.c
+)
+
+add_executable(3dcubePREMC)
+rp6502_executable(3dcubePREMC DATA 0x200 RESET 0x200)
+target_sources(3dcubePREMC PRIVATE
+    src/3dcubePREMC.c
 )
 
 add_executable(mode1)

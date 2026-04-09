@@ -320,7 +320,8 @@ void main(void)
         else
         {
             for (e = 0; e < 8; e++)
-                draw_circle(proj_x[e], proj_y[e], proj_r[e]);
+                // draw_circle(proj_x[e], proj_y[e], proj_r[e]);
+                set_pixel(proj_x[e], proj_y[e]);
         }
 
         /* Wait for next vsync */
