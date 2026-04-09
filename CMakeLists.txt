@@ -89,6 +89,12 @@ target_sources(mode3 PRIVATE
     src/mode3.c
 )
 
+add_executable(mode5)
+rp6502_executable(mode5 DATA 0x200 RESET 0x200)
+target_sources(mode5 PRIVATE
+    src/mode5.c
+)
+
 add_executable(nfc)
 rp6502_asset(nfc help src/nfc.hlp)
 rp6502_executable(nfc DATA 0x200 RESET 0x200)
@@ -119,12 +125,6 @@ add_executable(raspberry)
 rp6502_executable(raspberry DATA 0x200 RESET 0x200)
 target_sources(raspberry PRIVATE
     src/raspberry.c
-)
-
-add_executable(running)
-rp6502_executable(running DATA 0x200 RESET 0x200)
-target_sources(running PRIVATE
-    src/running.c
 )
 
 add_executable(rtc)
