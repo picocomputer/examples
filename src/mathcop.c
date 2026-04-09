@@ -20,6 +20,7 @@
 
 #include <rp6502.h>
 #include <stdio.h>
+#include <time.h>
 
 /* Math coprocessor opcodes */
 #define MTH_MUL8    0x30  /* u8 * u8 -> u16 */
@@ -55,6 +56,8 @@
 #define F32_5_5     0x40B00000UL  /* 5.5  */
 #define F32_7_0     0x40E00000UL  /* 7.0  */
 #define F32_8_0     0x41000000UL  /* 8.0  */
+#define F32_PI_OVER_180 0x3C8EFA35UL  /* pi/180 ~= 0.017453292 */
+#define F32_10000       0x461C4000UL  /* 10000.0 */
 
 /* Push a double to xstack from two 32-bit halves.
  * hi32 is pushed first so that lo32 ends up at the top (lower xstack address).
@@ -93,6 +96,67 @@ static void check_long(const char *name,
     {
         printf("FAIL: %s  got=%08lX  exp=%08lX\n", name, result, expected);
         ++failed;
+    }
+}
+
+/* Bhaskara I approximation: sin(d°) ~= 4d(180-d) / (40500 - d(180-d))
+ * Exact at 0, 30, 90 deg. Max error ~0.1%. Pure 32-bit integer arithmetic.
+ * Returns sin * 10000 (same scale as the coprocessor benchmark).
+ */
+static long bhaskara_sin10000(int deg)
+{
+    long p = (long)deg * (180 - deg);
+    return 40000L * p / (40500L - p);
+}
+
+static void benchmark_sine(void)
+{
+    clock_t t_start, t_cop, t_cpu;
+    int i;
+    long dummy = 0;
+
+    puts("\n-- Benchmark: Sine Table (91 values, 0-90 deg) --");
+
+    /* Coprocessor: ITOF + FMUL(deg->rad) + FSIN + FMUL(*10000) + FTOI */
+    t_start = clock();
+    for (i = 0; i <= 90; i++)
+        dummy += mth_ftoi(mth_mulf(
+            mth_sinf(mth_mulf(mth_itof(i), F32_PI_OVER_180)),
+            F32_10000));
+    t_cop = clock() - t_start;
+
+    /* 65C02: Bhaskara I formula, no coprocessor, no lookup table */
+    t_start = clock();
+    for (i = 0; i <= 90; i++)
+        dummy += bhaskara_sin10000(i);
+    t_cpu = clock() - t_start;
+
+    printf("Coprocessor : %lu ms\n",
+           (unsigned long)t_cop * 1000UL / (unsigned long)CLOCKS_PER_SEC);
+    printf("CPU Bhaskara: %lu ms\n",
+           (unsigned long)t_cpu * 1000UL / (unsigned long)CLOCKS_PER_SEC);
+    if (t_cop > 0)
+        printf("CPU/cop ratio: %lux\n", (unsigned long)(t_cpu / t_cop));
+    (void)dummy;
+}
+
+static void sine_table(void)
+{
+    int i;
+    long sin_scaled;
+
+    puts("\n-- Sine Table (0-90 degrees) --");
+
+    for (i = 0; i <= 90; i++)
+    {
+        sin_scaled = mth_ftoi(mth_mulf(
+            mth_sinf(mth_mulf(mth_itof(i), F32_PI_OVER_180)),
+            F32_10000));
+
+        printf("sin(%2d) = %d.%04d\n",
+               i,
+               (int)(sin_scaled / 10000L),
+               (int)(sin_scaled % 10000L));
     }
 }
 
@@ -309,6 +373,9 @@ void main(void)
     hi = ria_pop_long();
     check_long("DDIV   3.0/1.5=2.0 lo", lo, 0x00000000UL);
     check_long("DDIV   3.0/1.5=2.0 hi", hi, 0x40000000UL);
+
+    sine_table();
+    benchmark_sine();
 
     /* ==================== SUMMARY ==================== */
 
