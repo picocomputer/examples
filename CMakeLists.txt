@@ -121,6 +121,12 @@ target_sources(raspberry PRIVATE
     src/raspberry.c
 )
 
+add_executable(running)
+rp6502_executable(running DATA 0x200 RESET 0x200)
+target_sources(running PRIVATE
+    src/running.c
+)
+
 add_executable(rtc)
 rp6502_executable(rtc DATA 0x200 RESET 0x200)
 target_sources(rtc PRIVATE
