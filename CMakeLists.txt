@@ -83,6 +83,12 @@ target_sources(mathcop PRIVATE
     src/mathcop.c
 )
 
+add_executable(3dcube)
+rp6502_executable(3dcube DATA 0x200 RESET 0x200)
+target_sources(3dcube PRIVATE
+    src/3dcube.c
+)
+
 add_executable(mode1)
 rp6502_executable(mode1 DATA 0x200 RESET 0x200)
 target_sources(mode1 PRIVATE
