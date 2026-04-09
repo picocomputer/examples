@@ -1,24 +1,18 @@
 /*
  * 3D Cube Animation
  *
- * Rotating wireframe cube viewed from 30 degrees elevation.
- * Uses VGA mode 3 (640x360, 1bpp), double buffering.
- * All 3D math done in 16-bit integer fixed-point on the 65C02.
+ * Rotating wireframe cube (60x60x60 px) viewed from 30 degrees elevation.
+ * Uses VGA mode 3 (640x360, 1bpp), double buffering, and RP2350 math coprocessor.
  *
  * XRAM layout:
  *   0x0000 - 0x707F  Framebuffer A (28 800 bytes)
  *   0x7080 - 0xE0FF  Framebuffer B (28 800 bytes)
  *   0xFF00 - 0xFF0D  vga_mode3_config_t
  *
- * Fixed-point convention: trig values scaled by 256.
- *   sin_tab[i] = round(sin(i degrees) * 256)
- *   All intermediate products stay within signed 16-bit range.
- *
  * Each frame:
  *   1. Clear back buffer
- *   2. Project 9 points (8 vertices + front-face center) with integer math
- *   3. Draw 12 edges or 8 vertex circles (alternating half-revolutions)
- *      Front-face-center circle always drawn
+ *   2. Project 8 vertices with Ry(angle) * Rx(30 deg) using math coprocessor
+ *   3. Draw 12 edges with Bresenham line algorithm
  *   4. Wait vsync, flip displayed buffer
  *
  * SPDX-License-Identifier: BSD-3-Clause
@@ -39,26 +33,27 @@
 #define FB_B       0x7080u     /* framebuffer B base address (= FB_A + FB_SIZE) */
 #define CFG_ADDR   0xFF00u     /* vga_mode3_config_t location in XRAM */
 
-/* Screen center */
+/* Screen center for orthographic projection */
 #define CX  320
 #define CY  180
 
-/* ---------- Fixed-point trig constants (scale = 256) ---------- */
+/* ---------- Math coprocessor constants (IEEE 754 fp32_t) ---------- */
 
-#define SIN30_FP  128   /* sin(30 deg) * 256 = 128  (exact: 0.5 * 256) */
-#define COS30_FP  222   /* cos(30 deg) * 256 = 222  (0.8660254 * 256 = 221.7) */
-#define PERSP_D   200   /* viewer distance in world units */
+#define F32_PI_OVER_180  0x3C8EFA35UL  /* pi/180  ~= 0.017453 */
+#define F32_SIN30        0x3F000000UL  /* sin(30 deg) = 0.5    */
+#define F32_COS30        0x3F5DB3D7UL  /* cos(30 deg) ~= 0.866 */
+#define F32_D            0x43480000UL  /* viewer distance = 200.0 */
 
 /* Base circle radius in pixels — edit this value to change circle size */
-#define BASE_CIRCLE_R  2
+#define BASE_CIRCLE_R    2
 
 /* ---------- Cube geometry ---------- */
 
-/* Half-size of the cube */
+/* Half-size of the cube: edges are 60 px long (= 2 * HALF) */
 #define HALF 50
 
 /* 8 vertices of the cube + 1 face-center marker, stored as signed bytes */
-static const signed char verts[8][3] = {
+static const signed char verts[9][3] = {
     {-HALF, -HALF, -HALF}, /* 0 back-bottom-left  */
     {+HALF, -HALF, -HALF}, /* 1 back-bottom-right */
     {+HALF, +HALF, -HALF}, /* 2 back-top-right    */
@@ -67,6 +62,7 @@ static const signed char verts[8][3] = {
     {+HALF, -HALF, +HALF}, /* 5 front-bottom-right*/
     {+HALF, +HALF, +HALF}, /* 6 front-top-right   */
     {-HALF, +HALF, +HALF}, /* 7 front-top-left    */
+    {    0,     0, +HALF}, /* 8 front face center  */
 };
 
 /* 12 edges: each entry is a pair of vertex indices */
@@ -81,43 +77,10 @@ static const unsigned char bitmask[8] = {
     0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
 };
 
-/* ---------- Sine lookup table: sin_tab[i] = round(sin(i deg) * 256), i = 0..90 ---------- */
-
-static const int sin_tab[91] = {
-      0,   4,   9,  13,  18,  22,  27,  31,  36,  40,  /* 0-9   */
-     44,  49,  53,  58,  62,  66,  71,  75,  79,  83,  /* 10-19 */
-     88,  92,  96, 100, 104, 108, 112, 116, 120, 124,  /* 20-29 */
-    128, 132, 136, 139, 143, 147, 150, 154, 158, 161,  /* 30-39 */
-    165, 168, 171, 175, 178, 181, 184, 187, 190, 193,  /* 40-49 */
-    196, 199, 202, 204, 207, 210, 212, 215, 217, 219,  /* 50-59 */
-    222, 224, 226, 228, 230, 232, 234, 236, 237, 239,  /* 60-69 */
-    241, 242, 243, 245, 246, 247, 248, 249, 250, 251,  /* 70-79 */
-    252, 253, 254, 254, 255, 255, 255, 256, 256, 256,  /* 80-89 */
-    256                                                 /* 90    */
-};
-
-/* Returns sin(deg) * 256; deg must be 0..359 */
-static int sin_fp(int deg)
-{
-    if (deg <= 90)  return  sin_tab[deg];
-    if (deg <= 180) return  sin_tab[180 - deg];
-    if (deg <= 270) return -sin_tab[deg - 180];
-    return                 -sin_tab[360 - deg];
-}
-
-/* Returns cos(deg) * 256; deg must be 0..359 */
-static int cos_fp(int deg)
-{
-    deg += 90;
-    if (deg >= 360) deg -= 360;
-    return sin_fp(deg);
-}
-
-/* ---------- Projected 2D screen coordinates and perspective radius ---------- */
-
-static int proj_x[8];
-static int proj_y[8];
-static int proj_r[8];
+/* Projected 2D screen coordinates and perspective radius (8 vertices + face center) */
+static int proj_x[9];
+static int proj_y[9];
+static int proj_r[9];
 
 /* XRAM base address of the buffer being rendered (back buffer) */
 static unsigned back_buf;
@@ -219,56 +182,50 @@ static void clear_fb(void)
     }
 }
 
-/* ---------- 3D vertex projection (integer fixed-point, scale = 256) ---------- */
+/* ---------- 3D vertex projection ---------- */
 
-/* Project all 8 points onto 2D screen.
+/* Project all 8 cube vertices onto 2D screen.
  * Transform: Ry(angle) then Rx(+30 deg), perspective projection.
- *
- *   Ry(a):  rx = (x*cos_a + z*sin_a) >> 8     (world units)
- *           rz = (z*cos_a - x*sin_a) >> 8
- *
- *   Rx(30): sy = (y*COS30 - rz*SIN30) >> 8    (screen Y, world units)
- *           sz = (y*SIN30 + rz*COS30) >> 8    (depth, world units)
- *
- * Perspective: w = PERSP_D / (PERSP_D - sz)
- *   screen_x = CX + rx * PERSP_D / (PERSP_D - sz)
- *   screen_y = CY - sy * PERSP_D / (PERSP_D - sz)
- *
- * All intermediate values stay within signed 16-bit range:
- *   x*cos_a: max 50*256 = 12800; sum: max 25600 < 32767
- *   sy/sz scaled: max ~21940 < 32767
- *   rx*PERSP_D: max 70*200 = 14000 < 32767
+ *   Ry(a): x' =  x*cos(a) + z*sin(a)
+ *           z' = -x*sin(a) + z*cos(a)
+ *   Rx(30): sy = y*cos30 - z'*sin30   (screen Y)
+ *           sz = y*sin30 + z'*cos30   (depth toward viewer)
+ * Perspective divide: w = D / (D - sz),  viewer at -D on the Z axis
+ * Screen:  sx = x' * w,  sy = sy * w
  */
 static void project_vertices(int angle)
 {
-    int sin_a, cos_a;
-    int x, y, z, rx, rz, sy, sz, denom;
+    fp32_t fa, sin_a, cos_a, f_base_r;
+    fp32_t fx, fy, fz, rx, ry, rz, sy, sz, w;
     int i;
 
-    sin_a = sin_fp(angle);
-    cos_a = cos_fp(angle);
+    f_base_r = mth_itof(BASE_CIRCLE_R);
 
-    for (i = 0; i < 8; i++)
+    fa    = mth_mulf(mth_itof(angle), F32_PI_OVER_180);
+    sin_a = mth_sinf(fa);
+    cos_a = mth_cosf(fa);
+
+    for (i = 0; i < 9; i++)
     {
-        x = (int)verts[i][0];
-        y = (int)verts[i][1];
-        z = (int)verts[i][2];
+        fx = mth_itof((int)verts[i][0]);
+        fy = mth_itof((int)verts[i][1]);
+        fz = mth_itof((int)verts[i][2]);
 
-        /* Ry(angle): rotate in XZ plane */
-        rx = (x * cos_a + z * sin_a) >> 8;
-        rz = (z * cos_a - x * sin_a) >> 8;
+        /* Ry(angle) */
+        rx = mth_addf(mth_mulf(fx, cos_a), mth_mulf(fz, sin_a));
+        ry = fy;
+        rz = mth_subf(mth_mulf(fz, cos_a), mth_mulf(fx, sin_a));
 
         /* Rx(+30 deg): tilt for 30-degree elevation view */
-        sy = (y * COS30_FP - rz * SIN30_FP) >> 8;
-        sz = (y * SIN30_FP + rz * COS30_FP) >> 8;
+        sy = mth_subf(mth_mulf(ry, F32_COS30), mth_mulf(rz, F32_SIN30));
+        sz = mth_addf(mth_mulf(ry, F32_SIN30), mth_mulf(rz, F32_COS30));
 
-        /* Perspective divide: near objects (sz > 0) appear larger */
-        denom = PERSP_D - sz;
-        if (denom < 1) denom = 1;
+        /* Perspective: w = D / (D - sz);  near (sz>0) → larger, far (sz<0) → smaller */
+        w = mth_divf(F32_D, mth_subf(F32_D, sz));
 
-        proj_x[i] = CX + rx * PERSP_D / denom;
-        proj_y[i] = CY - sy * PERSP_D / denom;
-        proj_r[i] = BASE_CIRCLE_R * PERSP_D / denom;
+        proj_x[i] = CX + (int)mth_ftoi(mth_mulf(rx, w));
+        proj_y[i] = CY - (int)mth_ftoi(mth_mulf(sy, w));
+        proj_r[i] = (int)mth_ftoi(mth_mulf(f_base_r, w));
         if (proj_r[i] < 1) proj_r[i] = 1;
     }
 }
@@ -316,11 +273,13 @@ void main(void)
             for (e = 0; e < 12; e++)
                 draw_line(proj_x[edges[e][0]], proj_y[edges[e][0]],
                           proj_x[edges[e][1]], proj_y[edges[e][1]]);
+            // draw_circle(proj_x[8], proj_y[8], proj_r[8]); /* front face center */
         }
         else
         {
             for (e = 0; e < 8; e++)
                 draw_circle(proj_x[e], proj_y[e], proj_r[e]);
+            // draw_circle(proj_x[8], proj_y[8], proj_r[8]); /* front face center */
         }
 
         /* Wait for next vsync */
