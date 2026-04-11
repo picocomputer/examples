@@ -19,7 +19,7 @@
 
 #define BENCH_FILE "BENCH.OK_TO_DEL"
 #define NUM_PASSES 9
-#define CHUNK_SIZE 1024
+#define CHUNK_SIZE 16384
 
 static long score(long *sec, int count)
 {
