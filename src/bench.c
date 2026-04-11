@@ -19,7 +19,7 @@
 
 #define BENCH_FILE "BENCH.OK_TO_DEL"
 #define NUM_PASSES 9
-#define CHUNK_SIZE 16384
+#define CHUNK_SIZE (32768 - 512)
 
 static long score(long *sec, int count)
 {
@@ -31,8 +31,10 @@ static long score(long *sec, int count)
     for (i = 1; i < count; i++)
     {
         sum += sec[i];
-        if (sec[i] < vmin) vmin = sec[i];
-        if (sec[i] > vmax) vmax = sec[i];
+        if (sec[i] < vmin)
+            vmin = sec[i];
+        if (sec[i] > vmax)
+            vmax = sec[i];
     }
     return (sum - vmin - vmax) / (1024L * (count - 2));
 }
@@ -78,7 +80,7 @@ void main()
     _randomize();
     RIA.addr0 = 0;
     RIA.step0 = 1;
-    for (i=0;i<CHUNK_SIZE;i++)
+    for (i = 0; i < CHUNK_SIZE; i++)
         RIA.rw0 = rand();
 
     unlink(BENCH_FILE);
