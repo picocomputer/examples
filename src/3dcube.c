@@ -28,6 +28,29 @@
 #include <rp6502.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+
+/* Keyboard */
+
+#define KEYBOARD_ADDR 0xFFE0u  /* keyboard bitmap location in XRAM */
+
+/* USB HID keycodes used by the RIA keyboard bitmap */
+#define KEY_F4         0x3Du
+#define KEY_LEFT_ALT   0xE2u
+#define KEY_RIGHT_ALT  0xE6u
+
+static bool key_down(unsigned char code)
+{
+    RIA.addr1 = KEYBOARD_ADDR + (unsigned)(code >> 3);
+    RIA.step1 = 0;
+    return (RIA.rw1 & (1u << (code & 7))) != 0;
+}
+
+static bool alt_f4_pressed(void)
+{
+    return key_down(KEY_F4)
+        && (key_down(KEY_LEFT_ALT) || key_down(KEY_RIGHT_ALT));
+}
 
 /* ---------- VGA framebuffer layout ---------- */
 
@@ -301,11 +324,17 @@ void main(void)
     /* Activate mode 3, 1bpp; scanline_end=0 defaults to canvas height (360) */
     xreg_vga_mode(3, 0, CFG_ADDR, 0, 0, 0);
 
+    draw_circle(320,180,85);
+
+    xreg_ria_keyboard(KEYBOARD_ADDR);
+
     /* Display FB_A (blank), render into FB_B */
     back_buf = FB_B;
 
     while (1)
     {
+        if (alt_f4_pressed()) break;
+
         /* Render frame into back buffer */
         clear_fb();
         project_vertices(angle);
@@ -339,4 +368,7 @@ void main(void)
         angle += 2;
         if (angle >= 360) angle = 0;
     }
+
+    xreg_ria_keyboard(0xFFFF);
+    exit(0);
 }

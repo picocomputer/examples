@@ -27,6 +27,29 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
+#include <stdlib.h>
+
+/* Keyboard */
+
+#define KEYBOARD_ADDR 0xFFE0u  /* keyboard bitmap location in XRAM */
+
+/* USB HID keycodes used by the RIA keyboard bitmap */
+#define KEY_F4         0x3Du
+#define KEY_LEFT_ALT   0xE2u
+#define KEY_RIGHT_ALT  0xE6u
+
+static bool key_down(unsigned char code)
+{
+    RIA.addr1 = KEYBOARD_ADDR + (unsigned)(code >> 3);
+    RIA.step1 = 0;
+    return (RIA.rw1 & (1u << (code & 7))) != 0;
+}
+
+static bool alt_f4_pressed(void)
+{
+    return key_down(KEY_F4)
+        && (key_down(KEY_LEFT_ALT) || key_down(KEY_RIGHT_ALT));
+}
 
 /* ---------- VGA framebuffer layout ---------- */
 
@@ -250,7 +273,6 @@ void main(void)
     /* Pre-compute all 180 frames and measure elapsed time. */
     {
         clock_t t0, t1, elapsed;
-        int ch;
 
         t0 = clock();
         for (f = 0; f < NUM_FRAMES; f++)
@@ -280,10 +302,17 @@ void main(void)
 
     xreg_vga_mode(3, 0, CFG_ADDR, 0, 0, 0);
 
+    draw_circle(320,180,85);
+
+    xreg_ria_keyboard(KEYBOARD_ADDR);
+
     back_buf = FB_B;
 
     while (1)
     {
+
+        if (alt_f4_pressed()) break;
+        
         clear_fb();
 
         RIA.step0 = 0;
@@ -312,4 +341,6 @@ void main(void)
         frame++;
         if (frame >= NUM_FRAMES) frame = 0;
     }
+    xreg_ria_keyboard(0xFFFF);
+    exit(0);
 }
