@@ -1,0 +1,8 @@
+# Hashes of file build rules.
+52b47db1e3ab457c184384a1cc131a02 CMakeFiles/altair1.rp6502/src/altair.dat.bin
+7d8d57f4465e9dd7f84c6c0af961889e CMakeFiles/altair1.rp6502/src/altair.hlp
+e890b681c15d5f78c459ba2013b4464c CMakeFiles/altair1.rp6502/src/altair.pal.bin
+bf2500a1eeff35ce591e985dc021dc85 CMakeFiles/altair2.rp6502/src/altair.dat.bin
+e5317173fa9501ee2199a3ee23a54a77 CMakeFiles/altair2.rp6502/src/altair.hlp
+9d0e2abf12838ce1e153b0c6451c58b9 CMakeFiles/altair2.rp6502/src/altair.pal.bin
+9871e93f82e3eb06e10ae4f8fea03cbd CMakeFiles/nfc.rp6502/src/nfc.hlp

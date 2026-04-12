@@ -1,0 +1,398 @@
+Modules list:
+-------------
+3dcube.c.obj:
+    CODE              Offs=000000  Size=0009B9  Align=00001  Fill=0000
+    RODATA            Offs=000000  Size=0000EE  Align=00001  Fill=0000
+    BSS               Offs=000000  Size=000032  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(add.o):
+    CODE              Offs=0009B9  Size=000018  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(addeqsp.o):
+    CODE              Offs=0009D1  Size=000011  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(addysp.o):
+    CODE              Offs=0009E2  Size=00000E  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(aslax2.o):
+    CODE              Offs=0009F0  Size=00000B  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(aslax4.o):
+    CODE              Offs=0009FB  Size=000011  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(aslax7.o):
+    CODE              Offs=000A0C  Size=00000A  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(asrax1.o):
+    CODE              Offs=000A16  Size=00000A  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(condes.o):
+    CODE              Offs=000A20  Size=00000C  Align=00001  Fill=0000
+    DATA              Offs=000000  Size=000025  Align=00001  Fill=0000
+    ONCE              Offs=000000  Size=00000C  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(copydata.o):
+    CODE              Offs=000A2C  Size=00002D  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(crt0.o):
+    STARTUP           Offs=000000  Size=00002B  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(decsp2.o):
+    CODE              Offs=000A59  Size=00000D  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(decsp3.o):
+    CODE              Offs=000A66  Size=00000D  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(decsp6.o):
+    CODE              Offs=000A73  Size=00000D  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(div.o):
+    CODE              Offs=000A80  Size=000015  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(incsp1.o):
+    CODE              Offs=000A95  Size=000007  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(incsp2.o):
+    CODE              Offs=000A9C  Size=000015  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(incsp6.o):
+    CODE              Offs=000AB1  Size=000005  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(ldai.o):
+    CODE              Offs=000AB6  Size=00000C  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(makebool.o):
+    CODE              Offs=000AC2  Size=00002C  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(mul.o):
+    CODE              Offs=000AEE  Size=000045  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(mul8.o):
+    CODE              Offs=000B33  Size=00003A  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(mulax3.o):
+    CODE              Offs=000B6D  Size=000011  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(negabs.o):
+    CODE              Offs=000B7E  Size=000012  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(or.o):
+    CODE              Offs=000B90  Size=000011  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(popptr1.o):
+    CODE              Offs=000BA1  Size=00000E  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(pusha.o):
+    CODE              Offs=000BAF  Size=000016  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(pushax.o):
+    CODE              Offs=000BC5  Size=00001A  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(pushwsp.o):
+    CODE              Offs=000BDF  Size=00001C  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(ria.o):
+    CODE              Offs=000BFB  Size=00004E  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(shelp.o):
+    CODE              Offs=000C49  Size=000020  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(shrax3.o):
+    CODE              Offs=000C69  Size=00000E  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(staxsp.o):
+    CODE              Offs=000C77  Size=00000B  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(staxspi.o):
+    CODE              Offs=000C82  Size=00001A  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(sub.o):
+    CODE              Offs=000C9C  Size=000014  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(subeqsp.o):
+    CODE              Offs=000CB0  Size=000015  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(subysp.o):
+    CODE              Offs=000CC5  Size=00000D  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(udiv.o):
+    CODE              Offs=000CD2  Size=00004F  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(xreg.o):
+    CODE              Offs=000D21  Size=000015  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(zerobss.o):
+    CODE              Offs=000D36  Size=000023  Align=00001  Fill=0000
+/home/wojciech/opt/cc65/lib/rp6502.lib(zeropage.o):
+    ZEROPAGE          Offs=000000  Size=00001A  Align=00001  Fill=0000
+
+
+Segment list:
+-------------
+Name                   Start     End    Size  Align
+----------------------------------------------------
+ZEROPAGE              000000  000019  00001A  00001
+STARTUP               000200  00022A  00002B  00001
+ONCE                  00022B  000236  00000C  00001
+CODE                  000237  000F8F  000D59  00001
+RODATA                000F90  00107D  0000EE  00001
+DATA                  00107E  0010A2  000025  00001
+BSS                   0010A3  0010D4  000032  00001
+
+
+Exports list by name:
+---------------------
+__BSS_RUN__               0010A3 RLA    __BSS_SIZE__              000032 REA    
+__CONSTRUCTOR_COUNT__     000000 REA    __CONSTRUCTOR_TABLE__     000237 RLA    
+__DATA_LOAD__             00107E RLA    __DATA_RUN__              00107E RLA    
+__DATA_SIZE__             000025 REA    __DESTRUCTOR_COUNT__      000000 REA    
+__DESTRUCTOR_TABLE__      00107E RLA    __RAM_SIZE__              00F500 REA    
+__RAM_START__             000200 RLA    __STACKSIZE__             000800 REA    
+__STARTUP__               000001 REA    _exit                     000218 RLA    
+_main                     0008B6 RLA    _ria_call_int             000E69 RLA    
+_xreg                     000F58 RLA    addeq0sp                  000C08 RLA    
+addeqysp                  000C0A RLA    addysp                    000C1A RLA    
+addysp1                   000C19 RLA    aslax7                    000C43 RLA    
+asrax1                    000C4D RLA    boolne                    000CF9 RLA    
+c_sp                      000000 RLZ    copydata                  000C63 RLA    
+decsp2                    000C90 RLA    decsp3                    000C9D RLA    
+decsp6                    000CAA RLA    donelib                   000C57 RLA    
+incsp1                    000CCC RLA    incsp2                    000CDA RLA    
+incsp6                    000CE8 RLA    initlib                   00022B RLA    
+ldaidx                    000CED RLA    mul8x16                   000D6C RLA    
+mul8x16a                  000D76 RLA    mulax3                    000DA4 RLA    
+negax                     000DB9 RLA    popax                     000CD3 RLA    
+popptr1                   000DD8 RLA    popsargsudiv16            000E80 RLA    
+ptr1                      000008 RLZ    ptr2                      00000A RLZ    
+ptr4                      00000E RLZ    push0                     000DFC RLA    
+pusha                     000DEA RLA    pusha0                    000DFE RLA    
+pushax                    000E00 RLA    pushwysp                  000E18 RLA    
+shlax2                    000C27 RLA    shlax4                    000C32 RLA    
+shrax3                    000EA0 RLA    sreg                      000002 RLZ    
+stax0sp                   000EAE RLA    staxspidx                 000EB9 RLA    
+staxysp                   000EB0 RLA    subeq0sp                  000EE7 RLA    
+subysp                    000EFC RLA    tmp1                      000010 RLZ    
+tmp2                      000011 RLZ    tosaddax                  000BF2 RLA    
+tosdivax                  000CB9 RLA    tosmula0                  000D6A RLA    
+tosmulax                  000D25 RLA    tosora0                   000DC7 RLA    
+tossubax                  000ED5 RLA    udiv16                    000F1A RLA    
+zerobss                   000F6D RLA    
+
+
+Exports list by value:
+----------------------
+__CONSTRUCTOR_COUNT__     000000 REA    __DESTRUCTOR_COUNT__      000000 REA    
+c_sp                      000000 RLZ    __STARTUP__               000001 REA    
+sreg                      000002 RLZ    ptr1                      000008 RLZ    
+ptr2                      00000A RLZ    ptr4                      00000E RLZ    
+tmp1                      000010 RLZ    tmp2                      000011 RLZ    
+__DATA_SIZE__             000025 REA    __BSS_SIZE__              000032 REA    
+__RAM_START__             000200 RLA    _exit                     000218 RLA    
+initlib                   00022B RLA    __CONSTRUCTOR_TABLE__     000237 RLA    
+__STACKSIZE__             000800 REA    _main                     0008B6 RLA    
+tosaddax                  000BF2 RLA    addeq0sp                  000C08 RLA    
+addeqysp                  000C0A RLA    addysp1                   000C19 RLA    
+addysp                    000C1A RLA    shlax2                    000C27 RLA    
+shlax4                    000C32 RLA    aslax7                    000C43 RLA    
+asrax1                    000C4D RLA    donelib                   000C57 RLA    
+copydata                  000C63 RLA    decsp2                    000C90 RLA    
+decsp3                    000C9D RLA    decsp6                    000CAA RLA    
+tosdivax                  000CB9 RLA    incsp1                    000CCC RLA    
+popax                     000CD3 RLA    incsp2                    000CDA RLA    
+incsp6                    000CE8 RLA    ldaidx                    000CED RLA    
+boolne                    000CF9 RLA    tosmulax                  000D25 RLA    
+tosmula0                  000D6A RLA    mul8x16                   000D6C RLA    
+mul8x16a                  000D76 RLA    mulax3                    000DA4 RLA    
+negax                     000DB9 RLA    tosora0                   000DC7 RLA    
+popptr1                   000DD8 RLA    pusha                     000DEA RLA    
+push0                     000DFC RLA    pusha0                    000DFE RLA    
+pushax                    000E00 RLA    pushwysp                  000E18 RLA    
+_ria_call_int             000E69 RLA    popsargsudiv16            000E80 RLA    
+shrax3                    000EA0 RLA    stax0sp                   000EAE RLA    
+staxysp                   000EB0 RLA    staxspidx                 000EB9 RLA    
+tossubax                  000ED5 RLA    subeq0sp                  000EE7 RLA    
+subysp                    000EFC RLA    udiv16                    000F1A RLA    
+_xreg                     000F58 RLA    zerobss                   000F6D RLA    
+__DATA_LOAD__             00107E RLA    __DATA_RUN__              00107E RLA    
+__DESTRUCTOR_TABLE__      00107E RLA    __BSS_RUN__               0010A3 RLA    
+__RAM_SIZE__              00F500 REA    
+
+
+Imports list:
+-------------
+__BSS_RUN__ ([linker generated]):
+    zerobss.o                 common/zerobss.s:8
+__BSS_SIZE__ ([linker generated]):
+    zerobss.o                 common/zerobss.s:8
+__CONSTRUCTOR_COUNT__ ([linker generated]):
+    condes.o                  runtime/condes.s:18
+__CONSTRUCTOR_TABLE__ ([linker generated]):
+    condes.o                  runtime/condes.s:18
+__DATA_LOAD__ ([linker generated]):
+    copydata.o                common/copydata.s:8
+__DATA_RUN__ ([linker generated]):
+    copydata.o                common/copydata.s:8
+__DATA_SIZE__ ([linker generated]):
+    copydata.o                common/copydata.s:8
+__DESTRUCTOR_COUNT__ ([linker generated]):
+    condes.o                  runtime/condes.s:19
+__DESTRUCTOR_TABLE__ ([linker generated]):
+    condes.o                  runtime/condes.s:19
+__RAM_SIZE__ ([linker generated]):
+    crt0.o                    rp6502/crt0.s:10
+__RAM_START__ ([linker generated]):
+    crt0.o                    rp6502/crt0.s:10
+__STACKSIZE__ ([linker generated]):
+    [linker generated]        /home/wojciech/opt/cc65/cfg/rp6502.cfg:8
+__STARTUP__ (crt0.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:13
+    [linker generated]        /home/wojciech/opt/cc65/cfg/rp6502.cfg:2
+_exit (crt0.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:15
+_main (3dcube.c.obj):
+    crt0.o                    rp6502/crt0.s:7
+_ria_call_int (ria.o):
+    xreg.o                    rp6502/xreg.s:9
+_xreg (xreg.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:14
+addeq0sp (addeqsp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+addeqysp (addeqsp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+addysp (addysp.o):
+    xreg.o                    rp6502/xreg.s:9
+    incsp6.o                  runtime/incsp6.s:8
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+addysp1 (addysp.o):
+    sub.o                     runtime/sub.s:8
+    or.o                      runtime/or.s:9
+aslax7 (aslax7.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+asrax1 (asrax1.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+boolne (makebool.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+c_sp (zeropage.o):
+    xreg.o                    rp6502/xreg.s:8
+    subysp.o                  runtime/subysp.s:9
+    subeqsp.o                 runtime/subeqsp.s:8
+    sub.o                     runtime/sub.s:9
+    staxspi.o                 runtime/staxspi.s:10
+    staxsp.o                  runtime/staxsp.s:8
+    pushwsp.o                 runtime/pushwsp.s:8
+    pushax.o                  runtime/pushax.s:8
+    pusha.o                   runtime/pusha.s:8
+    popptr1.o                 runtime/popptr1.s:9
+    or.o                      runtime/or.s:10
+    incsp2.o                  runtime/incsp2.s:8
+    incsp1.o                  runtime/incsp1.s:8
+    decsp6.o                  runtime/decsp6.s:8
+    decsp3.o                  runtime/decsp3.s:8
+    decsp2.o                  runtime/decsp2.s:8
+    crt0.o                    /home/wojciech/opt/cc65/asminc/zeropage.inc:11
+    addysp.o                  runtime/addysp.s:8
+    addeqsp.o                 runtime/addeqsp.s:8
+    add.o                     runtime/add.s:12
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:10
+copydata (copydata.o):
+    crt0.o                    rp6502/crt0.s:12
+decsp2 (decsp2.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+decsp3 (decsp3.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+decsp6 (decsp6.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+donelib (condes.o):
+    crt0.o                    rp6502/crt0.s:12
+incsp1 (incsp1.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+incsp2 (incsp2.o):
+    staxspi.o                 runtime/staxspi.s:9
+    popptr1.o                 runtime/popptr1.s:8
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+incsp6 (incsp6.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+initlib (condes.o):
+    crt0.o                    rp6502/crt0.s:12
+ldaidx (ldai.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+mul8x16 (mul8.o):
+    mul.o                     runtime/mul.s:8
+mul8x16a (mul8.o):
+    mul.o                     runtime/mul.s:8
+mulax3 (mulax3.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+negax (negabs.o):
+    shelp.o                   runtime/shelp.s:11
+    div.o                     runtime/div.s:11
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+popax (incsp2.o):
+    shelp.o                   runtime/shelp.s:11
+popptr1 (popptr1.o):
+    udiv.o                    runtime/udiv.s:9
+    mul8.o                    runtime/mul8.s:9
+    mul.o                     runtime/mul.s:9
+popsargsudiv16 (shelp.o):
+    div.o                     runtime/div.s:11
+ptr1 (zeropage.o):
+    copydata.o                common/copydata.s:9
+    zerobss.o                 common/zerobss.s:9
+    udiv.o                    runtime/udiv.s:10
+    staxspi.o                 runtime/staxspi.s:10
+    shelp.o                   runtime/shelp.s:12
+    popptr1.o                 runtime/popptr1.s:9
+    mulax3.o                  runtime/mulax3.s:9
+    mul8.o                    runtime/mul8.s:10
+    mul.o                     runtime/mul.s:10
+    ldai.o                    runtime/ldai.s:8
+    div.o                     runtime/div.s:12
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:11
+ptr2 (zeropage.o):
+    copydata.o                common/copydata.s:9
+ptr4 (zeropage.o):
+    udiv.o                    runtime/udiv.s:10
+    shelp.o                   runtime/shelp.s:12
+    mul8.o                    runtime/mul8.s:10
+    mul.o                     runtime/mul.s:10
+push0 (pushax.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+pusha (pusha.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+pusha0 (pushax.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+pushax (pushax.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+pushwysp (pushwsp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+shlax2 (aslax2.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+shlax4 (aslax4.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+shrax3 (shrax3.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+sreg (zeropage.o):
+    ria.o                     rp6502/ria.s:13
+    udiv.o                    runtime/udiv.s:10
+stax0sp (staxsp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+staxspidx (staxspi.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+staxysp (staxsp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+subeq0sp (subeqsp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+subysp (subysp.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+tmp1 (zeropage.o):
+    copydata.o                common/copydata.s:9
+    staxspi.o                 runtime/staxspi.s:10
+    shrax3.o                  runtime/shrax3.s:8
+    shelp.o                   runtime/shelp.s:12
+    or.o                      runtime/or.s:10
+    mul.o                     runtime/mul.s:10
+    div.o                     runtime/div.s:12
+    asrax1.o                  runtime/asrax1.s:8
+    aslax4.o                  runtime/aslax4.s:8
+    aslax2.o                  runtime/aslax2.s:8
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:11
+tmp2 (zeropage.o):
+    shelp.o                   runtime/shelp.s:12
+    div.o                     runtime/div.s:12
+tosaddax (add.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+tosdivax (div.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+tosmula0 (mul8.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+tosmulax (mul.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+tosora0 (or.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+tossubax (sub.o):
+    3dcube.c.obj              CMakeFiles/3dcube.dir/src/3dcube.c.21.0.s:1921
+udiv16 (udiv.o):
+    shelp.o                   runtime/shelp.s:11
+zerobss (zerobss.o):
+    crt0.o                    rp6502/crt0.s:12
+

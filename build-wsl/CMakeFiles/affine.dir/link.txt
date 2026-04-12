@@ -1,0 +1,1 @@
+/usr/bin/cmake -P /mnt/c/@prg/@picocomputer/@software/git/rumbledethumps/rp6502_examples/tools/cc65.cmake -- /home/wojciech/opt/cc65/bin/cl65 --target rp6502 -Oirs CMakeFiles/affine.dir/src/affine.c.obj -o affine -m affine.map 
