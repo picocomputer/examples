@@ -109,6 +109,15 @@ static long bhaskara_sin10000(int deg)
     return 40000L * p / (40500L - p);
 }
 
+/* Bhaskara I approximation: cos(d°) = sin(90° - d°)
+ * Uses bhaskara_sin10000 via the complementary angle identity.
+ * Valid for 0 <= deg <= 90. Returns cos * 10000.
+ */
+static long bhaskara_cos10000(int deg)
+{
+    return bhaskara_sin10000(90 - deg);
+}
+
 static void benchmark_sine(void)
 {
     clock_t t_start, t_cop, t_cpu;
@@ -140,6 +149,37 @@ static void benchmark_sine(void)
     (void)dummy;
 }
 
+static void benchmark_cosine(void)
+{
+    clock_t t_start, t_cop, t_cpu;
+    int i;
+    long dummy = 0;
+
+    puts("\n-- Benchmark: Cosine Table (91 values, 0-90 deg) --");
+
+    /* Coprocessor: ITOF + FMUL(deg->rad) + FCOS + FMUL(*10000) + FTOI */
+    t_start = clock();
+    for (i = 0; i <= 90; i++)
+        dummy += mth_ftoi(mth_mulf(
+            mth_cosf(mth_mulf(mth_itof(i), F32_PI_OVER_180)),
+            F32_10000));
+    t_cop = clock() - t_start;
+
+    /* 65C02: Bhaskara I formula, no coprocessor, no lookup table */
+    t_start = clock();
+    for (i = 0; i <= 90; i++)
+        dummy += bhaskara_cos10000(i);
+    t_cpu = clock() - t_start;
+
+    printf("Coprocessor : %lu ms\n",
+           (unsigned long)t_cop * 1000UL / (unsigned long)CLOCKS_PER_SEC);
+    printf("CPU Bhaskara: %lu ms\n",
+           (unsigned long)t_cpu * 1000UL / (unsigned long)CLOCKS_PER_SEC);
+    if (t_cop > 0)
+        printf("CPU/cop ratio: %lux\n", (unsigned long)(t_cpu / t_cop));
+    (void)dummy;
+}
+
 static void sine_table(void)
 {
     int i;
@@ -157,6 +197,26 @@ static void sine_table(void)
                i,
                (int)(sin_scaled / 10000L),
                (int)(sin_scaled % 10000L));
+    }
+}
+
+static void cosine_table(void)
+{
+    int i;
+    long cos_scaled;
+
+    puts("\n-- Cosine Table (0-90 degrees) --");
+
+    for (i = 0; i <= 90; i++)
+    {
+        cos_scaled = mth_ftoi(mth_mulf(
+            mth_cosf(mth_mulf(mth_itof(i), F32_PI_OVER_180)),
+            F32_10000));
+
+        printf("cos(%2d) = %d.%04d\n",
+               i,
+               (int)(cos_scaled / 10000L),
+               (int)(cos_scaled % 10000L));
     }
 }
 
@@ -374,8 +434,11 @@ void main(void)
     check_long("DDIV   3.0/1.5=2.0 lo", lo, 0x00000000UL);
     check_long("DDIV   3.0/1.5=2.0 hi", hi, 0x40000000UL);
 
-    sine_table();
+    // sine_table();
     benchmark_sine();
+
+    // cosine_table();
+    benchmark_cosine();
 
     /* ==================== SUMMARY ==================== */
 
