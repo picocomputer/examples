@@ -362,10 +362,12 @@ class TelnetPort:
                     self._iac_pending = data[i:]
                     break
                 opt = data[i + 2]
-                if cmd == self.DO and opt != self.BINARY:
-                    self._sock.sendall(bytes([self.IAC, self.WONT, opt]))
-                elif cmd == self.WILL and opt != self.BINARY:
-                    self._sock.sendall(bytes([self.IAC, self.DONT, opt]))
+                if cmd == self.DO:
+                    resp = self.WILL if opt == self.BINARY else self.WONT
+                    self._sock.sendall(bytes([self.IAC, resp, opt]))
+                elif cmd == self.WILL:
+                    resp = self.DO if opt == self.BINARY else self.DONT
+                    self._sock.sendall(bytes([self.IAC, resp, opt]))
                 i += 3
             elif cmd == self.SB:
                 # Skip subnegotiation until IAC SE
@@ -401,7 +403,7 @@ class TelnetPort:
             if time.monotonic() - start > RESPONSE_TIMEOUT:
                 break
             try:
-                chunk = self._sock.recv(4096)
+                chunk = self._sock.recv(1)
                 if not chunk:
                     break
                 self._read_buf += self._strip_iac(chunk)
