@@ -321,10 +321,18 @@ class TelnetPort:
         try:
             self._sock.connect((self._host, self._port))
             # Negotiate binary mode (raw bytes, only 0xFF needs escaping)
-            self._sock.sendall(bytes([
-                self.IAC, self.WILL, self.BINARY,
-                self.IAC, self.DO, self.BINARY,
-            ]))
+            self._sock.sendall(
+                bytes(
+                    [
+                        self.IAC,
+                        self.WILL,
+                        self.BINARY,
+                        self.IAC,
+                        self.DO,
+                        self.BINARY,
+                    ]
+                )
+            )
             self._sock.setblocking(False)
             # Wait for passkey prompt
             self.read_until(b":")
@@ -1038,7 +1046,7 @@ def exec_args():
         dest="device",
         metavar="dev",
         default=Console.default_device(),
-        help=f"Serial device name. Default={Console.default_device()}",
+        help=f"Serial device or telnet address:port. Default={Console.default_device()}",
     )
     parser.add_argument(
         # Hidden alias for anyone used to minicom -D /dev/
@@ -1049,12 +1057,12 @@ def exec_args():
         help=argparse.SUPPRESS,
     )
     parser.add_argument(
-        "-t",
-        "--term",
-        dest="term",
-        metavar="bool",
-        default="True",
-        help=f"Attach to console terminal on run.",
+        "-k",
+        "--key",
+        dest="key",
+        metavar="key",
+        default=None,
+        help="Passkey for telnet authentication. Device becomes telnet host.",
     )
     parser.add_argument(
         "-w",
@@ -1065,20 +1073,12 @@ def exec_args():
         help="Remote directory to work in.",
     )
     parser.add_argument(
-        "-p",
-        "--port",
-        dest="port",
-        metavar="host:port",
-        default=None,
-        help="Telnet host:port for remote connection (requires --key).",
-    )
-    parser.add_argument(
-        "-k",
-        "--key",
-        dest="key",
-        metavar="key",
-        default=None,
-        help="Passkey for telnet authentication (requires --port).",
+        "-t",
+        "--term",
+        dest="term",
+        metavar="bool",
+        default="True",
+        help=f"Attach to console terminal on run.",
     )
     args = parser.parse_args()
 
@@ -1088,10 +1088,9 @@ def exec_args():
         if not os.path.exists(args.config):
             config[SCRIPT_NAME] = {
                 "device": args.device,
-                "term": args.term,
-                "workdir": args.workdir or "",
-                "port": args.port or "",
                 "key": args.key or "",
+                "workdir": args.workdir or "",
+                "term": args.term,
             }
             with open(args.config, "w") as cfg:
                 config.write(cfg)
@@ -1101,7 +1100,6 @@ def exec_args():
             args.device = config[SCRIPT_NAME].get("device", args.device)
             args.term = config[SCRIPT_NAME].get("term", args.term)
             args.workdir = config[SCRIPT_NAME].get("workdir", "") or None
-            args.port = config[SCRIPT_NAME].get("port", "") or args.port or None
             args.key = config[SCRIPT_NAME].get("key", "") or args.key or None
 
     # Because parser is bad at bool
@@ -1109,9 +1107,6 @@ def exec_args():
         args.term = True
     else:
         args.term = False
-
-    if bool(args.port) != bool(args.key):
-        parser.error("--port and --key must be used together")
 
     # Additional validation and conversion
     def str_to_address(parser, s, errmsg):
@@ -1135,19 +1130,32 @@ def exec_args():
                 return s
         return None
 
+    def timed_upload(console, file, name):
+        """Upload with timing and throughput logging."""
+        file.seek(0)
+        total_bytes = file.seek(0, 2)
+        file.seek(0)
+        start = time.monotonic()
+        console.upload(file, name)
+        elapsed = time.monotonic() - start
+        if elapsed > 0:
+            rate = total_bytes / elapsed
+            print(
+                f"[{SCRIPT_FILE}] {total_bytes} bytes in {elapsed:.2f}s ({rate:.0f} bytes/s)"
+            )
+
     # Open console and extend error with a hint about the config file
     if args.command in ["term", "run", "upload", "basic"]:
         if args.config:
             print(f"[{SCRIPT_FILE}] Using device config in {args.config}")
-        if args.port and args.key:
-            host, _, port_num = args.port.rpartition(":")
-            if not host or not port_num:
-                parser.error("--port must be host:port format")
-            try:
-                port_num = int(port_num)
-            except ValueError:
-                parser.error(f"Invalid port number: {port_num}")
-            print(f"[{SCRIPT_FILE}] Connecting to {args.port}")
+        if args.key:
+            host, _, port_str = args.device.rpartition(":")
+            if host and port_str.isdigit():
+                port_num = int(port_str)
+            else:
+                host = args.device
+                port_num = 23
+            print(f"[{SCRIPT_FILE}] Connecting to {host}:{port_num}")
             transport = TelnetPort(host, port_num, args.key)
         else:
             print(f"[{SCRIPT_FILE}] Opening device {args.device}")
@@ -1177,7 +1185,7 @@ def exec_args():
         rom.add_rom_file(args.filename[0])
         print(f"[{SCRIPT_FILE}] Uploading ROM")
         with open(args.filename[0], "rb") as f:
-            console.upload(f, os.path.basename(args.filename[0]))
+            timed_upload(console, f, os.path.basename(args.filename[0]))
         print(f"[{SCRIPT_FILE}] Loading ROM")
         console.load(os.path.basename(args.filename[0]))
         if args.term:
@@ -1191,7 +1199,7 @@ def exec_args():
                     dest = args.out
                 else:
                     dest = os.path.basename(file)
-                console.upload(f, dest)
+                timed_upload(console, f, dest)
 
     if args.command == "basic":
         code_page = console.code_page()
