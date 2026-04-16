@@ -19,6 +19,7 @@ import select
 import ctypes
 import json
 import glob
+import socket
 from typing import Union
 
 # POSIX
@@ -290,6 +291,170 @@ class SerialPort:
             self._handle = None
 
 
+class TelnetPort:
+    """Telnet connection implementing the same interface as SerialPort."""
+
+    IAC = 0xFF
+    WILL = 0xFB
+    WONT = 0xFC
+    DO = 0xFD
+    DONT = 0xFE
+    SB = 0xFA
+    SE = 0xF0
+    BRK = 0xF3
+    BINARY = 0x00
+
+    def __init__(self, host: str, port: int, key: str):
+        self._host = host
+        self._port = port
+        self._key = key
+        self._sock = None
+        self._read_buf = b""
+        self._iac_pending = b""
+        self.login_response = ""
+
+    def open(self):
+        """Connect and perform passkey login."""
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self._sock.settimeout(RESPONSE_TIMEOUT)
+        try:
+            self._sock.connect((self._host, self._port))
+            # Negotiate binary mode (raw bytes, only 0xFF needs escaping)
+            self._sock.sendall(bytes([
+                self.IAC, self.WILL, self.BINARY,
+                self.IAC, self.DO, self.BINARY,
+            ]))
+            self._sock.setblocking(False)
+            # Wait for passkey prompt
+            self.read_until(b":")
+            # Send passkey
+            self.write(self._key.encode("ascii") + b"\r\n")
+            # Record response without checking it
+            self.login_response = self.read_until(b"\n").decode(
+                "ascii", errors="replace"
+            )
+        except Exception:
+            self._sock.close()
+            self._sock = None
+            raise
+
+    def _strip_iac(self, data: bytes) -> bytes:
+        """Remove telnet IAC sequences, responding to negotiations."""
+        data = self._iac_pending + data
+        self._iac_pending = b""
+        clean = bytearray()
+        i = 0
+        while i < len(data):
+            if data[i] != self.IAC:
+                clean.append(data[i])
+                i += 1
+                continue
+            if i + 1 >= len(data):
+                self._iac_pending = data[i:]
+                break
+            cmd = data[i + 1]
+            if cmd == self.IAC:
+                clean.append(0xFF)  # escaped 0xFF
+                i += 2
+            elif cmd in (self.DO, self.DONT, self.WILL, self.WONT):
+                if i + 2 >= len(data):
+                    self._iac_pending = data[i:]
+                    break
+                opt = data[i + 2]
+                if cmd == self.DO and opt != self.BINARY:
+                    self._sock.sendall(bytes([self.IAC, self.WONT, opt]))
+                elif cmd == self.WILL and opt != self.BINARY:
+                    self._sock.sendall(bytes([self.IAC, self.DONT, opt]))
+                i += 3
+            elif cmd == self.SB:
+                # Skip subnegotiation until IAC SE
+                end = i + 2
+                while end + 1 < len(data):
+                    if data[end] == self.IAC and data[end + 1] == self.SE:
+                        end += 2
+                        break
+                    end += 1
+                else:
+                    self._iac_pending = data[i:]
+                    break
+                i = end
+            else:
+                i += 2  # skip other 2-byte IAC commands
+        return bytes(clean)
+
+    def write(self, data: bytes):
+        """Write data, escaping 0xFF for telnet."""
+        escaped = data.replace(b"\xff", b"\xff\xff")
+        total = 0
+        while total < len(escaped):
+            try:
+                sent = self._sock.send(escaped[total:])
+                total += sent
+            except BlockingIOError:
+                select.select([], [self._sock], [])
+
+    def read(self, size: int = 1) -> bytes:
+        """Read up to size bytes with timeout."""
+        start = time.monotonic()
+        while len(self._read_buf) < size:
+            if time.monotonic() - start > RESPONSE_TIMEOUT:
+                break
+            try:
+                chunk = self._sock.recv(4096)
+                if not chunk:
+                    break
+                self._read_buf += self._strip_iac(chunk)
+                start = time.monotonic()
+            except BlockingIOError:
+                time.sleep(0.001)
+            except OSError:
+                break
+        result = self._read_buf[:size]
+        self._read_buf = self._read_buf[size:]
+        return result
+
+    def read_until(self, delimiter: bytes = b"\n") -> bytes:
+        """Read until delimiter is found or timeout occurs."""
+        start = time.monotonic()
+        buffer = b""
+        while True:
+            if delimiter in buffer:
+                return buffer
+            if time.monotonic() - start > RESPONSE_TIMEOUT:
+                return buffer
+            chunk = self.read(1)
+            if chunk:
+                buffer += chunk
+            else:
+                time.sleep(0.001)
+
+    def flush_read_bufs(self):
+        """Discard all pending input data."""
+        self._read_buf = b""
+        self._iac_pending = b""
+        while True:
+            try:
+                if not self._sock.recv(4096):
+                    break
+            except (BlockingIOError, OSError):
+                break
+
+    def send_break(self):
+        """Send telnet IAC BREAK."""
+        self._sock.sendall(bytes([self.IAC, self.BRK]))
+
+    def fileno(self) -> int:
+        """Return the socket file descriptor for select()."""
+        return self._sock.fileno()
+
+    def close(self):
+        """Close the telnet connection."""
+        if self._sock is not None:
+            self._sock.close()
+            self._sock = None
+
+
 class Console:
     """Manages the RIA console over a serial connection."""
 
@@ -307,9 +472,9 @@ class Console:
         else:
             return "/dev/tty"
 
-    def __init__(self, name):
-        """Initialize console over serial connection."""
-        self.serial = SerialPort(name)
+    def __init__(self, port):
+        """Initialize console over serial or telnet connection."""
+        self.serial = port
         self.serial.open()
 
     def code_page(self, timeout: float = RESPONSE_TIMEOUT) -> str:
@@ -897,6 +1062,22 @@ def exec_args():
         default=None,
         help="Remote directory to work in.",
     )
+    parser.add_argument(
+        "-p",
+        "--port",
+        dest="port",
+        metavar="host:port",
+        default=None,
+        help="Telnet host:port for remote connection (requires --key).",
+    )
+    parser.add_argument(
+        "-k",
+        "--key",
+        dest="key",
+        metavar="key",
+        default=None,
+        help="Passkey for telnet authentication (requires --port).",
+    )
     args = parser.parse_args()
 
     # Standard library configuration parser
@@ -907,6 +1088,8 @@ def exec_args():
                 "device": args.device,
                 "term": args.term,
                 "workdir": args.workdir or "",
+                "port": args.port or "",
+                "key": args.key or "",
             }
             with open(args.config, "w") as cfg:
                 config.write(cfg)
@@ -916,12 +1099,17 @@ def exec_args():
             args.device = config[SCRIPT_NAME].get("device", args.device)
             args.term = config[SCRIPT_NAME].get("term", args.term)
             args.workdir = config[SCRIPT_NAME].get("workdir", "") or None
+            args.port = config[SCRIPT_NAME].get("port", "") or args.port or None
+            args.key = config[SCRIPT_NAME].get("key", "") or args.key or None
 
     # Because parser is bad at bool
     if args.term.lower() in ["t", "true"] or (args.term.isdigit() and args.term != "0"):
         args.term = True
     else:
         args.term = False
+
+    if bool(args.port) != bool(args.key):
+        parser.error("--port and --key must be used together")
 
     # Additional validation and conversion
     def str_to_address(parser, s, errmsg):
@@ -949,9 +1137,29 @@ def exec_args():
     if args.command in ["term", "run", "upload", "basic"]:
         if args.config:
             print(f"[{SCRIPT_FILE}] Using device config in {args.config}")
-        print(f"[{SCRIPT_FILE}] Opening device {args.device}")
-        console = Console(args.device)
-        console.send_break()
+        if args.port and args.key:
+            host, _, port_num = args.port.rpartition(":")
+            if not host or not port_num:
+                parser.error("--port must be host:port format")
+            try:
+                port_num = int(port_num)
+            except ValueError:
+                parser.error(f"Invalid port number: {port_num}")
+            print(f"[{SCRIPT_FILE}] Connecting to {args.port}")
+            transport = TelnetPort(host, port_num, args.key)
+        else:
+            print(f"[{SCRIPT_FILE}] Opening device {args.device}")
+            transport = SerialPort(args.device)
+        console = Console(transport)
+        try:
+            console.send_break()
+        except TimeoutError:
+            if hasattr(transport, "login_response") and transport.login_response:
+                raise TimeoutError(
+                    f"Console did not respond. Server said: "
+                    f"{transport.login_response.strip()}"
+                )
+            raise
         if args.workdir:
             console.command(f"CD {json.dumps(args.workdir)}")
 
