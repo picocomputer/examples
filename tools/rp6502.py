@@ -292,17 +292,22 @@ class SerialDevice:
 
 
 class TelnetDevice:
-    """Telnet connection."""
+    """Telnet connection per RFC 854/855 with Q-method (RFC 1143) negotiation."""
 
+    # IAC and commands (RFC 854)
     IAC = 0xFF
-    WILL = 0xFB
-    WONT = 0xFC
-    DO = 0xFD
     DONT = 0xFE
+    DO = 0xFD
+    WONT = 0xFC
+    WILL = 0xFB
     SB = 0xFA
     SE = 0xF0
     BRK = 0xF3
+    # Options (RFC 856 binary transmission)
     BINARY = 0x00
+
+    # Q-method states. We never initiate disable, so WANT_NO is unused.
+    _NO, _YES, _WANT_YES = 0, 1, 2
 
     def __init__(self, host: str, port: int, key: str):
         self._host = host
@@ -311,6 +316,141 @@ class TelnetDevice:
         self._sock = None
         self._read_buf = b""
         self._iac_pending = b""
+        # Per-option negotiation state: opt -> [us, him]
+        self._opts = {}
+
+    # --- low-level send ---
+
+    def _send_raw(self, data: bytes):
+        """Send raw bytes, waiting on backpressure via select."""
+        total = 0
+        while total < len(data):
+            try:
+                total += self._sock.send(data[total:])
+            except BlockingIOError:
+                select.select([], [self._sock], [])
+
+    def _send_iac(self, *parts: int):
+        """Send IAC followed by one or more command bytes."""
+        self._send_raw(bytes((self.IAC, *parts)))
+
+    # --- option negotiation (RFC 1143 Q-method) ---
+
+    def _want(self, opt: int) -> bool:
+        """Policy: which options we accept on either side."""
+        return opt == self.BINARY
+
+    def _opt(self, opt: int) -> list:
+        if opt not in self._opts:
+            self._opts[opt] = [self._NO, self._NO]
+        return self._opts[opt]
+
+    def _offer_will(self, opt: int):
+        """Request to enable `opt` on our side."""
+        s = self._opt(opt)
+        if s[0] == self._NO:
+            s[0] = self._WANT_YES
+            self._send_iac(self.WILL, opt)
+
+    def _offer_do(self, opt: int):
+        """Request to enable `opt` on peer's side."""
+        s = self._opt(opt)
+        if s[1] == self._NO:
+            s[1] = self._WANT_YES
+            self._send_iac(self.DO, opt)
+
+    def _recv_do(self, opt: int):
+        s = self._opt(opt)
+        if s[0] == self._NO:
+            if self._want(opt):
+                s[0] = self._YES
+                self._send_iac(self.WILL, opt)
+            else:
+                self._send_iac(self.WONT, opt)
+        elif s[0] == self._WANT_YES:
+            s[0] = self._YES
+
+    def _recv_dont(self, opt: int):
+        s = self._opt(opt)
+        if s[0] == self._YES:
+            s[0] = self._NO
+            self._send_iac(self.WONT, opt)
+        elif s[0] == self._WANT_YES:
+            s[0] = self._NO
+
+    def _recv_will(self, opt: int):
+        s = self._opt(opt)
+        if s[1] == self._NO:
+            if self._want(opt):
+                s[1] = self._YES
+                self._send_iac(self.DO, opt)
+            else:
+                self._send_iac(self.DONT, opt)
+        elif s[1] == self._WANT_YES:
+            s[1] = self._YES
+
+    def _recv_wont(self, opt: int):
+        s = self._opt(opt)
+        if s[1] == self._YES:
+            s[1] = self._NO
+            self._send_iac(self.DONT, opt)
+        elif s[1] == self._WANT_YES:
+            s[1] = self._NO
+
+    # --- IAC scanner ---
+
+    def _strip_iac(self, data: bytes) -> bytes:
+        """Extract user data from incoming bytes, handling telnet commands."""
+        data = self._iac_pending + data
+        self._iac_pending = b""
+        out = bytearray()
+        negotiators = {
+            self.DO: self._recv_do,
+            self.DONT: self._recv_dont,
+            self.WILL: self._recv_will,
+            self.WONT: self._recv_wont,
+        }
+        i, n = 0, len(data)
+        while i < n:
+            if data[i] != self.IAC:
+                out.append(data[i])
+                i += 1
+                continue
+            if i + 1 >= n:
+                self._iac_pending = data[i:]
+                break
+            cmd = data[i + 1]
+            if cmd == self.IAC:
+                # IAC IAC = literal 0xFF
+                out.append(0xFF)
+                i += 2
+            elif cmd in negotiators:
+                if i + 2 >= n:
+                    self._iac_pending = data[i:]
+                    break
+                negotiators[cmd](data[i + 2])
+                i += 3
+            elif cmd == self.SB:
+                # IAC SB ... IAC SE -- skip subnegotiation payload
+                j = i + 2
+                while j + 1 < n:
+                    if data[j] == self.IAC:
+                        if data[j + 1] == self.SE:
+                            j += 2
+                            break
+                        j += 2  # IAC IAC = escaped 0xFF inside subneg
+                    else:
+                        j += 1
+                else:
+                    self._iac_pending = data[i:]
+                    break
+                i = j
+            else:
+                # 2-byte commands without option (NOP, DM, BRK, IP, AO, AYT, EC, EL, GA, SE)
+                i += 2
+        return bytes(out)
+
+    # --- connection lifecycle ---
 
     def open(self):
         """Connect and perform passkey login."""
@@ -319,27 +459,14 @@ class TelnetDevice:
         self._sock.settimeout(RESPONSE_TIMEOUT)
         try:
             self._sock.connect((self._host, self._port))
-            # Negotiate binary mode (raw bytes, only 0xFF needs escaping)
-            self._sock.sendall(
-                bytes(
-                    [
-                        self.IAC,
-                        self.WILL,
-                        self.BINARY,
-                        self.IAC,
-                        self.DO,
-                        self.BINARY,
-                    ]
-                )
-            )
+            # Request BINARY transmission on both sides (RFC 856)
+            # while still in blocking mode so the offers get out promptly.
+            self._offer_will(self.BINARY)
+            self._offer_do(self.BINARY)
             self._sock.setblocking(False)
-            # Wait for passkey prompt
             self.read_until(b":")
-            # Send passkey
             self.write(self._key.encode("ascii") + b"\r\n")
-            # Discard the passkey echo line
-            self.read_until(b"\n")
-            # One line follows: success or "?..." failure
+            self.read_until(b"\n")  # passkey echo
             response = self.read_until(b"\n").decode("ascii", errors="replace").strip()
             if response.startswith("?"):
                 raise RuntimeError(response)
@@ -348,77 +475,31 @@ class TelnetDevice:
             self._sock = None
             raise
 
-    def _strip_iac(self, data: bytes) -> bytes:
-        """Remove telnet IAC sequences, responding to negotiations."""
-        data = self._iac_pending + data
-        self._iac_pending = b""
-        clean = bytearray()
-        i = 0
-        while i < len(data):
-            if data[i] != self.IAC:
-                clean.append(data[i])
-                i += 1
-                continue
-            if i + 1 >= len(data):
-                self._iac_pending = data[i:]
-                break
-            cmd = data[i + 1]
-            if cmd == self.IAC:
-                clean.append(0xFF)  # escaped 0xFF
-                i += 2
-            elif cmd in (self.DO, self.DONT, self.WILL, self.WONT):
-                if i + 2 >= len(data):
-                    self._iac_pending = data[i:]
-                    break
-                opt = data[i + 2]
-                if cmd == self.DO:
-                    resp = self.WILL if opt == self.BINARY else self.WONT
-                    self._sock.sendall(bytes([self.IAC, resp, opt]))
-                elif cmd == self.WILL:
-                    resp = self.DO if opt == self.BINARY else self.DONT
-                    self._sock.sendall(bytes([self.IAC, resp, opt]))
-                i += 3
-            elif cmd == self.SB:
-                # Skip subnegotiation until IAC SE
-                end = i + 2
-                while end + 1 < len(data):
-                    if data[end] == self.IAC and data[end + 1] == self.SE:
-                        end += 2
-                        break
-                    end += 1
-                else:
-                    self._iac_pending = data[i:]
-                    break
-                i = end
-            else:
-                i += 2  # skip other 2-byte IAC commands
-        return bytes(clean)
+    # --- public I/O ---
 
     def write(self, data: bytes):
-        """Write data, escaping 0xFF for telnet."""
-        escaped = data.replace(b"\xff", b"\xff\xff")
-        total = 0
-        while total < len(escaped):
-            try:
-                sent = self._sock.send(escaped[total:])
-                total += sent
-            except BlockingIOError:
-                select.select([], [self._sock], [])
+        """Write data, escaping IAC (0xFF) per telnet spec."""
+        self._send_raw(data.replace(b"\xff", b"\xff\xff"))
 
     def read(self, size: int = 1) -> bytes:
-        """Read up to size bytes with timeout."""
-        start = time.monotonic()
+        """Read up to `size` bytes; times out after RESPONSE_TIMEOUT of silence."""
+        deadline = time.monotonic() + RESPONSE_TIMEOUT
         while len(self._read_buf) < size:
-            if time.monotonic() - start > RESPONSE_TIMEOUT:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
                 break
             try:
-                chunk = self._sock.recv(1)
+                # Only recv what we still need so fileno() readiness stays in
+                # sync with _read_buf -- callers select() on us for terminals.
+                chunk = self._sock.recv(size - len(self._read_buf))
                 if not chunk:
-                    break
+                    break  # peer closed
                 self._read_buf += self._strip_iac(chunk)
-                start = time.monotonic()
+                deadline = time.monotonic() + RESPONSE_TIMEOUT
             except BlockingIOError:
-                time.sleep(0.001)
+                ready, _, _ = select.select([self._sock], [], [], remaining)
+                if not ready:
+                    break
             except OSError:
                 break
         result = self._read_buf[:size]
@@ -452,8 +533,8 @@ class TelnetDevice:
                 break
 
     def send_break(self):
-        """Send telnet IAC BREAK."""
-        self._sock.sendall(bytes([self.IAC, self.BRK]))
+        """Send telnet BREAK (RFC 854)."""
+        self._send_iac(self.BRK)
 
     def fileno(self) -> int:
         """Return the socket file descriptor for select()."""
