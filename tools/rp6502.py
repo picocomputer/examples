@@ -46,7 +46,7 @@ SCRIPT_NAME = os.path.splitext(SCRIPT_FILE)[0].upper()
 RESPONSE_TIMEOUT = 2.0
 
 
-class SerialPort:
+class SerialDevice:
     """Cross-platform serial port implementation."""
 
     def __init__(self, port: str):
@@ -291,8 +291,8 @@ class SerialPort:
             self._handle = None
 
 
-class TelnetPort:
-    """Telnet connection implementing the same interface as SerialPort."""
+class TelnetDevice:
+    """Telnet connection."""
 
     IAC = 0xFF
     WILL = 0xFB
@@ -311,7 +311,6 @@ class TelnetPort:
         self._sock = None
         self._read_buf = b""
         self._iac_pending = b""
-        self.login_response = ""
 
     def open(self):
         """Connect and perform passkey login."""
@@ -338,10 +337,12 @@ class TelnetPort:
             self.read_until(b":")
             # Send passkey
             self.write(self._key.encode("ascii") + b"\r\n")
-            # Record response without checking it
-            self.login_response = self.read_until(b"\n").decode(
-                "ascii", errors="replace"
-            )
+            # Discard the passkey echo line
+            self.read_until(b"\n")
+            # One line follows: success or "?..." failure
+            response = self.read_until(b"\n").decode("ascii", errors="replace").strip()
+            if response.startswith("?"):
+                raise RuntimeError(response)
         except Exception:
             self._sock.close()
             self._sock = None
@@ -1156,20 +1157,12 @@ def exec_args():
                 host = args.device
                 port_num = 23
             print(f"[{SCRIPT_FILE}] Connecting to {host}:{port_num}")
-            transport = TelnetPort(host, port_num, args.key)
+            transport = TelnetDevice(host, port_num, args.key)
         else:
             print(f"[{SCRIPT_FILE}] Opening device {args.device}")
-            transport = SerialPort(args.device)
+            transport = SerialDevice(args.device)
         console = Console(transport)
-        try:
-            console.send_break()
-        except TimeoutError:
-            if hasattr(transport, "login_response") and transport.login_response:
-                raise TimeoutError(
-                    f"Console did not respond. Server said: "
-                    f"{transport.login_response.strip()}"
-                )
-            raise
+        console.send_break()
         if args.workdir:
             console.command(f"CD {json.dumps(args.workdir)}")
 
@@ -1282,7 +1275,14 @@ if __name__ == "__main__":
     # It's annoying when a debugger catches them so we intercept to exit cleanly.
     try:
         exec_args()
-    except (ROMException, FileNotFoundError, TimeoutError, RuntimeError) as e:
+    except (
+        ROMException,
+        FileNotFoundError,
+        TimeoutError,
+        RuntimeError,
+        ConnectionError,
+        socket.gaierror,
+    ) as e:
         # Unresolved variable substitutions like ${command:cmake.launchTargetPath}
         if re.search(r"\$\{[^}]*\}", str(e)):
             print(
