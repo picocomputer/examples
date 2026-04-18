@@ -1,1 +1,0 @@
-/usr/bin/cmake -P /mnt/c/@prg/@picocomputer/@software/git/rumbledethumps/rp6502_examples/tools/cc65.cmake -- /home/wojciech/opt/cc65/bin/cl65 --target rp6502 -Oirs CMakeFiles/poprock.dir/src/poprock.c.obj CMakeFiles/poprock.dir/src/ezpsg.c.obj -o poprock -m poprock.map 

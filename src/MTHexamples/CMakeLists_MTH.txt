@@ -1,0 +1,37 @@
+cmake_minimum_required(VERSION 3.20)
+
+add_executable(mathcop)
+rp6502_executable(mathcop DATA 0x200 RESET 0x200)
+target_sources(mathcop PRIVATE
+    src/MTHexamples/mathcop.c
+)
+
+add_executable(3dcubeCPU)
+rp6502_executable(3dcubeCPU DATA 0x200 RESET 0x200)
+target_sources(3dcubeCPU PRIVATE
+    src/MTHexamples/3dcubeCPU.c
+)
+
+add_executable(3dcube)
+rp6502_executable(3dcube DATA 0x200 RESET 0x200)
+target_sources(3dcube PRIVATE
+    src/MTHexamples/3dcube.c
+)
+
+add_executable(3dcubePRE)
+rp6502_executable(3dcubePRE DATA 0x200 RESET 0x200)
+target_sources(3dcubePRE PRIVATE
+    src/MTHexamples/3dcubePRE.c
+)
+
+add_executable(3dcubeMC)
+rp6502_executable(3dcubeMC DATA 0x200 RESET 0x200)
+target_sources(3dcubeMC PRIVATE
+    src/MTHexamples/3dcubeMC.c
+)
+
+add_executable(3dcubePREMC)
+rp6502_executable(3dcubePREMC DATA 0x200 RESET 0x200)
+target_sources(3dcubePREMC PRIVATE
+    src/MTHexamples/3dcubePREMC.c
+)

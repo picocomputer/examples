@@ -1,0 +1,71 @@
+cmake_minimum_required(VERSION 3.20)
+
+add_executable(MATHVMbenchmark)
+rp6502_executable(MATHVMbenchmark DATA 0x200 RESET 0x200)
+target_sources(MATHVMbenchmark PRIVATE
+    src/MATHVMexamples/mathvm_batch_benchmark_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMmathcop)
+rp6502_executable(MATHVMmathcop DATA 0x200 RESET 0x200)
+target_sources(MATHVMmathcop PRIVATE
+    src/MATHVMexamples/mathvm_mathcop_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMm3v3l)
+rp6502_executable(MATHVMm3v3l DATA 0x200 RESET 0x200)
+target_sources(MATHVMm3v3l PRIVATE
+    src/MATHVMexamples/m3v3l_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMspr2l_bbox)
+rp6502_executable(MATHVMspr2l_bbox DATA 0x200 RESET 0x200)
+target_sources(MATHVMspr2l_bbox PRIVATE
+    src/MATHVMexamples/spr2l_bbox_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMspr2l_corners)
+rp6502_executable(MATHVMspr2l_corners DATA 0x200 RESET 0x200)
+target_sources(MATHVMspr2l_corners PRIVATE
+    src/MATHVMexamples/spr2l_corners_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVM_negative)
+rp6502_executable(MATHVM_negative DATA 0x200 RESET 0x200)
+target_sources(MATHVM_negative PRIVATE
+    src/MATHVMexamples/mathvm_negative_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMoctahedron)
+rp6502_executable(MATHVMoctahedron DATA 0x200 RESET 0x200)
+target_sources(MATHVMoctahedron PRIVATE
+    src/MATHVMexamples/mathvm_octahedron_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMdodecahedron)
+rp6502_executable(MATHVMdodecahedron DATA 0x200 RESET 0x200)
+target_sources(MATHVMdodecahedron PRIVATE
+    src/MATHVMexamples/mathvm_dodecahedron_batch_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMdodebug)
+rp6502_executable(MATHVMdodebug DATA 0x200 RESET 0x200)
+target_sources(MATHVMdodebug PRIVATE
+    src/MATHVMexamples/mathvm_dodecahedron_debug_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)
+
+add_executable(MATHVMpitagoras)
+rp6502_executable(MATHVMpitagoras DATA 0x200 RESET 0x200)
+target_sources(MATHVMpitagoras PRIVATE
+    src/MATHVMexamples/mathvm_pitagoras_cc65.c
+    src/MATHVMexamples/mathvm_client.c
+)

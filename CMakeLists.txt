@@ -77,36 +77,6 @@ target_sources(mandelbrot PRIVATE
     src/mandelbrot.c
 )
 
-add_executable(mathcop)
-rp6502_executable(mathcop DATA 0x200 RESET 0x200)
-target_sources(mathcop PRIVATE
-    src/mathcop.c
-)
-
-add_executable(3dcube)
-rp6502_executable(3dcube DATA 0x200 RESET 0x200)
-target_sources(3dcube PRIVATE
-    src/3dcube.c
-)
-
-add_executable(3dcubePRE)
-rp6502_executable(3dcubePRE DATA 0x200 RESET 0x200)
-target_sources(3dcubePRE PRIVATE
-    src/3dcubePRE.c
-)
-
-add_executable(3dcubeMC)
-rp6502_executable(3dcubeMC DATA 0x200 RESET 0x200)
-target_sources(3dcubeMC PRIVATE
-    src/3dcubeMC.c
-)
-
-add_executable(3dcubePREMC)
-rp6502_executable(3dcubePREMC DATA 0x200 RESET 0x200)
-target_sources(3dcubePREMC PRIVATE
-    src/3dcubePREMC.c
-)
-
 add_executable(mode1)
 rp6502_executable(mode1 DATA 0x200 RESET 0x200)
 target_sources(mode1 PRIVATE
@@ -180,3 +150,6 @@ rp6502_executable(vsync DATA 0x200 RESET 0x200)
 target_sources(vsync PRIVATE
     src/vsync.c
 )
+
+# include(src/MTHexamples/CMakeLists_MTH.txt)
+include(src/MATHVMexamples/CMakeLists_MATHVM.txt)
