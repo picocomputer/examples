@@ -24,8 +24,6 @@ static void print_time(time_t time)
 
 void main()
 {
-    puts("This requires RP6502-RIA v0.16 or later.");
-
     puts("\nThe current time is:");
     print_time(time(NULL));
 
