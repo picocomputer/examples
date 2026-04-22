@@ -31,7 +31,7 @@ void main()
     xreg_vga_mode(0, 1);         // Mode 0
 
     // Wait forever, or we'll drop back to console on exit.
-    printf("\fPress CTRL-ALT-DEL when done viewing");
+    printf("\fPress ALT-F4 when done viewing");
     while (1)
         ;
 }
