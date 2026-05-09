@@ -18,8 +18,8 @@ uint8_t irq_stack[256];
 
 unsigned char irq_fn(void)
 {
-    ++irq_count;
-    RIA.irq = 1;
+    if (RIA.irq & 0x80)
+        ++irq_count;
     return IRQ_HANDLED;
 }
 
@@ -29,7 +29,7 @@ void main()
     static uint8_t v;
 
     set_irq(irq_fn, &irq_stack, sizeof(irq_stack));
-    RIA.irq = 1;
+    RIA.irq = 0x80;
 
     printf("Testing RIA_VSYNC and RIA_IRQ for 5 seconds.\nPlease wait.\n");
 
