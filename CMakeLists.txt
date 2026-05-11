@@ -10,6 +10,12 @@ target_sources(affine PRIVATE
     src/affine.c
 )
 
+add_executable(ansi)
+rp6502_executable(ansi DATA 0x200 RESET 0x200)
+target_sources(ansi PRIVATE
+    src/ansi.c
+)
+
 add_executable(altair1)
 rp6502_asset(altair1 help src/altair.hlp)
 rp6502_asset(altair1 0x10000 src/altair.pal.bin)
@@ -106,12 +112,6 @@ add_executable(paint)
 rp6502_executable(paint DATA 0x200 RESET 0x200)
 target_sources(paint PRIVATE
     src/paint.c
-)
-
-add_executable(palette)
-rp6502_executable(palette DATA 0x200 RESET 0x200)
-target_sources(palette PRIVATE
-    src/palette.c
 )
 
 add_executable(poprock)
