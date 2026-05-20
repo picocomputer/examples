@@ -42,6 +42,29 @@ static void pause_page(const char *prompt)
     gets(pause_buf);
 }
 
+/* Like pause_page but reads CR directly from tty so readline doesn't
+ * reset DECTCEM/DECSCUSR state. Prints "X\b" so the cursor sits over
+ * a visible glyph while the user inspects its appearance. */
+static void pause_tty(const char *prompt)
+{
+    unsigned char b;
+    int r;
+    printf("%sX\b", prompt);
+    fflush(stdout);
+    for (;;)
+    {
+        r = read(tty, &b, 1);
+        if (r < 0)
+            return;
+        if (r == 0)
+            continue;
+        if (b == '\r' || b == '\n')
+            break;
+    }
+    printf("\n");
+    fflush(stdout);
+}
+
 /* Read CPR (\33[y;xR) following a \33[6n query. */
 static int query_cpr(int *y, int *x)
 {
@@ -186,6 +209,23 @@ static void run_automated(void)
     /* Soft reset: homes cursor, clears scroll region and origin. */
     printf("\33[5;15r\33[?6h\33[10;5H\33[!p");    expect_pos(1, 1, "DECSTR");
 
+    /* DECSTBM scroll behavior. LF at bottom margin keeps the cursor on
+     * the bottom-margin row (the region scrolls up). RI (ESC M) at the
+     * top margin keeps the cursor on the top-margin row (region scrolls
+     * down). */
+    printf("\33[5;15r\33[15;1H\n");               expect_y(15, "LF at bot margin");
+    printf("\33[5;15r\33[5;1H\33M");              expect_y(5,  "RI at top margin");
+
+    /* DECAWM inside DECSTBM: deferred wrap at the right margin on the
+     * bottom-margin row -- the next char scrolls the region instead of
+     * moving the cursor out, leaving it at (bot_margin, 2). */
+    printf("\33[5;15r\33[?7h\33[15;80HAB");       expect_pos(15, 2, "DECAWM+STBM wrap");
+
+    /* IL / DL within the scroll region: row is preserved. Column
+     * behavior varies between DEC and ECMA-48, so check Y only. */
+    printf("\33[5;15r\33[8;1H\33[2L");            expect_y(8, "IL in region");
+    printf("\33[5;15r\33[8;1H\33[2M");            expect_y(8, "DL in region");
+
     /* Tidy state before phase 2 */
     printf("\33[r\33[?6l\33[?7h\33[0m");
 
@@ -219,21 +259,21 @@ static void visual_attributes_and_dec(void)
     cls();
     printf("\33[1mText Attributes\33[0m   (bold/faint/italic shown in blue)\n");
     printf("Default        : \33[34mThe quick brown fox\33[0m\n");
-    printf("Bold           : \33[1;34mThe quick brown fox\33[0m\n");
-    printf("Faint          : \33[2;34mThe quick brown fox\33[0m\n");
-    printf("Italic         : \33[3;34mThe quick brown fox\33[0m\n");
+    printf("Bold           : \33[1;34mThe quick brown fox 0123456789\33[0m\n");
+    printf("Faint          : \33[2;34mThe quick brown fox 0123456789\33[0m\n");
+    printf("Italic         : \33[3;34mThe quick brown fox 0123456789\33[0m\n");
     printf("\n");
-    printf("Underline      : \33[4mThe quick brown fox\33[0m\n");
+    printf("Underline      : \33[4mThe quick brown fox 0123456789\33[0m\n");
     printf("\n");
-    printf("Double under   : \33[21mThe quick brown fox\33[0m\n");
+    printf("Double under   : \33[21mThe quick brown fox 0123456789\33[0m\n");
     printf("\n");
-    printf("Overline       : \33[53mThe quick brown fox\33[0m\n");
+    printf("Overline       : \33[53mThe quick brown fox 0123456789\33[0m\n");
     printf("\n");
-    printf("Strikethrough  : \33[9mThe quick brown fox\33[0m\n");
+    printf("Strikethrough  : \33[9mThe quick brown fox 0123456789\33[0m\n");
     printf("\n");
-    printf("Reverse        : \33[7mThe quick brown fox\33[0m\n");
-    printf("Conceal        : \33[8mThe quick brown fox\33[0m  (hidden)\n");
-    printf("Blink          : \33[5mThe quick brown fox\33[0m\n");
+    printf("Reverse        : \33[7mThe quick brown fox 0123456789\33[0m\n");
+    printf("Conceal        : \33[8mThe quick brown fox 0123456789\33[0m  (hidden)\n");
+    printf("Blink          : \33[5mThe quick brown fox 0123456789\33[0m\n");
 
     printf("Bright fg/bg   : ");
     for (i = 90; i < 98; i++)
@@ -341,20 +381,68 @@ static void visual_cursor_tests(void)
     printf("\33[1mCursor tests\33[0m  -- watch the cursor at each prompt\n\n");
 
     printf("DECTCEM visibility (?25):\n");
-    pause_page("  cursor visible -- Enter: ");
+    pause_tty("  cursor visible -- Enter: ");
     printf("\33[?25l");
-    pause_page("  cursor hidden  -- Enter: ");
+    pause_tty("  cursor hidden  -- Enter: ");
     printf("\33[?25h");
 
     printf("\nDECSCUSR styles (CSI Ps SP q):\n");
     for (ps = 0; ps < 7; ps++)
     {
+        char prompt[64];
         printf("\33[%d q", ps);
-        printf("  style %s -- Enter: ", names[ps]);
-        fflush(stdout);
-        gets(pause_buf);
+        sprintf(prompt, "  style %s -- Enter: ", names[ps]);
+        pause_tty(prompt);
     }
     printf("\33[0 q"); /* restore default style */
+}
+
+/* DECSTBM visual: lay down sentinel rows outside a 5..12 scroll region,
+ * then walk the user through scroll-up via LF at bot margin, scroll-down
+ * via RI at top margin, IL/DL inside the region, and the DECAWM+DECSTBM
+ * right-margin wrap. Rows 1-4 and 13+ must stay still throughout. */
+static void visual_decstbm_scroll(void)
+{
+    int i;
+    cls();
+    printf("\33[3;1HOutside top (fixed)");
+    printf("\33[14;1HOutside bottom (fixed)");
+
+    /* Bracket the region with DEC graphics horizontal rules on rows 4
+     * and 13 so the boundary is visually unambiguous. */
+    printf("\33[4;1H\33(0");
+    for (i = 0; i < WIDTH; i++)
+        putchar('q');
+    printf("\33(B");
+    printf("\33[13;1H\33(0");
+    for (i = 0; i < WIDTH; i++)
+        putchar('q');
+    printf("\33(B");
+
+    /* Region rows 5-12, fill with 8 lines of context. */
+    printf("\33[5;12r");
+    for (i = 1; i <= 8; i++)
+        printf("\33[%d;1Hregion line %d", 4 + i, i);
+
+    pause_page("\33[18;1H\33[2KEnter: scroll up via LF at bot margin (x4): ");
+    for (i = 1; i <= 4; i++)
+        printf("\33[12;1H\33[Knew bottom %d\n", i);
+
+    pause_page("\33[18;1H\33[2KEnter: scroll down via RI at top margin (x4): ");
+    for (i = 1; i <= 4; i++)
+        printf("\33[5;1H\33M\33[Knew top %d", i);
+
+    pause_page("\33[18;1H\33[2KEnter: IL inside region: ");
+    printf("\33[8;1H\33[2L>>> inserted at row 8 <<<");
+
+    pause_page("\33[18;1H\33[2KEnter: DL inside region: ");
+    printf("\33[7;1H\33[2M");
+
+    pause_page("\33[18;1H\33[2KEnter: DECAWM+DECSTBM right-margin wrap: ");
+    printf("\33[12;76H1234567890ABCDE");
+
+    printf("\33[r");
+    pause_page("\33[18;1H\33[2KEnter to continue: ");
 }
 
 void main(void)
@@ -372,6 +460,7 @@ void main(void)
     visual_palette();
     visual_osc_and_alt();
     visual_cursor_tests();
+    visual_decstbm_scroll();
 
     /* final cleanup */
     printf("\33[?25h\33[0m\33[0 q");
