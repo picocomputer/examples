@@ -58,6 +58,12 @@ target_sources(exec PRIVATE
     src/exec.c
 )
 
+add_executable(form)
+rp6502_executable(form DATA 0x200 RESET 0x200)
+target_sources(form PRIVATE
+    src/form.c
+)
+
 add_executable(furelise)
 rp6502_executable(furelise DATA 0x200 RESET 0x200)
 target_sources(furelise PRIVATE
