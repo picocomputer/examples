@@ -181,7 +181,7 @@ static int run_field(int idx, bool is_submit)
              * data into the editor -- poke writes the buffer back to
              * the screen, so this also restores the visible text. */
             if (!is_submit)
-                ria_readline_poke(data[idx]);
+                ria_rln_poke(data[idx]);
             first = false;
         }
 
@@ -201,14 +201,14 @@ static int run_field(int idx, bool is_submit)
             return planned_nav;
         }
 
-        klen = ria_readline_lastkey(key, &action);
+        klen = ria_rln_lastkey(key, &action);
         if (klen > 0 && action == 0)
         {
             nav = decode_nav(key, klen);
             if (nav != 0)
             {
                 planned_nav = nav;
-                ria_readline_poke("\r");
+                ria_rln_poke("\r");
             }
         }
 
