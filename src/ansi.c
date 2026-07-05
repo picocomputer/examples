@@ -274,6 +274,7 @@ static void visual_attributes_and_dec(void)
     printf("Reverse        : \33[7mThe quick brown fox 0123456789\33[0m\n");
     printf("Conceal        : \33[8mThe quick brown fox 0123456789\33[0m  (hidden)\n");
     printf("Blink          : \33[5mThe quick brown fox 0123456789\33[0m\n");
+    printf("Fast blink     : \33[6mThe quick brown fox 0123456789\33[0m\n");
 
     printf("Bright fg/bg   : ");
     for (i = 90; i < 98; i++)
@@ -445,6 +446,67 @@ static void visual_decstbm_scroll(void)
     pause_page("\33[18;1H\33[2KEnter to continue: ");
 }
 
+/* RLN_SUPPRESS_NL visual: a 10-char line-editor field pinned to the
+ * detected lower-right corner. With WIDTH/HEIGHT pinned the editor stays
+ * in no-wrap mode, so typing to the last column does not scroll; the only
+ * thing that could scroll the screen is the newline the editor emits on
+ * Enter. SUPPRESS_NL drops that newline. A sentinel row 1 and a
+ * row-numbered ladder let the user see at a glance whether the screen
+ * shifted up. */
+static void visual_rln_suppress_nl(void)
+{
+    char buf[16];
+    int w, h, col, i;
+
+    cls();
+    /* Detect the real lower-right corner: park the cursor past both edges
+     * and read back where the terminal clamped it (same trick as the
+     * height detect in run_automated, extended to width). Fall back to
+     * the known geometry if CPR fails. */
+    printf("\33[999;999H");
+    if (query_cpr(&h, &w) != 0)
+    {
+        h = term_h;
+        w = WIDTH;
+    }
+    col = w - 10 + 1; /* 10-char field whose right end is the last column */
+
+    /* Draw all static content first, while the editor is idle. */
+    printf("\33[1;1H### TOP SENTINEL ROW 1 -- this line must NOT move ###");
+    printf("\33[2;1H\33[1mRLN_SUPPRESS_NL test\33[0m");
+    printf("\33[4;1HField is in the lower-right corner (cols %d-%d,", col, w);
+    printf("\33[5;1Hbottom row %d). Type up to 10 chars and press Enter.", h);
+    printf("\33[6;1HSUPPRESS_NL should keep the screen from scrolling.");
+
+    /* Row ladder: numbered rows so a 1-line shift is obvious. */
+    for (i = 8; i < h; i++)
+        printf("\33[%d;1Hrow %02d", i, i);
+
+    /* Pin geometry and field length, then enable SUPPRESS_NL. Pinned
+     * WIDTH+HEIGHT skip the size probe and keep the field in no-wrap
+     * mode (col-1+10 == w), so nothing scrolls before Enter. */
+    ria_attr_set(w, RIA_ATTR_RLN_WIDTH);
+    ria_attr_set(h, RIA_ATTR_RLN_HEIGHT);
+    ria_attr_set(10, RIA_ATTR_RLN_LENGTH);
+    ria_attr_set(1, RIA_ATTR_RLN_SUPPRESS_NL);
+
+    /* Position at the corner field start and read a line there. */
+    printf("\33[%d;%dH", h, col);
+    fflush(stdout);
+    gets(buf);
+
+    /* Restore line-editor defaults (match form.c cleanup discipline). */
+    ria_attr_set(0, RIA_ATTR_RLN_SUPPRESS_NL);
+    ria_attr_set(254, RIA_ATTR_RLN_LENGTH);
+    ria_attr_set(0, RIA_ATTR_RLN_WIDTH);
+    ria_attr_set(0, RIA_ATTR_RLN_HEIGHT);
+
+    /* Pause HIGHER on the screen so confirming no-scroll is the point.
+     * Mid-screen row 10; clear the line first like visual_decstbm_scroll. */
+    pause_page("\33[10;1H\33[2KEnter: confirm TOP SENTINEL (row 1) is intact "
+               "and your text is still in the corner (no scroll): ");
+}
+
 void main(void)
 {
     tty = open("TTY:", O_RDONLY);
@@ -457,6 +519,7 @@ void main(void)
     run_automated();
 
     visual_attributes_and_dec();
+    visual_rln_suppress_nl();
     visual_palette();
     visual_osc_and_alt();
     visual_cursor_tests();
