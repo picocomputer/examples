@@ -114,10 +114,16 @@ target_sources(nfc PRIVATE
     src/nfc.c
 )
 
-add_executable(paint)
-rp6502_executable(paint DATA 0x200 RESET 0x200)
-target_sources(paint PRIVATE
-    src/paint.c
+add_executable(paint_mou)
+rp6502_executable(paint_mou DATA 0x200 RESET 0x200)
+target_sources(paint_mou PRIVATE
+    src/paint_mou.c
+)
+
+add_executable(paint_tab)
+rp6502_executable(paint_tab DATA 0x200 RESET 0x200)
+target_sources(paint_tab PRIVATE
+    src/paint_tab.c
 )
 
 add_executable(poprock)
