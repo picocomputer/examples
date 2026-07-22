@@ -23,10 +23,12 @@
 #define TABLET_INPUT 0xFFA0
 
 // Tablet report block (see the RIA tablet device docs).
-#define TAB_STATUS (TABLET_INPUT + 0) // fw->ROM: bit0 host_cursor
+#define TAB_CONTROL (TABLET_INPUT + 0) // ROM->fw: cursor shape
+#define TAB_STATUS (TABLET_INPUT + 1)  // fw->ROM: bit0 host_cursor
 #define TAB_STATUS_HOST_CURSOR 0x01
-#define TAB_CONTROL (TABLET_INPUT + 1) // ROM->fw: cursor shape
-#define TAB_CONTACT0 (TABLET_INPUT + 2)
+#define TAB_WHEEL (TABLET_INPUT + 2) // fw->ROM: scroll wheel, mouse format
+#define TAB_PAN (TABLET_INPUT + 3)   // fw->ROM: horizontal pan, mouse format
+#define TAB_CONTACT0 (TABLET_INPUT + 4)
 // Within a contact: flags, x0, x1, x2, y0, y1
 #define TAB_CURSOR_OFF 0
 #define TAB_CURSOR_CROSSHAIR 2

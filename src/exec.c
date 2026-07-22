@@ -13,7 +13,7 @@
 
 // Up to 512 bytes are needed for argv (one xstack size).
 // Applications must opt-in to argc/argv by providing this memory.
-void *__fastcall__ argv_mem(size_t size) { return malloc(size); }
+void *__fastcall__ __argv_mem(size_t size) { return malloc(size); }
 
 int main(int argc, char *argv[])
 {
