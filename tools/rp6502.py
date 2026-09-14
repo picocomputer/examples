@@ -1595,7 +1595,7 @@ def exec_args():
         print(f"[{SCRIPT_FILE}] Launching {emulator}", file=sys.stderr)
         try:
             if os.name == "nt":
-                sys.exit(subprocess.Popen(cmd).wait())
+                sys.exit(subprocess.Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr).wait())
             os.execvp(cmd[0], cmd)
         except OSError as e:
             # Backstop for exec failures on a path shutil.which deemed runnable.
