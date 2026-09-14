@@ -54,12 +54,6 @@ target_sources(paint_tab PRIVATE
     src/paint_tab.c
 )
 
-add_executable(rtc)
-rp6502_executable(rtc DATA default RESET default)
-target_sources(rtc PRIVATE
-    src/rtc.c
-)
-
 add_executable(term)
 rp6502_executable(term DATA default RESET default)
 target_sources(term PRIVATE
