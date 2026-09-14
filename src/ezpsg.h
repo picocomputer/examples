@@ -187,7 +187,7 @@ void ezpsg_play_song(const uint8_t *song);
 bool ezpsg_playing(void);
 
 // Instruments are implemented in this callback.
-// See furelise.c and poprock.c examples.
+// See the furelise.c example.
 void ezpsg_instruments(const uint8_t **data);
 
 #endif /* _EZPSG_H_ */

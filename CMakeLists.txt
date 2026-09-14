@@ -4,58 +4,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/tools/rp6502.cmake)
 
 project(MY-RP6502-PROJECT C ASM)
 
-add_executable(affine)
-rp6502_executable(affine DATA default RESET default)
-target_sources(affine PRIVATE
-    src/affine.c
-)
-
 add_executable(ansi)
 rp6502_executable(ansi DATA default RESET default)
 target_sources(ansi PRIVATE
     src/ansi.c
-)
-
-add_executable(altair1)
-rp6502_asset(altair1 help src/altair.hlp)
-rp6502_asset(altair1 0x10000 src/altair.pal.bin)
-rp6502_asset(altair1 0x10200 src/altair.dat.bin)
-rp6502_executable(altair1 DATA default RESET default)
-target_sources(altair1 PRIVATE
-    src/altair1.c
-)
-
-add_executable(altair2)
-rp6502_asset(altair2 help src/altair.hlp)
-rp6502_asset(altair2 altair.pal src/altair.pal.bin)
-rp6502_asset(altair2 altair.dat src/altair.dat.bin)
-rp6502_executable(altair2 DATA default RESET default)
-target_sources(altair2 PRIVATE
-    src/altair2.c
-)
-
-add_executable(attr)
-rp6502_executable(attr DATA default RESET default)
-target_sources(attr PRIVATE
-    src/attr.c
-)
-
-add_executable(bench)
-rp6502_executable(bench DATA default RESET default)
-target_sources(bench PRIVATE
-    src/bench.c
-)
-
-add_executable(dir)
-rp6502_executable(dir DATA default RESET default)
-target_sources(dir PRIVATE
-    src/dir.c
-)
-
-add_executable(exec)
-rp6502_executable(exec DATA default RESET default)
-target_sources(exec PRIVATE
-    src/exec.c
 )
 
 add_executable(form)
@@ -83,30 +35,6 @@ target_sources(mandelbrot PRIVATE
     src/mandelbrot.c
 )
 
-add_executable(mode1)
-rp6502_executable(mode1 DATA default RESET default)
-target_sources(mode1 PRIVATE
-    src/mode1.c
-)
-
-add_executable(mode2)
-rp6502_executable(mode2 DATA default RESET default)
-target_sources(mode2 PRIVATE
-    src/mode2.c
-)
-
-add_executable(mode3)
-rp6502_executable(mode3 DATA default RESET default)
-target_sources(mode3 PRIVATE
-    src/mode3.c
-)
-
-add_executable(mode5)
-rp6502_executable(mode5 DATA default RESET default)
-target_sources(mode5 PRIVATE
-    src/mode5.c
-)
-
 add_executable(nfc)
 rp6502_asset(nfc help src/nfc.hlp)
 rp6502_executable(nfc DATA default RESET default)
@@ -126,19 +54,6 @@ target_sources(paint_tab PRIVATE
     src/paint_tab.c
 )
 
-add_executable(poprock)
-rp6502_executable(poprock DATA default RESET default)
-target_sources(poprock PRIVATE
-    src/poprock.c
-    src/ezpsg.c
-)
-
-add_executable(raspberry)
-rp6502_executable(raspberry DATA default RESET default)
-target_sources(raspberry PRIVATE
-    src/raspberry.c
-)
-
 add_executable(rtc)
 rp6502_executable(rtc DATA default RESET default)
 target_sources(rtc PRIVATE
@@ -149,10 +64,4 @@ add_executable(term)
 rp6502_executable(term DATA default RESET default)
 target_sources(term PRIVATE
     src/term.c
-)
-
-add_executable(vsync)
-rp6502_executable(vsync DATA default RESET default)
-target_sources(vsync PRIVATE
-    src/vsync.c
 )
