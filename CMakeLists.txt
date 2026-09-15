@@ -63,18 +63,11 @@ target_sources(nfc PRIVATE
     src/nfc/nfc.c
 )
 
-add_executable(paint_mou)
-rp6502_asset(paint_mou help src/paint_mou/paint_mou.hlp)
-rp6502_executable(paint_mou DATA default RESET default)
-target_sources(paint_mou PRIVATE
-    src/paint_mou/paint_mou.c
-)
-
-add_executable(paint_tab)
-rp6502_asset(paint_tab help src/paint_tab/paint_tab.hlp)
-rp6502_executable(paint_tab DATA default RESET default)
-target_sources(paint_tab PRIVATE
-    src/paint_tab/paint_tab.c
+add_executable(paint)
+rp6502_asset(paint help src/paint/paint.hlp)
+rp6502_executable(paint DATA default RESET default)
+target_sources(paint PRIVATE
+    src/paint/paint.c
 )
 
 add_executable(term)
