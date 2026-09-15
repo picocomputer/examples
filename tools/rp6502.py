@@ -11,6 +11,7 @@ import os
 import re
 import time
 import binascii
+import codecs
 import argparse
 import configparser
 import platform
@@ -620,35 +621,45 @@ class Console:
 
     def term_posix(self, cp: str):
         """POSIX terminal emulator for Linux, BSD, MacOS, etc."""
-        tty.setraw(sys.stdin.fileno())
-        ctrl_a_pressed = False
-        while True:
-            ready, _, _ = select.select([sys.stdin, self.serial], [], [], None)
-            if sys.stdin in ready:
-                char = os.read(sys.stdin.fileno(), 1).decode("utf-8", errors="ignore")
-                if char == "\x01":  # CTRL-A
-                    ctrl_a_pressed = True
-                    self.serial.write(char.encode(cp))
-                elif ctrl_a_pressed and char.lower() in "bf":
-                    self.send_break()  # eats prompt
-                    sys.stdout.write("\r\n]")  # fake prompt
-                    ctrl_a_pressed = False
-                elif ctrl_a_pressed and char.lower() in "xq":
-                    sys.stdout.write("\r\n")
-                    if sys.stdin.isatty():
-                        os.system("stty sane")
-                    break
-                else:
-                    ctrl_a_pressed = False
-                    self.serial.write(char.encode(cp))
-            if self.serial in ready:
-                data = self.serial.read(1)
-                if len(data) > 0:
-                    try:
-                        sys.stdout.write(data.decode(cp))
-                    except UnicodeDecodeError:
-                        sys.stdout.write(f"\\x{data[0]:02x}")
-                    sys.stdout.flush()
+        fd = sys.stdin.fileno()
+        saved = termios.tcgetattr(fd) if sys.stdin.isatty() else None
+        if saved:
+            tty.setraw(fd)
+        # A keystroke arrives a byte at a time and only a whole character can
+        # be spelled in the device code page.
+        decoder = codecs.getincrementaldecoder("utf-8")("ignore")
+        try:
+            ctrl_a_pressed = False
+            while True:
+                ready, _, _ = select.select([sys.stdin, self.serial], [], [], None)
+                if sys.stdin in ready:
+                    char = decoder.decode(os.read(fd, 1))
+                    if not char:
+                        continue  # a character still arriving
+                    if char == "\x01":  # CTRL-A
+                        ctrl_a_pressed = True
+                        self.serial.write(char.encode(cp, "replace"))
+                    elif ctrl_a_pressed and char.lower() in "bf":
+                        self.send_break()  # eats prompt
+                        sys.stdout.write("\r\n]")  # fake prompt
+                        ctrl_a_pressed = False
+                    elif ctrl_a_pressed and char.lower() in "xq":
+                        sys.stdout.write("\r\n")
+                        break
+                    else:
+                        ctrl_a_pressed = False
+                        self.serial.write(char.encode(cp, "replace"))
+                if self.serial in ready:
+                    data = self.serial.read(1)
+                    if len(data) > 0:
+                        try:
+                            sys.stdout.write(data.decode(cp))
+                        except UnicodeDecodeError:
+                            sys.stdout.write(f"\\x{data[0]:02x}")
+                        sys.stdout.flush()
+        finally:
+            if saved:
+                termios.tcsetattr(fd, termios.TCSADRAIN, saved)
 
     def term_windows(self, cp):
         """Windows terminal emulator using Console API"""
@@ -667,7 +678,7 @@ class Console:
                     if key_in:
                         if key_in == "\x01":  # CTRL-A
                             ctrl_a_pressed = True
-                            self.serial.write(key_in.encode(cp))
+                            self.serial.write(key_in.encode(cp, "replace"))
                         elif ctrl_a_pressed and key_in.lower() in "bf":
                             self.send_break()  # eats prompt
                             sys.stdout.write("\r\n]")  # fake prompt
@@ -677,7 +688,7 @@ class Console:
                             break
                         else:
                             ctrl_a_pressed = False
-                            self.serial.write(key_in.encode(cp))
+                            self.serial.write(key_in.encode(cp, "replace"))
                     else:
                         time.sleep(0.001)
             except KeyboardInterrupt:
@@ -1075,11 +1086,14 @@ class ROM:
 
     def has_reset_vector(self) -> bool:
         """Returns true if $FFFC and $FFFD have been set."""
-        return bool(self.alloc[0xFFFC] and self.alloc[0xFFFD])
+        return bool(self.alloc.get(0xFFFC) and self.alloc.get(0xFFFD))
 
     def next_rom_data(self, addr: int):
         """Find next up-to-1k chunk starting at addr, never crossing 64k page."""
-        for addr in range(addr, 0x1000000):
+        # Bounded by what was allocated rather than by the address space: the
+        # scan to $1000000 costs a third of a second per image, which every
+        # generated ROM and every send_rom was paying to find nothing.
+        for addr in range(addr, max(self.alloc, default=-1) + 1):
             if self.alloc.get(addr):
                 page_end = (addr | 0xFFFF) + 1
                 length = 0
@@ -1089,6 +1103,37 @@ class ROM:
                         break
                 return addr, bytearray(self.data[addr + i] for i in range(length))
         return None, None
+
+    def to_bytes(self) -> bytes:
+        """The .rp6502 image: the magic line, the memory chunks as one null
+        asset, then the named ones."""
+        out = f"#!{SCRIPT_NAME}\r\n".encode("ascii")
+        chunks = b""
+        addr, data = self.next_rom_data(0)
+        while data is not None:
+            header = f"${addr:04X} ${len(data):03X} ${binascii.crc32(data):08X}\r\n"
+            chunks += header.encode("ascii") + bytes(data)
+            addr += len(data)
+            addr, data = self.next_rom_data(addr)
+        if chunks:
+            out += f"#>${len(chunks):08X} ${binascii.crc32(chunks):08X}\r\n".encode(
+                "ascii"
+            )
+            out += chunks
+        for asset_name, asset_data in self.assets:
+            out += (
+                f"#>${len(asset_data):08X} "
+                f"${binascii.crc32(asset_data):08X} {asset_name}\r\n"
+            ).encode("ascii")
+            out += asset_data
+        return out
+
+    def write(self, path) -> int:
+        """The image on disk. Returns its length."""
+        data = self.to_bytes()
+        with open(path, "wb") as file:
+            file.write(data)
+        return len(data)
 
 
 class Emulator:
@@ -1522,31 +1567,7 @@ def exec_args():
         for file in args.filename[extras_start:]:
             print(f"[{os.path.basename(__file__)}] Adding ROM asset {file}")
             rom.add_rom_file(file)
-        with open(args.out, "wb+") as file:
-            file.write(f"#!{SCRIPT_NAME}\r\n".encode("ascii"))
-            # Build null asset (memory chunks blob)
-            chunks = b""
-            addr, data = rom.next_rom_data(0)
-            while data is not None:
-                header = f"${addr:04X} ${len(data):03X} ${binascii.crc32(data):08X}\r\n"
-                chunks += header.encode("ascii") + bytes(data)
-                addr += len(data)
-                addr, data = rom.next_rom_data(addr)
-            if chunks:
-                file.write(
-                    f"#>${len(chunks):08X} ${binascii.crc32(chunks):08X}\r\n".encode(
-                        "ascii"
-                    )
-                )
-                file.write(chunks)
-            # Write named assets
-            for asset_name, asset_data in rom.assets:
-                file.write(
-                    f"#>${len(asset_data):08X} ${binascii.crc32(asset_data):08X} {asset_name}\r\n".encode(
-                        "ascii"
-                    )
-                )
-                file.write(asset_data)
+        rom.write(args.out)
 
     if args.command == "emu":
         # `emu` exists to launch the emulator as the IDE's debug adapter, which
