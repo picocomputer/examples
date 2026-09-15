@@ -19,14 +19,11 @@ typedef int32_t fint32_t;
 #define FINT32(whole, frac) (((fint32_t)whole << FRAC_BITS) | (frac >> (16 - FRAC_BITS)))
 
 #define WIDTH 320
-#define HEIGHT 240 // 180 or 240
+#define HEIGHT 240
 
 static void erase()
 {
     unsigned i;
-    // Erase console
-    printf("\f");
-    // Erase graphics
     RIA.addr0 = 0;
     RIA.step0 = 1;
     for (i = 0x1300; --i;)
@@ -64,11 +61,7 @@ void mandelbrot()
     {
         for (px = 0; px < WIDTH; ++px)
         {
-#if (HEIGHT == 180)
-            fint32_t x0 = px * FINT32(3, 32768u) / WIDTH - FINT32(2, 32768u); // -2.5-1
-#else
             fint32_t x0 = px * FINT32(3, 0u) / WIDTH - FINT32(2, 16384u);
-#endif
             fint32_t y0 = py * FINT32(2, 15728u) / HEIGHT - FINT32(1, 7864u); // +-1.12
             fint32_t x = 0;
             fint32_t y = 0;
@@ -95,8 +88,13 @@ void mandelbrot()
 
 void main()
 {
+    // Use the 320x200 canvas
+    xreg_vga_canvas(1);
+
+    // Erase video memory before we show it
     erase();
 
+    // Macros to setup the video registers
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_wrap, true);
     xram0_struct_set(0xFF00, vga_mode3_config_t, y_wrap, true);
     xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, 0);
@@ -106,14 +104,13 @@ void main()
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0000);
     xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
 
-    xreg_vga_canvas(1);
+    // Program the video mode
     xreg_vga_mode(3, 10, 0xFF00);
-    xreg_vga_mode(0, 1); // console
 
-    printf("Mandelbrot Set");
+    // Do the thing
     mandelbrot();
 
-    printf("\nPress any key to exit");
+    // Wait for any key
     xreg_ria_keyboard(0xFF10);
     RIA.addr0 = 0xFF10;
     RIA.step0 = 0;

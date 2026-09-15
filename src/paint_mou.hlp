@@ -1,0 +1,6 @@
+Paint with a mouse.
+The left button draws in the left color and the right button in the right.
+Click a palette color with either button to choose that button's color.
+Drag the grip at the left end of the palette to move it.
+Click the box at the right end of the palette to erase the canvas.
+Press Alt-F4 to exit.
