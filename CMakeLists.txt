@@ -63,8 +63,20 @@ target_sources(nfc PRIVATE
     src/nfc/nfc.c
 )
 
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/logo.bin
+    COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/paint/png2canvas.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/paint/logo.png
+        ${CMAKE_CURRENT_BINARY_DIR}/logo.bin
+    DEPENDS src/paint/png2canvas.py src/paint/logo.png
+    VERBATIM
+)
+
 add_executable(paint)
 rp6502_asset(paint help src/paint/paint.hlp)
+rp6502_asset(paint 0x10000 ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
 rp6502_executable(paint DATA default RESET default)
 target_sources(paint PRIVATE
     src/paint/paint.c

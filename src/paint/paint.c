@@ -25,7 +25,7 @@ void *__fastcall__ __argv_mem(size_t size) { return malloc(size); }
 #define POINTER_SIZE 10
 
 // XRAM locations
-#define CANVAS_DATA 0x0000
+#define CANVAS_DATA 0x0000 // the ROM loads logo.png here, see CMakeLists.txt
 #define PICKER_DATA 0xA000
 #define POINTER_DATA 0xB000
 #define CANVAS_STRUCT 0xFF00
@@ -442,7 +442,6 @@ int main(int argc, char *argv[])
     setup_bitmap(PICKER_STRUCT, PICKER_WIDTH, PICKER_HEIGHT, PICKER_DATA);
     setup_bitmap(POINTER_STRUCT, POINTER_SIZE, POINTER_SIZE, POINTER_DATA);
 
-    erase_canvas();
     draw_picker();
     move_picker(104, 0);
     set_color(LEFT, 15);
