@@ -457,8 +457,8 @@ int main(int argc, char *argv[])
 
     draw_picker();
     move_picker((CANVAS_WIDTH - PICKER_WIDTH) / 2, 0);
-    set_color(LEFT, 15);
-    set_color(RIGHT, 8);
+    set_color(LEFT, 8);
+    set_color(RIGHT, 0);
     draw_pointer();
 
     xreg_vga_mode(3, 2, XRAM_CANVAS_CONFIG, 0);  // 4 bits per pixel, plane 0
