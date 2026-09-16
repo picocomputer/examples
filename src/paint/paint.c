@@ -101,11 +101,10 @@ static void draw_pointer(void)
 
 #define MOUSE_DIV 2
 
-static uint8_t mouse_irq_stack[32];
 static uint8_t mouse_last_x, mouse_last_y;
-static int mouse_x, mouse_y;
+static volatile int mouse_x, mouse_y;
 
-static unsigned char mouse_irq(void)
+static void mouse_sample(void)
 {
     static int raw_x, raw_y;
     uint16_t save_addr0 = RIA.addr0;
@@ -132,8 +131,23 @@ static unsigned char mouse_irq(void)
     // The main loop was using RW0 when this interrupt arrived.
     RIA.addr0 = save_addr0;
     RIA.step0 = save_step0;
+}
+
+// cc65 calls a C handler from its own stub, on a stack the program lends it.
+// llvm-mos compiles the handler itself, and the program wires the vector.
+#ifdef __CC65__
+static uint8_t mouse_irq_stack[32];
+static unsigned char mouse_irq(void)
+{
+    mouse_sample();
     return IRQ_HANDLED;
 }
+#else
+__attribute__((interrupt)) static void mouse_irq(void)
+{
+    mouse_sample();
+}
+#endif
 
 static void mouse_init(void)
 {
@@ -147,13 +161,20 @@ static void mouse_init(void)
     mouse_last_x = RIA.rw0;
     mouse_last_y = RIA.rw0;
 
+#ifdef __CC65__
     set_irq(mouse_irq, &mouse_irq_stack, sizeof(mouse_irq_stack));
+#else
+    *(void (**)(void))0xFFFE = mouse_irq;
+#endif
     VIA.t1l_lo = period & 0xFF;
     VIA.t1l_hi = period >> 8;
     VIA.t1_lo = period & 0xFF;
     VIA.t1_hi = period >> 8;
     VIA.acr = 0x40; // timer 1 free running
     VIA.ier = 0xC0; // timer 1 interrupt on
+#ifndef __CC65__
+    CLI(); // set_irq() does this for cc65
+#endif
 }
 
 static uint8_t mouse_read(int *x, int *y)

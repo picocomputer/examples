@@ -9,15 +9,8 @@ add_custom_command(
     VERBATIM
 )
 
-rp6502_xram(xram.h "XRAM_.*" "XRAM_.*_DATA")
-
-# The mouse is read from a VIA timer interrupt, which is cc65's set_irq().
-if(NOT CMAKE_C_COMPILER_ID STREQUAL "cc65")
-    message(WARNING "paint: skipped, llvm-mos has no set_irq()")
-    return()
-endif()
-
 add_executable(paint)
+rp6502_xram(xram.h "XRAM_.*" "XRAM_.*_DATA")
 rp6502_asset(paint help paint.hlp)
 rp6502_asset(paint XRAM_CANVAS_DATA ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
 rp6502_asset(paint logo ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
