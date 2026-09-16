@@ -9,20 +9,32 @@
 #include <rp6502.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <stdio.h>
-
-#define PSG_CHANNELS 8
 
 typedef struct
 {
-    unsigned int freq;
-    unsigned char duty;
-    unsigned char vol_attack;
-    unsigned char vol_decay;
-    unsigned char wave_release;
-    unsigned char pan_gate;
-    unsigned char unused;
-} ria_psg_t;
+    uint16_t freq;
+    uint8_t duty;
+    uint8_t vol_attack;
+    uint8_t vol_decay;
+    uint8_t wave_release;
+    uint8_t pan_gate;
+    uint8_t unused;
+} psg_t;
+
+#define PSG_CHANNELS 8
+
+#define PSG_WAVE_SINE 0x00
+#define PSG_WAVE_SQUARE 0x10
+#define PSG_WAVE_SAWTOOTH 0x20
+#define PSG_WAVE_TRIANGLE 0x30
+#define PSG_WAVE_NOISE 0x40
+
+#define PSG_GATE 0x01
+
+#define PSG_FREQ_HZ(hz) ((hz) * 3u)
+#define PSG_PAN(pan) ((uint8_t)((pan) * 2))
 
 static struct channel
 {
@@ -44,14 +56,14 @@ void ezpsg_init(uint16_t xaddr)
     // Clear RIA PSG XRAM.
     RIA.addr0 = xaddr;
     RIA.step0 = 1;
-    for (u = 0; u < PSG_CHANNELS * sizeof(ria_psg_t); u++)
+    for (u = 0; u < PSG_CHANNELS * sizeof(psg_t); u++)
         RIA.rw0 = 0;
     // Start RIA PSG.
     xreg(0, 1, 0x00, xaddr);
     // Init linked lists.
     for (u = 0; u < PSG_CHANNELS; u++)
     {
-        ezpsg_channels[u].xaddr = xaddr + u * sizeof(ria_psg_t);
+        ezpsg_channels[u].xaddr = xaddr + u * sizeof(psg_t);
         ezpsg_channels[u].next = &ezpsg_channels[u + 1];
     }
     ezpsg_channels[PSG_CHANNELS - 1].next = NULL;
@@ -83,7 +95,7 @@ bool ezpsg_tick(uint16_t tempo)
             channel->next = *releasing;
             *releasing = channel;
             // Clear gate bit.
-            RIA.addr0 = channel->xaddr + (unsigned)(&((ria_psg_t *)0)->pan_gate);
+            RIA.addr0 = channel->xaddr + offsetof(psg_t, pan_gate);
             RIA.step0 = 0;
             RIA.rw0 &= 0xFE;
         }

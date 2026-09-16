@@ -57,21 +57,21 @@ static int clamp(int value, int low, int high)
 
 static void setup_bitmap(unsigned config, int width, int height, unsigned data)
 {
-    xram0_struct_set(config, vga_mode3_config_t, x_wrap, false);
-    xram0_struct_set(config, vga_mode3_config_t, y_wrap, false);
-    xram0_struct_set(config, vga_mode3_config_t, x_pos_px, 0);
-    xram0_struct_set(config, vga_mode3_config_t, y_pos_px, 0);
-    xram0_struct_set(config, vga_mode3_config_t, width_px, width);
-    xram0_struct_set(config, vga_mode3_config_t, height_px, height);
-    xram0_struct_set(config, vga_mode3_config_t, xram_data_ptr, data);
-    xram0_struct_set(config, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
+    xram0_struct_set(config, mode3_config_t, x_wrap, false);
+    xram0_struct_set(config, mode3_config_t, y_wrap, false);
+    xram0_struct_set(config, mode3_config_t, x_pos_px, 0);
+    xram0_struct_set(config, mode3_config_t, y_pos_px, 0);
+    xram0_struct_set(config, mode3_config_t, width_px, width);
+    xram0_struct_set(config, mode3_config_t, height_px, height);
+    xram0_struct_set(config, mode3_config_t, xram_data_ptr, data);
+    xram0_struct_set(config, mode3_config_t, xram_palette_ptr, 0xFFFF);
 }
 
 // The point of the arrow is one pixel in from the corner of its image.
 static void move_pointer(int x, int y)
 {
-    xram0_struct_set(XRAM_POINTER_CONFIG, vga_mode3_config_t, x_pos_px, x - 1);
-    xram0_struct_set(XRAM_POINTER_CONFIG, vga_mode3_config_t, y_pos_px, y - 1);
+    xram0_struct_set(XRAM_POINTER_CONFIG, mode3_config_t, x_pos_px, x - 1);
+    xram0_struct_set(XRAM_POINTER_CONFIG, mode3_config_t, y_pos_px, y - 1);
 }
 
 static void draw_pointer(void)
@@ -198,9 +198,6 @@ static uint8_t mouse_read(int *x, int *y)
 #define TABLET_CONTROL (XRAM_TAB_DATA + offsetof(tablet_t, control))
 #define TABLET_STATUS (XRAM_TAB_DATA + offsetof(tablet_t, status))
 #define TABLET_CONTACT (XRAM_TAB_DATA + offsetof(tablet_t, contact))
-#define TABLET_HOST_CURSOR 0x01
-#define CURSOR_OFF 0
-#define CURSOR_CROSSHAIR 2
 
 static int tablet_x, tablet_y;
 static bool host_cursor;
@@ -212,17 +209,17 @@ static void tablet_init(void)
 
 static uint8_t tablet_read(int *x, int *y)
 {
-    uint8_t flags, x0, x1, x2, y0, y1;
+    tablet_contact_t c;
     bool offered;
-    int tries;
+    int tries, cx, cy;
 
     RIA.addr0 = TABLET_STATUS;
-    offered = RIA.rw0 & TABLET_HOST_CURSOR;
+    offered = RIA.rw0 & TABLET_STATUS_HOST_CURSOR;
     if (offered != host_cursor)
     {
         host_cursor = offered;
         RIA.addr0 = TABLET_CONTROL;
-        RIA.rw0 = host_cursor ? CURSOR_CROSSHAIR : CURSOR_OFF;
+        RIA.rw0 = host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF;
     }
 
     // A read that lands while a value crosses into the next window can find
@@ -231,27 +228,23 @@ static uint8_t tablet_read(int *x, int *y)
     {
         RIA.addr0 = TABLET_CONTACT;
         RIA.step0 = 1;
-        flags = RIA.rw0;
-        x0 = RIA.rw0;
-        x1 = RIA.rw0;
-        x2 = RIA.rw0;
-        y0 = RIA.rw0;
-        y1 = RIA.rw0;
-        if ((x0 | x1 | x2) && (y0 | y1))
+        c.flags = RIA.rw0;
+        c.x0 = RIA.rw0;
+        c.x1 = RIA.rw0;
+        c.x2 = RIA.rw0;
+        c.y0 = RIA.rw0;
+        c.y1 = RIA.rw0;
+        cx = TABLET_CONTACT_X(c);
+        cy = TABLET_CONTACT_Y(c);
+        if (cx >= 0 && cy >= 0)
             break;
     }
 
     // With no window set, the position stays where it was.
-    if (x0)
-        tablet_x = x0 - 1;
-    else if (x1)
-        tablet_x = x1 + 254;
-    else if (x2)
-        tablet_x = x2 + 509;
-    if (y0)
-        tablet_y = y0 - 1;
-    else if (y1)
-        tablet_y = y1 + 254;
+    if (cx >= 0)
+        tablet_x = cx;
+    if (cy >= 0)
+        tablet_y = cy;
 
     if (host_cursor)
         move_pointer(CANVAS_WIDTH + 1, 0);
@@ -260,7 +253,7 @@ static uint8_t tablet_read(int *x, int *y)
 
     *x = tablet_x;
     *y = tablet_y;
-    return flags & 0x03;
+    return c.flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
 }
 
 // ---------------------------------------------------------------------------
@@ -385,8 +378,8 @@ static void move_picker(int x, int y)
 {
     picker_x = clamp(x, 0, CANVAS_WIDTH - PICKER_WIDTH);
     picker_y = clamp(y, 0, CANVAS_HEIGHT - PICKER_HEIGHT);
-    xram0_struct_set(XRAM_PICKER_CONFIG, vga_mode3_config_t, x_pos_px, picker_x);
-    xram0_struct_set(XRAM_PICKER_CONFIG, vga_mode3_config_t, y_pos_px, picker_y);
+    xram0_struct_set(XRAM_PICKER_CONFIG, mode3_config_t, x_pos_px, picker_x);
+    xram0_struct_set(XRAM_PICKER_CONFIG, mode3_config_t, y_pos_px, picker_y);
 }
 
 static int picker_pick(int x, int y)

@@ -5,7 +5,11 @@
  * SPDX-License-Identifier: Unlicense
  */
 
+#ifndef XRAM_H
+#define XRAM_H
+
 #include <rp6502.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -17,17 +21,18 @@
 
 typedef struct
 {
-    uint8_t control;
-    uint8_t status;
-    uint8_t wheel;
-    uint8_t pan;
-    struct
-    {
-        uint8_t flags;
-        uint8_t x0, x1, x2;
-        uint8_t y0, y1;
-    } contact[8];
-} tablet_t;
+    bool x_wrap;
+    bool y_wrap;
+    int16_t x_pos_px;
+    int16_t y_pos_px;
+    int16_t width_px;
+    int16_t height_px;
+    uint16_t xram_data_ptr;
+    uint16_t xram_palette_ptr;
+} mode3_config_t;
+
+#define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
+#define xreg_vga_mode(...) xreg(1, 0, 1, __VA_ARGS__)
 
 typedef struct
 {
@@ -36,16 +41,70 @@ typedef struct
     uint8_t y;
     uint8_t wheel;
     uint8_t pan;
+    uint8_t pad;
 } mouse_t;
+
+#define MOUSE_BUTTON_LEFT 0x01
+#define MOUSE_BUTTON_RIGHT 0x02
+#define MOUSE_BUTTON_MIDDLE 0x04
+#define MOUSE_BUTTON_BACKWARD 0x08
+#define MOUSE_BUTTON_FORWARD 0x10
+
+#define xreg_ria_mouse(...) xreg(0, 0, 1, __VA_ARGS__)
 
 typedef struct
 {
-    vga_mode3_config_t canvas_config;
-    vga_mode3_config_t picker_config;
-    vga_mode3_config_t pointer_config;
+    uint8_t flags;
+    uint8_t x0, x1, x2;
+    uint8_t y0, y1;
+} tablet_contact_t;
+
+typedef struct
+{
+    uint8_t control;
+    uint8_t status;
+    uint8_t wheel;
+    uint8_t pan;
+    tablet_contact_t contact[8];
+} tablet_t;
+
+#define TABLET_CONTACTS 8
+
+#define TABLET_STATUS_HOST_CURSOR 0x01
+
+#define TABLET_FLAG_LEFT 0x01
+#define TABLET_FLAG_RIGHT 0x02
+#define TABLET_FLAG_MIDDLE 0x04
+#define TABLET_FLAG_BACKWARD 0x08
+#define TABLET_FLAG_FORWARD 0x10
+#define TABLET_FLAG_HOVER 0x80
+
+#define TABLET_CURSOR_OFF 0
+#define TABLET_CURSOR_ARROW 1
+#define TABLET_CURSOR_CROSSHAIR 2
+#define TABLET_CURSOR_IBEAM 3
+#define TABLET_CURSOR_HAND 4
+#define TABLET_CURSOR_RESIZE_EW 5
+#define TABLET_CURSOR_RESIZE_NS 6
+
+/* -1 when no window is set */
+#define TABLET_CONTACT_X(c) ((c).x0 ? (c).x0 - 1   \
+                             : (c).x1 ? (c).x1 + 254 \
+                             : (c).x2 ? (c).x2 + 509 \
+                                      : -1)
+#define TABLET_CONTACT_Y(c) ((c).y0 ? (c).y0 - 1   \
+                             : (c).y1 ? (c).y1 + 254 \
+                                      : -1)
+
+#define xreg_ria_tablet(...) xreg(0, 0, 3, __VA_ARGS__)
+
+typedef struct
+{
+    mode3_config_t canvas_config;
+    mode3_config_t picker_config;
+    mode3_config_t pointer_config;
     tablet_t tab;
     mouse_t mou;
-    uint8_t mou_pad;
     uint8_t canvas[CANVAS_WIDTH / 2UL * CANVAS_HEIGHT];
     uint8_t picker[PICKER_WIDTH * PICKER_HEIGHT];
     uint8_t picker_pad;
@@ -60,3 +119,5 @@ typedef struct
 #define XRAM_CANVAS_DATA    offsetof(xram_layout_t, canvas)
 #define XRAM_PICKER_DATA    offsetof(xram_layout_t, picker)
 #define XRAM_POINTER_DATA   offsetof(xram_layout_t, pointer)
+
+#endif

@@ -1529,7 +1529,7 @@ void ezpsg_instruments(const uint8_t **data)
     }
 }
 
-void main(void)
+int main(void)
 {
     uint8_t v = RIA.vsync;
 
@@ -1554,4 +1554,5 @@ void main(void)
         if (!ezpsg_playing())
             break;
     }
+    return 0;
 }

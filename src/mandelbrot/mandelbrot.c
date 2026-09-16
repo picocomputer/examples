@@ -5,6 +5,7 @@
  * SPDX-License-Identifier: Unlicense
  */
 
+#include "xram.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -86,7 +87,7 @@ void mandelbrot()
     }
 }
 
-void main()
+int main(void)
 {
     // Use the 320x200 canvas
     xreg_vga_canvas(1);
@@ -95,14 +96,14 @@ void main()
     erase();
 
     // Macros to setup the video registers
-    xram0_struct_set(0xFF00, vga_mode3_config_t, x_wrap, true);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, y_wrap, true);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, x_pos_px, 0);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, y_pos_px, 0);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, width_px, 320);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, height_px, 240);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, xram_data_ptr, 0x0000);
-    xram0_struct_set(0xFF00, vga_mode3_config_t, xram_palette_ptr, 0xFFFF);
+    xram0_struct_set(0xFF00, mode3_config_t, x_wrap, true);
+    xram0_struct_set(0xFF00, mode3_config_t, y_wrap, true);
+    xram0_struct_set(0xFF00, mode3_config_t, x_pos_px, 0);
+    xram0_struct_set(0xFF00, mode3_config_t, y_pos_px, 0);
+    xram0_struct_set(0xFF00, mode3_config_t, width_px, 320);
+    xram0_struct_set(0xFF00, mode3_config_t, height_px, 240);
+    xram0_struct_set(0xFF00, mode3_config_t, xram_data_ptr, 0x0000);
+    xram0_struct_set(0xFF00, mode3_config_t, xram_palette_ptr, 0xFFFF);
 
     // Program the video mode
     xreg_vga_mode(3, 10, 0xFF00);
@@ -114,7 +115,8 @@ void main()
     xreg_ria_keyboard(0xFF10);
     RIA.addr0 = 0xFF10;
     RIA.step0 = 0;
-    while (RIA.rw0 & 1)
+    while (RIA.rw0 & (1 << KEYBOARD_NO_KEY))
         ;
     printf("\n");
+    return 0;
 }

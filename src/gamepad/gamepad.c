@@ -5,14 +5,11 @@
  * SPDX-License-Identifier: Unlicense
  */
 
+#include "xram.h"
 #include <rp6502.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-#ifndef xreg_ria_gamepad
-#define xreg_ria_gamepad(...) xreg(0, 0, 2, __VA_ARGS__)
-#endif
 
 void print(bool enabled, const char *str)
 {
@@ -98,7 +95,7 @@ void show(int player)
     printf("\33[K\n\n");
 }
 
-void main()
+int main(void)
 {
     printf("\30\33c\nPicocomputer 6502 Gamepad Tester");
     xreg_ria_gamepad(0xFF00);
