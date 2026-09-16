@@ -21,7 +21,6 @@ import ctypes
 import json
 import glob
 import shlex
-import shutil
 import socket
 import subprocess
 from typing import Union
@@ -585,15 +584,7 @@ class Console:
         return self._code_page
 
     def quote(self, s: str) -> str:
-        """Quote a name/arg for the monitor parser (LOAD/UPLOAD/CD).
-
-        The monitor stores the decoded bytes verbatim as an OEM code-page
-        filename (FatFs FF_LFN_UNICODE=0), so encode to the device code page,
-        not UTF-8; the parser decodes \\NNN octal, so non-printable and high
-        bytes ride as octal to keep the wire ASCII-clean. Pure-ASCII strings
-        encode the same under every code page, so skip the `set cp` round-trip.
-        Characters absent from the code page become '?'.
-        """
+        """Quote a name/arg for the monitor parser (LOAD/UPLOAD/CD)."""
         encoding = "ascii" if s.isascii() else self.code_page()
         try:
             raw = s.encode(encoding, "replace")
@@ -1145,15 +1136,7 @@ class Emulator:
 
     @staticmethod
     def find(config=None):
-        """The emulator the tools fetched beside this script, or a bare name.
-
-        A full path is one that is there. A bare name is left for PATH to
-        resolve at launch, which is all there is to go on when the tools
-        fetch could not get an emulator for this machine.
-
-        Written relative to the config file when it is inside that project, so
-        the project folder can be moved or cloned with the setting intact.
-        """
+        """The emulator the tools fetched beside this script, or a bare name."""
         exe = "rp6502-emu.exe" if platform.system() == "Windows" else "rp6502-emu"
         beside = "rp6502-emu.exe" if "microsoft" in platform.release().lower() else exe
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), beside)
@@ -1167,50 +1150,36 @@ class Emulator:
 
     @staticmethod
     def resolve(emulator: str, config) -> str:
-        """The executable an 'emulator' setting names.
-
-        A path with a separator must be there; relative means relative to the
-        config file, not to whatever directory the caller happens to be in. A
-        bare name is left to PATH so a missing one is reported as such.
-        """
-        config_hint = f" in {config}" if config else ""
+        """The executable an 'emulator' setting names."""
         if not emulator:
+            where = f" in {config}" if config else " in a config file"
             raise RuntimeError(
-                f"No emulator configured — set 'emulator'{config_hint} "
+                f"No emulator configured — set 'emulator'{where} "
                 f"to the rp6502-emu executable path."
             )
         emulator = os.path.expanduser(os.path.expandvars(emulator))
-        has_sep = os.sep in emulator or (os.altsep and os.altsep in emulator)
-        if has_sep and not os.path.isabs(emulator) and config:
-            emulator = os.path.join(
-                os.path.dirname(os.path.abspath(config)), emulator
+        if config and not os.path.isabs(emulator):
+            beside = os.path.join(os.path.dirname(os.path.abspath(config)), emulator)
+            if os.path.isfile(beside):
+                return beside
+        return emulator
+
+    @staticmethod
+    def cannot_run(emulator: str, config, err) -> str:
+        """Why the emulator did not start, and where to change it."""
+        if config:
+            return (
+                f"Cannot run emulator '{emulator}': {err} — "
+                f"fix 'emulator' in {config}"
             )
-        # A macOS .app is a directory; run its inner executable.
-        if platform.system() == "Darwin" and emulator.rstrip("/").endswith(".app"):
-            emulator = os.path.join(
-                emulator.rstrip("/"), "Contents", "MacOS", "rp6502-emu"
-            )
-        if has_sep:
-            if not os.path.isfile(emulator):
-                raise FileNotFoundError(
-                    f"Emulator '{emulator}' not found — fix 'emulator'{config_hint}."
-                )
-            return emulator
-        resolved = shutil.which(emulator)
-        if resolved is None:
-            raise FileNotFoundError(
-                f"Emulator '{emulator}' not found on PATH — fix 'emulator'{config_hint}."
-            )
-        return resolved
+        return (
+            f"Cannot run emulator '{emulator}': {err} — "
+            f"name it with 'emulator' in a config file, or put it on PATH"
+        )
 
     @staticmethod
     def send_dap_error(message: str):
-        """Speak minimal DAP: acknowledge `initialize`, then fail `launch`/`attach`.
-
-        Reads Content-Length framed messages from our stdin (the DAP request
-        stream) and writes responses to stdout. VSCode shows the message from a
-        failed launch/attach response in an error dialog.
-        """
+        """Speak minimal DAP: acknowledge `initialize`, then fail `launch`/`attach`."""
         stdin = sys.stdin.buffer
         stdout = sys.stdout.buffer
         out_seq = 0
@@ -1626,7 +1595,6 @@ def exec_args():
             raise RuntimeError(
                 "emu requires -c/--config <file> with an 'emulator' path."
             )
-        config_hint = f" in {args.config}"
         emulator = Emulator.resolve(getattr(args, "emulator", ""), args.config)
         cmd = [emulator, "--dap", "--ini", args.config]
         # Config args ride the emulator command line as the ROM's argv;
@@ -1638,20 +1606,20 @@ def exec_args():
         print(f"[{SCRIPT_FILE}] Launching {emulator}", file=sys.stderr)
         try:
             if os.name == "nt":
-                sys.exit(subprocess.Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr).wait())
+                sys.exit(
+                    subprocess.Popen(
+                        cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr
+                    ).wait()
+                )
             os.execvp(cmd[0], cmd)
         except OSError as e:
-            # Backstop for exec failures on a path shutil.which deemed runnable.
-            raise RuntimeError(f"Cannot run emulator '{emulator}'{config_hint}: {e}")
+            raise RuntimeError(Emulator.cannot_run(emulator, args.config, e))
 
     if args.command == "execute":
         # Headless with the phi2 lock off: the ROM's streams are this process's
         # streams, and its exit code is ours, so a 6502 program is a step in a
-        # pipeline. Console input is the null device, because a tool run from a
-        # build has no business reading the terminal it was started from.
-        emulator = Emulator.resolve(
-            getattr(args, "emulator", "") or Emulator.find(args.config), args.config
-        )
+        # pipeline.
+        emulator = Emulator.resolve(getattr(args, "emulator", ""), args.config)
         cmd = [emulator, "--headless", "--phi2", "0", args.filename[0]]
         rom_args = args.rom_args
         if rom_args and rom_args[0] == "--":  # REMAINDER keeps a leading "--"
@@ -1663,7 +1631,7 @@ def exec_args():
         try:
             sys.exit(subprocess.run(cmd, stdin=subprocess.DEVNULL).returncode)
         except OSError as e:
-            raise RuntimeError(f"Cannot run emulator '{emulator}': {e}")
+            raise RuntimeError(Emulator.cannot_run(emulator, args.config, e))
 
 
 # This file may be included or run like a program.
