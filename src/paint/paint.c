@@ -7,42 +7,33 @@
 
 // A paint program for the tablet, or for the mouse when started as paint -m.
 
+#include "xram.h"
 #include <rp6502.h>
 #include <6502.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 // Up to 512 bytes are needed for argv (one xstack size).
 // Applications must opt-in to argc/argv by providing this memory.
-void *__fastcall__ __argv_mem(size_t size) { return malloc(size); }
-
-#define CANVAS_WIDTH 320
-#define CANVAS_HEIGHT 240
-#define PICKER_WIDTH 111
-#define PICKER_HEIGHT 9
-#define POINTER_SIZE 10
-
-// XRAM locations
-#define CANVAS_DATA 0x0000 // the ROM loads logo.png here, see CMakeLists.txt
-#define PICKER_DATA 0xA000
-#define POINTER_DATA 0xB000
-#define CANVAS_STRUCT 0xFF00
-#define PICKER_STRUCT 0xFF10
-#define POINTER_STRUCT 0xFF20
-#define INPUT_DATA 0xFFA0
+void *__argv_mem(size_t size) { return malloc(size); }
 
 // Colors from the built-in 256 color palette
 #define WHITE 231
 #define DARK_GRAY 240
 #define LIGHT_GRAY 250
+#define GRAY 244
+#define BROWN 173
 
 // What the palette has under the pointer, when it isn't a color 0-15
 #define PICK_CANVAS -1
 #define PICK_GRIP 16
 #define PICK_ERASER 17
 #define PICK_BORDER 18
+#define PICK_LOGO 19
 
 #define LEFT 0
 #define RIGHT 1
@@ -79,8 +70,8 @@ static void setup_bitmap(unsigned config, int width, int height, unsigned data)
 // The point of the arrow is one pixel in from the corner of its image.
 static void move_pointer(int x, int y)
 {
-    xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, x_pos_px, x - 1);
-    xram0_struct_set(POINTER_STRUCT, vga_mode3_config_t, y_pos_px, y - 1);
+    xram0_struct_set(XRAM_POINTER_CONFIG, vga_mode3_config_t, x_pos_px, x - 1);
+    xram0_struct_set(XRAM_POINTER_CONFIG, vga_mode3_config_t, y_pos_px, y - 1);
 }
 
 static void draw_pointer(void)
@@ -95,7 +86,7 @@ static void draw_pointer(void)
     };
     // clang-format on
     unsigned i;
-    RIA.addr0 = POINTER_DATA;
+    RIA.addr0 = XRAM_POINTER_DATA;
     RIA.step0 = 1;
     for (i = 0; i < sizeof(image); i++)
         RIA.rw0 = image[i];
@@ -123,7 +114,7 @@ static unsigned char mouse_irq(void)
 
     VIA.ifr = 0x40; // acknowledge timer 1
 
-    RIA.addr0 = INPUT_DATA + 1;
+    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, x);
     RIA.step0 = 1;
     count = RIA.rw0;
     raw_x += (int8_t)(count - mouse_last_x);
@@ -150,8 +141,8 @@ static void mouse_init(void)
     // in 8 ms.
     unsigned period = ria_attr_get(RIA_ATTR_PHI2_KHZ) * 8 - 2;
 
-    xreg_ria_mouse(INPUT_DATA);
-    RIA.addr0 = INPUT_DATA + 1;
+    xreg_ria_mouse(XRAM_MOU_DATA);
+    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, x);
     RIA.step0 = 1;
     mouse_last_x = RIA.rw0;
     mouse_last_y = RIA.rw0;
@@ -171,7 +162,7 @@ static uint8_t mouse_read(int *x, int *y)
     *x = mouse_x;
     *y = mouse_y;
     CLI();
-    RIA.addr0 = INPUT_DATA;
+    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, buttons);
     return RIA.rw0 & 0x03;
 }
 
@@ -183,9 +174,9 @@ static uint8_t mouse_read(int *x, int *y)
 // the host can draw a cursor, as the emulator can for a mouse, the program
 // hides its own pointer and asks for a crosshair.
 
-#define TABLET_CONTROL (INPUT_DATA + 0)
-#define TABLET_STATUS (INPUT_DATA + 1)
-#define TABLET_CONTACT (INPUT_DATA + 4)
+#define TABLET_CONTROL (XRAM_TAB_DATA + offsetof(tablet_t, control))
+#define TABLET_STATUS (XRAM_TAB_DATA + offsetof(tablet_t, status))
+#define TABLET_CONTACT (XRAM_TAB_DATA + offsetof(tablet_t, contact))
 #define TABLET_HOST_CURSOR 0x01
 #define CURSOR_OFF 0
 #define CURSOR_CROSSHAIR 2
@@ -195,7 +186,7 @@ static bool host_cursor;
 
 static void tablet_init(void)
 {
-    xreg_ria_tablet(INPUT_DATA);
+    xreg_ria_tablet(XRAM_TAB_DATA);
 }
 
 static uint8_t tablet_read(int *x, int *y)
@@ -257,10 +248,22 @@ static uint8_t tablet_read(int *x, int *y)
 static void erase_canvas(void)
 {
     unsigned i;
-    RIA.addr0 = CANVAS_DATA;
+    RIA.addr0 = XRAM_CANVAS_DATA;
     RIA.step0 = 1;
     for (i = 0; i < CANVAS_WIDTH / 2 * (unsigned)CANVAS_HEIGHT; i++)
         RIA.rw0 = 0;
+}
+
+// The ROM carries the logo twice: the copy loaded into the canvas before the
+// program starts, and this one, a file to put it back.
+static void load_logo(void)
+{
+    unsigned addr = XRAM_CANVAS_DATA;
+    int fd = open("ROM:logo", O_RDONLY);
+    int count;
+    while ((count = read_xram(addr, 0x7FFF, fd)) > 0)
+        addr += count;
+    close(fd);
 }
 
 // The canvas has four bits per pixel, so one byte holds two pixels.
@@ -268,7 +271,7 @@ static void draw_pixel(int x, int y)
 {
     uint8_t pair;
     RIA.step0 = 0;
-    RIA.addr0 = CANVAS_DATA + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
+    RIA.addr0 = XRAM_CANVAS_DATA + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
     pair = RIA.rw0;
     if (x & 1)
         RIA.rw0 = (pair & 0xF0) | draw_color;
@@ -316,7 +319,7 @@ static void draw_picker_box(uint8_t shade, int x1, int y1, int x2, int y2)
     RIA.step0 = 1;
     for (y = y1; y <= y2; y++)
     {
-        RIA.addr0 = PICKER_DATA + PICKER_WIDTH * y + x1;
+        RIA.addr0 = XRAM_PICKER_DATA + PICKER_WIDTH * y + x1;
         for (x = x1; x <= x2; x++)
             RIA.rw0 = shade;
     }
@@ -347,6 +350,12 @@ static void draw_picker(void)
     draw_picker_box(WHITE, 2, 6, 6, 6);
     draw_picker_box(WHITE, 104, 2, 108, 6); // eraser
     draw_picker_box(DARK_GRAY, 105, 3, 107, 5);
+    draw_picker_box(GRAY, 110, 2, 114, 6); // logo, a ring around the cow
+    draw_picker_box(BROWN, 111, 3, 113, 5);
+    draw_picker_box(DARK_GRAY, 110, 2, 110, 2);
+    draw_picker_box(DARK_GRAY, 114, 2, 114, 2);
+    draw_picker_box(DARK_GRAY, 110, 6, 110, 6);
+    draw_picker_box(DARK_GRAY, 114, 6, 114, 6);
     for (c = 0; c < 16; c++)
         draw_picker_color(c);
 }
@@ -355,8 +364,8 @@ static void move_picker(int x, int y)
 {
     picker_x = clamp(x, 0, CANVAS_WIDTH - PICKER_WIDTH);
     picker_y = clamp(y, 0, CANVAS_HEIGHT - PICKER_HEIGHT);
-    xram0_struct_set(PICKER_STRUCT, vga_mode3_config_t, x_pos_px, picker_x);
-    xram0_struct_set(PICKER_STRUCT, vga_mode3_config_t, y_pos_px, picker_y);
+    xram0_struct_set(XRAM_PICKER_CONFIG, vga_mode3_config_t, x_pos_px, picker_x);
+    xram0_struct_set(XRAM_PICKER_CONFIG, vga_mode3_config_t, y_pos_px, picker_y);
 }
 
 static int picker_pick(int x, int y)
@@ -375,6 +384,8 @@ static int picker_pick(int x, int y)
         return 0;
     if (slot == 17)
         return PICK_ERASER;
+    if (slot == 18)
+        return PICK_LOGO;
     return slot;
 }
 
@@ -409,6 +420,8 @@ static void press(int button, int x, int y)
     }
     else if (pick == PICK_ERASER)
         erase_canvas();
+    else if (pick == PICK_LOGO)
+        load_logo();
 }
 
 static void release(void)
@@ -438,19 +451,19 @@ int main(int argc, char *argv[])
     free(argv);
 
     xreg_vga_canvas(1); // 320x240
-    setup_bitmap(CANVAS_STRUCT, CANVAS_WIDTH, CANVAS_HEIGHT, CANVAS_DATA);
-    setup_bitmap(PICKER_STRUCT, PICKER_WIDTH, PICKER_HEIGHT, PICKER_DATA);
-    setup_bitmap(POINTER_STRUCT, POINTER_SIZE, POINTER_SIZE, POINTER_DATA);
+    setup_bitmap(XRAM_CANVAS_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_CANVAS_DATA);
+    setup_bitmap(XRAM_PICKER_CONFIG, PICKER_WIDTH, PICKER_HEIGHT, XRAM_PICKER_DATA);
+    setup_bitmap(XRAM_POINTER_CONFIG, POINTER_SIZE, POINTER_SIZE, XRAM_POINTER_DATA);
 
     draw_picker();
-    move_picker(104, 0);
+    move_picker((CANVAS_WIDTH - PICKER_WIDTH) / 2, 0);
     set_color(LEFT, 15);
     set_color(RIGHT, 8);
     draw_pointer();
 
-    xreg_vga_mode(3, 2, CANVAS_STRUCT, 0);  // 4 bits per pixel, plane 0
-    xreg_vga_mode(3, 3, PICKER_STRUCT, 1);  // 8 bits per pixel, plane 1
-    xreg_vga_mode(3, 3, POINTER_STRUCT, 2); // 8 bits per pixel, plane 2
+    xreg_vga_mode(3, 2, XRAM_CANVAS_CONFIG, 0);  // 4 bits per pixel, plane 0
+    xreg_vga_mode(3, 3, XRAM_PICKER_CONFIG, 1);  // 8 bits per pixel, plane 1
+    xreg_vga_mode(3, 3, XRAM_POINTER_CONFIG, 2); // 8 bits per pixel, plane 2
 
     if (use_mouse)
         mouse_init();
