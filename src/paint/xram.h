@@ -5,9 +5,6 @@
  * SPDX-License-Identifier: Unlicense
  */
 
-// Everything paint keeps in XRAM, in one place. CMake reads the XRAM_ names
-// out of this file, so the ROM loads the logo where the program looks for it.
-
 #include <rp6502.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -41,8 +38,6 @@ typedef struct
     uint8_t pan;
 } mouse_t;
 
-// The VGA reads a mode configuration as 16 bit values, so each one starts at
-// an even address. Everything of an odd size comes after them.
 typedef struct
 {
     vga_mode3_config_t canvas_config;
@@ -50,8 +45,10 @@ typedef struct
     vga_mode3_config_t pointer_config;
     tablet_t tab;
     mouse_t mou;
+    uint8_t mou_pad;
     uint8_t canvas[CANVAS_WIDTH / 2UL * CANVAS_HEIGHT];
     uint8_t picker[PICKER_WIDTH * PICKER_HEIGHT];
+    uint8_t picker_pad;
     uint8_t pointer[POINTER_SIZE * POINTER_SIZE];
 } xram_layout_t;
 

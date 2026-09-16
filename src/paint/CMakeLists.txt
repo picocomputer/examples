@@ -10,7 +10,7 @@ add_custom_command(
 )
 
 add_executable(paint)
-rp6502_xram(xram.h "XRAM_.*" "XRAM_.*_DATA")
+rp6502_xram(xram.h "XRAM_.*")
 rp6502_asset(paint help paint.hlp)
 rp6502_asset(paint XRAM_CANVAS_DATA ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
 rp6502_asset(paint logo ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
