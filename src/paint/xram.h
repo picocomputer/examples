@@ -19,6 +19,8 @@
 #define PICKER_HEIGHT 9
 #define POINTER_SIZE 10
 
+#define xreg_vga_mode3(...) xreg(1, 0, 1, 3, __VA_ARGS__)
+
 typedef struct
 {
     bool x_wrap;
@@ -32,17 +34,6 @@ typedef struct
 } mode3_config_t;
 
 #define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
-#define xreg_vga_mode(...) xreg(1, 0, 1, __VA_ARGS__)
-
-typedef struct
-{
-    uint8_t buttons;
-    uint8_t x;
-    uint8_t y;
-    uint8_t wheel;
-    uint8_t pan;
-    uint8_t pad;
-} mouse_t;
 
 #define MOUSE_BUTTON_LEFT 0x01
 #define MOUSE_BUTTON_RIGHT 0x02
@@ -54,19 +45,13 @@ typedef struct
 
 typedef struct
 {
-    uint8_t flags;
-    uint8_t x0, x1, x2;
-    uint8_t y0, y1;
-} tablet_contact_t;
-
-typedef struct
-{
-    uint8_t control;
-    uint8_t status;
+    uint8_t buttons;
+    uint8_t x;
+    uint8_t y;
     uint8_t wheel;
     uint8_t pan;
-    tablet_contact_t contact[8];
-} tablet_t;
+    uint8_t pad;
+} mouse_t;
 
 #define TABLET_CONTACTS 8
 
@@ -87,16 +72,21 @@ typedef struct
 #define TABLET_CURSOR_RESIZE_EW 5
 #define TABLET_CURSOR_RESIZE_NS 6
 
-/* -1 when no window is set */
-#define TABLET_CONTACT_X(c) ((c).x0 ? (c).x0 - 1   \
-                             : (c).x1 ? (c).x1 + 254 \
-                             : (c).x2 ? (c).x2 + 509 \
-                                      : -1)
-#define TABLET_CONTACT_Y(c) ((c).y0 ? (c).y0 - 1   \
-                             : (c).y1 ? (c).y1 + 254 \
-                                      : -1)
-
 #define xreg_ria_tablet(...) xreg(0, 0, 3, __VA_ARGS__)
+
+typedef struct
+{
+    uint8_t control;
+    uint8_t status;
+    uint8_t wheel;
+    uint8_t pan;
+    struct
+    {
+        uint8_t flags;
+        uint8_t x0, x1, x2;
+        uint8_t y0, y1;
+    } contact[TABLET_CONTACTS];
+} tablet_t;
 
 typedef struct
 {

@@ -184,7 +184,7 @@ static uint8_t mouse_read(int *x, int *y)
     *y = mouse_y;
     CLI();
     RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, buttons);
-    return RIA.rw0 & 0x03;
+    return RIA.rw0 & (MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT);
 }
 
 // ---------------------------------------------------------------------------
@@ -209,9 +209,9 @@ static void tablet_init(void)
 
 static uint8_t tablet_read(int *x, int *y)
 {
-    tablet_contact_t c;
+    uint8_t flags, x0, x1, x2, y0, y1;
     bool offered;
-    int tries, cx, cy;
+    int tries;
 
     RIA.addr0 = TABLET_STATUS;
     offered = RIA.rw0 & TABLET_STATUS_HOST_CURSOR;
@@ -228,23 +228,27 @@ static uint8_t tablet_read(int *x, int *y)
     {
         RIA.addr0 = TABLET_CONTACT;
         RIA.step0 = 1;
-        c.flags = RIA.rw0;
-        c.x0 = RIA.rw0;
-        c.x1 = RIA.rw0;
-        c.x2 = RIA.rw0;
-        c.y0 = RIA.rw0;
-        c.y1 = RIA.rw0;
-        cx = TABLET_CONTACT_X(c);
-        cy = TABLET_CONTACT_Y(c);
-        if (cx >= 0 && cy >= 0)
+        flags = RIA.rw0;
+        x0 = RIA.rw0;
+        x1 = RIA.rw0;
+        x2 = RIA.rw0;
+        y0 = RIA.rw0;
+        y1 = RIA.rw0;
+        if ((x0 | x1 | x2) && (y0 | y1))
             break;
     }
 
     // With no window set, the position stays where it was.
-    if (cx >= 0)
-        tablet_x = cx;
-    if (cy >= 0)
-        tablet_y = cy;
+    if (x0)
+        tablet_x = x0 - 1;
+    else if (x1)
+        tablet_x = x1 + 254;
+    else if (x2)
+        tablet_x = x2 + 509;
+    if (y0)
+        tablet_y = y0 - 1;
+    else if (y1)
+        tablet_y = y1 + 254;
 
     if (host_cursor)
         move_pointer(CANVAS_WIDTH + 1, 0);
@@ -253,7 +257,7 @@ static uint8_t tablet_read(int *x, int *y)
 
     *x = tablet_x;
     *y = tablet_y;
-    return c.flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
+    return flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
 }
 
 // ---------------------------------------------------------------------------
@@ -475,9 +479,9 @@ int main(int argc, char *argv[])
     set_color(RIGHT, 0);
     draw_pointer();
 
-    xreg_vga_mode(3, 2, XRAM_CANVAS_CONFIG, 0);  // 4 bits per pixel, plane 0
-    xreg_vga_mode(3, 3, XRAM_PICKER_CONFIG, 1);  // 8 bits per pixel, plane 1
-    xreg_vga_mode(3, 3, XRAM_POINTER_CONFIG, 2); // 8 bits per pixel, plane 2
+    xreg_vga_mode3(2, XRAM_CANVAS_CONFIG, 0);  // 4 bits per pixel, plane 0
+    xreg_vga_mode3(3, XRAM_PICKER_CONFIG, 1);  // 8 bits per pixel, plane 1
+    xreg_vga_mode3(3, XRAM_POINTER_CONFIG, 2); // 8 bits per pixel, plane 2
 
     if (use_mouse)
         mouse_init();

@@ -9,23 +9,10 @@
 #define XRAM_H
 
 #include <rp6502.h>
+#include <stddef.h>
 #include <stdint.h>
 
-typedef struct
-{
-    uint8_t dpad;
-    uint8_t sticks;
-    uint8_t btn0;
-    uint8_t btn1;
-    int8_t lx;
-    int8_t ly;
-    int8_t rx;
-    int8_t ry;
-    uint8_t l2;
-    uint8_t r2;
-} gamepad_t;
-
-#define GAMEPAD_COUNT 4
+#define GAMEPAD_PLAYERS 4
 
 #define GAMEPAD_DPAD_UP 0x01
 #define GAMEPAD_DPAD_DOWN 0x02
@@ -67,5 +54,29 @@ typedef struct
 #define GAMEPAD_BTN1_R3 0x40
 
 #define xreg_ria_gamepad(...) xreg(0, 0, 2, __VA_ARGS__)
+
+typedef struct
+{
+    struct
+    {
+        uint8_t dpad;
+        uint8_t sticks;
+        uint8_t btn0;
+        uint8_t btn1;
+        int8_t lx;
+        int8_t ly;
+        int8_t rx;
+        int8_t ry;
+        uint8_t l2;
+        uint8_t r2;
+    } player[GAMEPAD_PLAYERS];
+} gamepad_t;
+
+typedef struct
+{
+    gamepad_t gamepad;
+} xram_layout_t;
+
+#define XRAM_GAMEPAD offsetof(xram_layout_t, gamepad)
 
 #endif

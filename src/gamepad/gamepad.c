@@ -25,9 +25,6 @@ void print(bool enabled, const char *str)
     }
 }
 
-/* DPAD bits 4-5: where the face button labels sit. */
-#define PAD_TYPE_PLAYSTATION 3
-
 void show(int player)
 {
     const char *dpad[] = {"0 ", "N ", "S ", "ER",
@@ -51,10 +48,10 @@ void show(int player)
     printf("R:%s ", dpad[(sticks & 0xF0) >> 4]);
     printf("H:%s ", dpad[hat & 0xF]);
 
-    type = (hat >> 4) & 0x03;
-    printf("%s%s ", types[type], (hat & 0x40) ? "2S" : "  ");
+    type = hat & GAMEPAD_FEAT_TYPE_MASK;
+    printf("%s%s ", types[type >> 4], (hat & GAMEPAD_FEAT_STICKS) ? "2S" : "  ");
 
-    if (!(hat & 0x80))
+    if (!(hat & GAMEPAD_FEAT_CONNECTED))
     {
         printf("\33[K\n\033[90m   Disconnected\033[0m\33[K\n\n");
         return;
@@ -62,33 +59,33 @@ void show(int player)
 
     printf("\n   ");
 
-    if (type == PAD_TYPE_PLAYSTATION)
+    if (type == GAMEPAD_TYPE_PLAYSTATION)
     {
-        print(btns0 & 0x01, "Cross");
-        print(btns0 & 0x02, "Circle");
-        print(btns0 & 0x08, "Square");
-        print(btns0 & 0x10, "Triangle");
+        print(btns0 & GAMEPAD_BTN0_A, "Cross");
+        print(btns0 & GAMEPAD_BTN0_B, "Circle");
+        print(btns0 & GAMEPAD_BTN0_X, "Square");
+        print(btns0 & GAMEPAD_BTN0_Y, "Triangle");
     }
     else
     {
-        print(btns0 & 0x01, "A");
-        print(btns0 & 0x02, "B");
-        print(btns0 & 0x04, "C");
-        print(btns0 & 0x08, "X");
-        print(btns0 & 0x10, "Y");
-        print(btns0 & 0x20, "Z");
+        print(btns0 & GAMEPAD_BTN0_A, "A");
+        print(btns0 & GAMEPAD_BTN0_B, "B");
+        print(btns0 & GAMEPAD_BTN0_C, "C");
+        print(btns0 & GAMEPAD_BTN0_X, "X");
+        print(btns0 & GAMEPAD_BTN0_Y, "Y");
+        print(btns0 & GAMEPAD_BTN0_Z, "Z");
     }
 
-    print(btns0 & 0x40, "L1");
-    print(btns0 & 0x80, "R1");
-    print(btns1 & 0x01, "L2");
-    print(btns1 & 0x02, "R2");
+    print(btns0 & GAMEPAD_BTN0_L1, "L1");
+    print(btns0 & GAMEPAD_BTN0_R1, "R1");
+    print(btns1 & GAMEPAD_BTN1_L2, "L2");
+    print(btns1 & GAMEPAD_BTN1_R2, "R2");
 
-    print(btns1 & 0x04, "Select");
-    print(btns1 & 0x08, "Start");
-    print(btns1 & 0x10, "Home");
-    print(btns1 & 0x20, "L3");
-    print(btns1 & 0x40, "R3");
+    print(btns1 & GAMEPAD_BTN1_SELECT, "Select");
+    print(btns1 & GAMEPAD_BTN1_START, "Start");
+    print(btns1 & GAMEPAD_BTN1_HOME, "Home");
+    print(btns1 & GAMEPAD_BTN1_L3, "L3");
+    print(btns1 & GAMEPAD_BTN1_R3, "R3");
 
     print(btns1 & 0x80, "?");
 
@@ -98,11 +95,11 @@ void show(int player)
 int main(void)
 {
     printf("\30\33c\nPicocomputer 6502 Gamepad Tester");
-    xreg_ria_gamepad(0xFF00);
+    xreg_ria_gamepad(XRAM_GAMEPAD);
     while (1)
     {
         printf("\33[H\33[3B");
-        RIA.addr0 = 0xFF00;
+        RIA.addr0 = XRAM_GAMEPAD;
         RIA.step0 = 1;
         show(1);
         show(2);

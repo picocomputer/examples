@@ -10,7 +10,10 @@
 
 #include <rp6502.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+
+#define xreg_vga_mode3(...) xreg(1, 0, 1, 3, __VA_ARGS__)
 
 typedef struct
 {
@@ -25,12 +28,6 @@ typedef struct
 } mode3_config_t;
 
 #define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
-#define xreg_vga_mode(...) xreg(1, 0, 1, __VA_ARGS__)
-
-typedef struct
-{
-    uint8_t keys[32];
-} keyboard_t;
 
 #define KEYBOARD_NO_KEY 0
 #define KEYBOARD_NUM_LOCK 1
@@ -40,5 +37,21 @@ typedef struct
 #define KEYBOARD_PRESSED(keys, code) ((keys)[(code) >> 3] & (1 << ((code) & 7)))
 
 #define xreg_ria_keyboard(...) xreg(0, 0, 0, __VA_ARGS__)
+
+typedef struct
+{
+    uint8_t keys[32];
+} keyboard_t;
+
+typedef struct
+{
+    uint8_t canvas[320UL * 240 / 2];
+    mode3_config_t canvas_config;
+    keyboard_t keyboard;
+} xram_layout_t;
+
+#define XRAM_CANVAS_DATA offsetof(xram_layout_t, canvas)
+#define XRAM_CANVAS_CONFIG offsetof(xram_layout_t, canvas_config)
+#define XRAM_KEYBOARD offsetof(xram_layout_t, keyboard)
 
 #endif

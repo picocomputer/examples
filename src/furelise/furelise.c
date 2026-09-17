@@ -6,6 +6,7 @@
  */
 
 #include "ezpsg.h"
+#include "xram.h"
 #include <rp6502.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -1542,7 +1543,7 @@ int main(void)
     puts("r Elise");
     puts("by Ludwig van Beethoven");
 
-    ezpsg_init(0xFF00);
+    ezpsg_init(XRAM_PSG);
     ezpsg_play_song(song);
 
     while (true)

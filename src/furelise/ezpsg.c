@@ -6,35 +6,12 @@
  */
 
 #include "ezpsg.h"
+#include "xram.h"
 #include <rp6502.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <stdio.h>
-
-typedef struct
-{
-    uint16_t freq;
-    uint8_t duty;
-    uint8_t vol_attack;
-    uint8_t vol_decay;
-    uint8_t wave_release;
-    uint8_t pan_gate;
-    uint8_t unused;
-} psg_t;
-
-#define PSG_CHANNELS 8
-
-#define PSG_WAVE_SINE 0x00
-#define PSG_WAVE_SQUARE 0x10
-#define PSG_WAVE_SAWTOOTH 0x20
-#define PSG_WAVE_TRIANGLE 0x30
-#define PSG_WAVE_NOISE 0x40
-
-#define PSG_GATE 0x01
-
-#define PSG_FREQ_HZ(hz) ((hz) * 3u)
-#define PSG_PAN(pan) ((uint8_t)((pan) * 2))
 
 static struct channel
 {
@@ -56,14 +33,14 @@ void ezpsg_init(uint16_t xaddr)
     // Clear RIA PSG XRAM.
     RIA.addr0 = xaddr;
     RIA.step0 = 1;
-    for (u = 0; u < PSG_CHANNELS * sizeof(psg_t); u++)
+    for (u = 0; u < sizeof(psg_t); u++)
         RIA.rw0 = 0;
     // Start RIA PSG.
-    xreg(0, 1, 0x00, xaddr);
+    xreg_ria_psg(xaddr);
     // Init linked lists.
     for (u = 0; u < PSG_CHANNELS; u++)
     {
-        ezpsg_channels[u].xaddr = xaddr + u * sizeof(psg_t);
+        ezpsg_channels[u].xaddr = xaddr + u * (sizeof(psg_t) / PSG_CHANNELS);
         ezpsg_channels[u].next = &ezpsg_channels[u + 1];
     }
     ezpsg_channels[PSG_CHANNELS - 1].next = NULL;
@@ -95,9 +72,9 @@ bool ezpsg_tick(uint16_t tempo)
             channel->next = *releasing;
             *releasing = channel;
             // Clear gate bit.
-            RIA.addr0 = channel->xaddr + offsetof(psg_t, pan_gate);
+            RIA.addr0 = channel->xaddr + offsetof(psg_t, channel[0].pan_gate);
             RIA.step0 = 0;
-            RIA.rw0 &= 0xFE;
+            RIA.rw0 &= (uint8_t)~PSG_GATE;
         }
         // Decrement everything still playing.
         channel = ezpsg_channels_playing;
@@ -183,7 +160,7 @@ uint16_t ezpsg_play_note(uint8_t note,
     RIA.rw0 = vol_attack;
     RIA.rw0 = vol_decay;
     RIA.rw0 = wave_release;
-    RIA.rw0 = pan | 0x01;
+    RIA.rw0 = pan | PSG_GATE;
     // Success. The caller may manipulate the returned
     // channel until the tick which clears the gate.
     return channel->xaddr;
