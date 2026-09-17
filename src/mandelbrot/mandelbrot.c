@@ -25,7 +25,7 @@ typedef int32_t fint32_t;
 static void erase()
 {
     unsigned i;
-    RIA.addr0 = XRAM_CANVAS_DATA;
+    RIA.addr0 = XRAM_BITMAP_DATA;
     RIA.step0 = 1;
     for (i = 0x1300; --i;)
     {
@@ -39,7 +39,7 @@ static void erase()
         RIA.rw0 = 255;
         RIA.rw0 = 255;
     }
-    RIA.addr0 = XRAM_CANVAS_DATA;
+    RIA.addr0 = XRAM_BITMAP_DATA;
     for (i = 0x1300; --i;)
     {
         RIA.rw0 = 0;
@@ -57,7 +57,7 @@ void mandelbrot()
 {
     int8_t vbyte;
     int16_t px, py;
-    RIA.addr0 = XRAM_CANVAS_DATA;
+    RIA.addr0 = XRAM_BITMAP_DATA;
     for (py = 0; py < HEIGHT; ++py)
     {
         for (px = 0; px < WIDTH; ++px)
@@ -89,24 +89,24 @@ void mandelbrot()
 
 int main(void)
 {
-    // Use the 320x200 canvas
+    // Use the 320x240 canvas
     xreg_vga_canvas(1);
 
     // Erase video memory before we show it
     erase();
 
     // Macros to setup the video registers
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, x_wrap, true);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, y_wrap, true);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, x_pos_px, 0);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, y_pos_px, 0);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, width_px, 320);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, height_px, 240);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, xram_data_ptr, XRAM_CANVAS_DATA);
-    xram0_struct_set(XRAM_CANVAS_CONFIG, mode3_config_t, xram_palette_ptr, 0xFFFF);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, x_wrap, true);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, y_wrap, true);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, x_pos_px, 0);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, y_pos_px, 0);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, width_px, 320);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, height_px, 240);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, xram_data_ptr, XRAM_BITMAP_DATA);
+    xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, xram_palette_ptr, 0xFFFF);
 
     // Program the video mode
-    xreg_vga_mode3(10, XRAM_CANVAS_CONFIG);
+    xreg_vga_mode3(10, XRAM_BITMAP_CONFIG);
 
     // Do the thing
     mandelbrot();

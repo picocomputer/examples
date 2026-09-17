@@ -45,13 +45,13 @@ typedef struct
 
 typedef struct
 {
-    uint8_t canvas[320UL * 240 / 2];
-    mode3_config_t canvas_config;
+    uint8_t bitmap[320UL * 240 / 2];
+    mode3_config_t bitmap_config;
     keyboard_t keyboard;
 } xram_layout_t;
 
-#define XRAM_CANVAS_DATA offsetof(xram_layout_t, canvas)
-#define XRAM_CANVAS_CONFIG offsetof(xram_layout_t, canvas_config)
+#define XRAM_BITMAP_DATA offsetof(xram_layout_t, bitmap)
+#define XRAM_BITMAP_CONFIG offsetof(xram_layout_t, bitmap_config)
 #define XRAM_KEYBOARD offsetof(xram_layout_t, keyboard)
 
 #endif

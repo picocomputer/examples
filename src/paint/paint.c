@@ -29,7 +29,7 @@ void *__argv_mem(size_t size) { return malloc(size); }
 #define BROWN 173
 
 // What the palette has under the pointer, when it isn't a color 0-15
-#define PICK_CANVAS -1
+#define PICK_PICTURE -1
 #define PICK_GRIP 16
 #define PICK_ERASER 17
 #define PICK_BORDER 18
@@ -261,22 +261,22 @@ static uint8_t tablet_read(int *x, int *y)
 }
 
 // ---------------------------------------------------------------------------
-// Canvas
+// Picture
 
-static void erase_canvas(void)
+static void erase_picture(void)
 {
     unsigned i;
-    RIA.addr0 = XRAM_CANVAS_DATA;
+    RIA.addr0 = XRAM_PICTURE_DATA;
     RIA.step0 = 1;
     for (i = 0; i < CANVAS_WIDTH / 2 * (unsigned)CANVAS_HEIGHT; i++)
         RIA.rw0 = 0;
 }
 
-// The ROM carries the logo twice: the copy loaded into the canvas before the
+// The ROM carries the logo twice: the copy loaded into the picture before the
 // program starts, and this one, a file to put it back.
 static void load_logo(void)
 {
-    unsigned addr = XRAM_CANVAS_DATA;
+    unsigned addr = XRAM_PICTURE_DATA;
     int fd = open("ROM:logo", O_RDONLY);
     int count;
     while ((count = read_xram(addr, 0x7FFF, fd)) > 0)
@@ -284,12 +284,12 @@ static void load_logo(void)
     close(fd);
 }
 
-// The canvas has four bits per pixel, so one byte holds two pixels.
+// The picture has four bits per pixel, so one byte holds two pixels.
 static void draw_pixel(int x, int y)
 {
     uint8_t pair;
     RIA.step0 = 0;
-    RIA.addr0 = XRAM_CANVAS_DATA + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
+    RIA.addr0 = XRAM_PICTURE_DATA + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
     pair = RIA.rw0;
     if (x & 1)
         RIA.rw0 = (pair & 0xF0) | draw_color;
@@ -328,7 +328,7 @@ static void draw_line(int x0, int y0, int x1, int y1)
 // ---------------------------------------------------------------------------
 // Palette
 //
-// The palette is a small bitmap that floats over the canvas. From left to
+// The palette is a small bitmap that floats over the picture. From left to
 // right it holds a grip for dragging it, the sixteen colors, and an eraser.
 
 static void draw_picker_box(uint8_t shade, int x1, int y1, int x2, int y2)
@@ -392,7 +392,7 @@ static int picker_pick(int x, int y)
     x -= picker_x;
     y -= picker_y;
     if (x < 0 || x >= PICKER_WIDTH || y < 0 || y >= PICKER_HEIGHT)
-        return PICK_CANVAS;
+        return PICK_PICTURE;
     if (x < 2 || x >= PICKER_WIDTH - 1 || y < 2 || y >= PICKER_HEIGHT - 1)
         return PICK_BORDER;
     slot = (x - 2) / 6;
@@ -421,7 +421,7 @@ static void set_color(int button, uint8_t c)
 static void press(int button, int x, int y)
 {
     int pick = picker_pick(x, y);
-    if (pick == PICK_CANVAS)
+    if (pick == PICK_PICTURE)
     {
         is_drawing = true;
         draw_color = color[button];
@@ -437,7 +437,7 @@ static void press(int button, int x, int y)
         drag_y = y - picker_y;
     }
     else if (pick == PICK_ERASER)
-        erase_canvas();
+        erase_picture();
     else if (pick == PICK_LOGO)
         load_logo();
 }
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
     free(argv);
 
     xreg_vga_canvas(1); // 320x240
-    setup_bitmap(XRAM_CANVAS_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_CANVAS_DATA);
+    setup_bitmap(XRAM_PICTURE_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_PICTURE_DATA);
     setup_bitmap(XRAM_PICKER_CONFIG, PICKER_WIDTH, PICKER_HEIGHT, XRAM_PICKER_DATA);
     setup_bitmap(XRAM_POINTER_CONFIG, POINTER_SIZE, POINTER_SIZE, XRAM_POINTER_DATA);
 
@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
     set_color(RIGHT, 0);
     draw_pointer();
 
-    xreg_vga_mode3(2, XRAM_CANVAS_CONFIG, 0);  // 4 bits per pixel, plane 0
+    xreg_vga_mode3(2, XRAM_PICTURE_CONFIG, 0);  // 4 bits per pixel, plane 0
     xreg_vga_mode3(3, XRAM_PICKER_CONFIG, 1);  // 8 bits per pixel, plane 1
     xreg_vga_mode3(3, XRAM_POINTER_CONFIG, 2); // 8 bits per pixel, plane 2
 

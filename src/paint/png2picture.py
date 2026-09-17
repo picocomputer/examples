@@ -5,13 +5,13 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # SPDX-License-Identifier: Unlicense
 
-"""Convert the logo PNG into the paint canvas.
+"""Convert the logo PNG into the paint picture.
 
-The canvas is 320x240 pixels at 4 bits per pixel in the 16 built-in ANSI
+The picture is 320x240 pixels at 4 bits per pixel in the 16 built-in ANSI
 colors. The logo's ring is made grey with black outside it, then the image is
 scaled to fit, centered, and dithered to those colors.
 
-usage: png2canvas.py <in.png> <out.bin>
+usage: png2picture.py <in.png> <out.bin>
 """
 
 import struct
@@ -213,7 +213,7 @@ def restyle(width, height, rows):
 
 
 def fit(width, height, rows):
-    """Scale to fit the canvas and center on black. Each canvas pixel is the
+    """Scale to fit the picture and center on black. Each picture pixel is the
     average of the image pixels it covers."""
     scale = min(WIDTH / width, HEIGHT / height)
     fit_w = round(width * scale)
@@ -221,7 +221,7 @@ def fit(width, height, rows):
     left = (WIDTH - fit_w) // 2
     top = (HEIGHT - fit_h) // 2
 
-    canvas = [[[0.0, 0.0, 0.0] for _ in range(WIDTH)] for _ in range(HEIGHT)]
+    picture = [[[0.0, 0.0, 0.0] for _ in range(WIDTH)] for _ in range(HEIGHT)]
     for y in range(fit_h):
         y0 = y * height // fit_h
         y1 = max(y0 + 1, (y + 1) * height // fit_h)
@@ -234,8 +234,8 @@ def fit(width, height, rows):
                     for c in range(3):
                         total[c] += rows[sy][sx][c]
             count = (y1 - y0) * (x1 - x0)
-            canvas[top + y][left + x] = [t / count for t in total]
-    return canvas
+            picture[top + y][left + x] = [t / count for t in total]
+    return picture
 
 
 def distance(color, r, g, b):
@@ -251,7 +251,7 @@ def nearest(r, g, b):
     return min(range(len(PALETTE)), key=lambda i: distance(PALETTE[i], r, g, b))
 
 
-def dither(canvas):
+def dither(picture):
     """Floyd-Steinberg dithering. Each pixel takes the nearest palette color,
     and the difference is shared with the neighbors not yet converted.
 
@@ -262,7 +262,7 @@ def dither(canvas):
     for y in range(HEIGHT):
         row = []
         for x in range(WIDTH):
-            color = canvas[y][x]
+            color = picture[y][x]
             index = nearest(*color)
             row.append(index)
             error = [color[c] - PALETTE[index][c] for c in range(3)]
@@ -270,7 +270,7 @@ def dither(canvas):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < WIDTH and ny < HEIGHT:
                     for c in range(3):
-                        canvas[ny][nx][c] += error[c] * share / 16 * 3 / 4
+                        picture[ny][nx][c] += error[c] * share / 16 * 3 / 4
         indices.append(row)
     return indices
 
@@ -289,9 +289,9 @@ def main():
         sys.exit(__doc__)
     width, height, rows = read_png(sys.argv[1])
     rows = restyle(width, height, rows)
-    canvas = fit(width, height, rows)
+    picture = fit(width, height, rows)
     with open(sys.argv[2], "wb") as f:
-        f.write(pack(dither(canvas)))
+        f.write(pack(dither(picture)))
 
 
 if __name__ == "__main__":

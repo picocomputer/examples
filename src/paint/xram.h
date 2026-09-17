@@ -90,23 +90,23 @@ typedef struct
 
 typedef struct
 {
-    mode3_config_t canvas_config;
+    mode3_config_t picture_config;
     mode3_config_t picker_config;
     mode3_config_t pointer_config;
     tablet_t tab;
     mouse_t mou;
-    uint8_t canvas[CANVAS_WIDTH / 2UL * CANVAS_HEIGHT];
+    uint8_t picture[CANVAS_WIDTH / 2UL * CANVAS_HEIGHT];
     uint8_t picker[PICKER_WIDTH * PICKER_HEIGHT];
     uint8_t picker_pad;
     uint8_t pointer[POINTER_SIZE * POINTER_SIZE];
 } xram_layout_t;
 
-#define XRAM_CANVAS_CONFIG  offsetof(xram_layout_t, canvas_config)
+#define XRAM_PICTURE_CONFIG offsetof(xram_layout_t, picture_config)
 #define XRAM_PICKER_CONFIG  offsetof(xram_layout_t, picker_config)
 #define XRAM_POINTER_CONFIG offsetof(xram_layout_t, pointer_config)
 #define XRAM_TAB_DATA       offsetof(xram_layout_t, tab)
 #define XRAM_MOU_DATA       offsetof(xram_layout_t, mou)
-#define XRAM_CANVAS_DATA    offsetof(xram_layout_t, canvas)
+#define XRAM_PICTURE_DATA   offsetof(xram_layout_t, picture)
 #define XRAM_PICKER_DATA    offsetof(xram_layout_t, picker)
 #define XRAM_POINTER_DATA   offsetof(xram_layout_t, pointer)
 
