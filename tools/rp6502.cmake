@@ -444,9 +444,7 @@ endfunction()
 # Reads ``#define NAME offsetof(...)`` lines from ``<header>`` whose NAME
 # matches ``<regex>`` and sets each NAME as a variable holding the XRAM
 # address it stands for. The names then work as rp6502_asset() addresses.
-# Every address must be even, because that is what the VGA and the PSG
-# require of the structures they read; names matching ``<unaligned_regex>``
-# are exempt.
+# Names matching ``<unaligned_regex>`` are exempt from 16-bit alignment.
 #
 function(rp6502_xram header regex)
     set(unaligned "${ARGV2}")
