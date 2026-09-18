@@ -1,0 +1,2 @@
+Usage: term              Terminal on the RIA-W modem, AT:
+       term <device>     Terminal on another device, such as AT0: to AT9:

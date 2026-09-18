@@ -1,2 +1,0 @@
-This is an example of how to place help inside a ROM file. e.g.
-    rp6502_asset(altair1 help src/altair.hlp)

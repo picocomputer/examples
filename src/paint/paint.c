@@ -1,0 +1,507 @@
+/*
+ * Copyright (c) 2025 Rumbledethumps
+ *
+ * SPDX-License-Identifier: BSD-3-Clause
+ * SPDX-License-Identifier: Unlicense
+ */
+
+// A paint program for the tablet, or for the mouse when started as paint -m.
+
+#include "xram.h"
+#include <rp6502.h>
+#include <6502.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+// Up to 512 bytes are needed for argv (one xstack size).
+// Applications must opt-in to argc/argv by providing this memory.
+void *__argv_mem(size_t size) { return malloc(size); }
+
+// Colors from the built-in 256 color palette
+#define WHITE 231
+#define DARK_GRAY 240
+#define LIGHT_GRAY 250
+#define GRAY 244
+#define BROWN 173
+
+// What the palette has under the pointer, when it isn't a color 0-15
+#define PICK_PICTURE -1
+#define PICK_GRIP 16
+#define PICK_ERASER 17
+#define PICK_BORDER 18
+#define PICK_LOGO 19
+
+#define LEFT 0
+#define RIGHT 1
+
+static uint8_t color[2];
+static uint8_t draw_color;
+static bool is_drawing;
+static bool is_dragging;
+static int picker_x, picker_y;
+static int drag_x, drag_y;
+static int line_x, line_y;
+
+static int clamp(int value, int low, int high)
+{
+    if (value < low)
+        return low;
+    if (value > high)
+        return high;
+    return value;
+}
+
+static void setup_bitmap(unsigned config, int width, int height, unsigned data)
+{
+    xram0_struct_set(config, mode3_config_t, x_wrap, false);
+    xram0_struct_set(config, mode3_config_t, y_wrap, false);
+    xram0_struct_set(config, mode3_config_t, x_pos_px, 0);
+    xram0_struct_set(config, mode3_config_t, y_pos_px, 0);
+    xram0_struct_set(config, mode3_config_t, width_px, width);
+    xram0_struct_set(config, mode3_config_t, height_px, height);
+    xram0_struct_set(config, mode3_config_t, xram_data_ptr, data);
+    xram0_struct_set(config, mode3_config_t, xram_palette_ptr, 0xFFFF);
+}
+
+// The point of the arrow is one pixel in from the corner of its image.
+static void move_pointer(int x, int y)
+{
+    xram0_struct_set(XRAM_POINTER_CONFIG, mode3_config_t, x_pos_px, x - 1);
+    xram0_struct_set(XRAM_POINTER_CONFIG, mode3_config_t, y_pos_px, y - 1);
+}
+
+static void draw_pointer(void)
+{
+    // clang-format off
+    static const uint8_t image[POINTER_SIZE * POINTER_SIZE] = {
+        16,16,16,16,16,16,16,0,0,0,16,255,255,255,255,255,16,0,0,0,
+        16,255,255,255,255,16,0,0,0,0,16,255,255,255,255,16,0,0,0,0,
+        16,255,255,255,255,255,16,0,0,0,16,255,16,16,255,255,255,16,0,0,
+        16,16,0,0,16,255,255,255,16,0,0,0,0,0,0,16,255,255,255,16,
+        0,0,0,0,0,0,16,255,16,0,0,0,0,0,0,0,0,16,0,0,
+    };
+    // clang-format on
+    unsigned i;
+    RIA.addr0 = XRAM_POINTER_DATA;
+    RIA.step0 = 1;
+    for (i = 0; i < sizeof(image); i++)
+        RIA.rw0 = image[i];
+}
+
+// ---------------------------------------------------------------------------
+// Mouse
+//
+// The mouse reports relative motion as counters. The RIA docs recommend
+// reading them at 125 Hz or faster, so a VIA timer interrupt keeps the
+// position. On a 320 pixel wide canvas, two counts move one pixel.
+
+#define MOUSE_DIV 2
+
+static uint8_t mouse_last_x, mouse_last_y;
+static volatile int mouse_x, mouse_y;
+
+static void mouse_sample(void)
+{
+    static int raw_x, raw_y;
+    uint16_t save_addr0 = RIA.addr0;
+    uint8_t save_step0 = RIA.step0;
+    uint8_t count;
+
+    VIA.ifr = 0x40; // acknowledge timer 1
+
+    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, x);
+    RIA.step0 = 1;
+    count = RIA.rw0;
+    raw_x += (int8_t)(count - mouse_last_x);
+    mouse_last_x = count;
+    count = RIA.rw0;
+    raw_y += (int8_t)(count - mouse_last_y);
+    mouse_last_y = count;
+
+    raw_x = clamp(raw_x, 0, (CANVAS_WIDTH - 1) * MOUSE_DIV);
+    raw_y = clamp(raw_y, 0, (CANVAS_HEIGHT - 1) * MOUSE_DIV);
+    mouse_x = raw_x / MOUSE_DIV;
+    mouse_y = raw_y / MOUSE_DIV;
+    move_pointer(mouse_x, mouse_y);
+
+    // The main loop was using RW0 when this interrupt arrived.
+    RIA.addr0 = save_addr0;
+    RIA.step0 = save_step0;
+}
+
+// cc65 calls a C handler from its own stub, on a stack the program lends it.
+// llvm-mos compiles the handler itself, and the program wires the vector.
+#ifdef __CC65__
+static uint8_t mouse_irq_stack[32];
+static unsigned char mouse_irq(void)
+{
+    mouse_sample();
+    return IRQ_HANDLED;
+}
+#else
+__attribute__((interrupt)) static void mouse_irq(void)
+{
+    mouse_sample();
+}
+#endif
+
+static void mouse_init(void)
+{
+    // Timer 1 repeats every period + 2 cycles, and PHI2 runs kHz * 8 cycles
+    // in 8 ms.
+    unsigned period = ria_attr_get(RIA_ATTR_PHI2_KHZ) * 8 - 2;
+
+    xreg_ria_mouse(XRAM_MOU_DATA);
+    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, x);
+    RIA.step0 = 1;
+    mouse_last_x = RIA.rw0;
+    mouse_last_y = RIA.rw0;
+
+#ifdef __CC65__
+    set_irq(mouse_irq, &mouse_irq_stack, sizeof(mouse_irq_stack));
+#else
+    *(void (**)(void))0xFFFE = mouse_irq;
+#endif
+    VIA.t1l_lo = period & 0xFF;
+    VIA.t1l_hi = period >> 8;
+    VIA.t1_lo = period & 0xFF;
+    VIA.t1_hi = period >> 8;
+    VIA.acr = 0x40; // timer 1 free running
+    VIA.ier = 0xC0; // timer 1 interrupt on
+#ifndef __CC65__
+    CLI(); // set_irq() does this for cc65
+#endif
+}
+
+static uint8_t mouse_read(int *x, int *y)
+{
+    SEI();
+    *x = mouse_x;
+    *y = mouse_y;
+    CLI();
+    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, buttons);
+    return RIA.rw0 & (MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT);
+}
+
+// ---------------------------------------------------------------------------
+// Tablet
+//
+// The tablet reports the pointer as a canvas position. Each axis is split into
+// one-byte windows, and only the window holding the value is non-zero. When
+// the host can draw a cursor, as the emulator can for a mouse, the program
+// hides its own pointer and asks for a crosshair.
+
+#define TABLET_CONTROL (XRAM_TAB_DATA + offsetof(tablet_t, control))
+#define TABLET_STATUS (XRAM_TAB_DATA + offsetof(tablet_t, status))
+#define TABLET_CONTACT (XRAM_TAB_DATA + offsetof(tablet_t, contact))
+
+static int tablet_x, tablet_y;
+static bool host_cursor;
+
+static void tablet_init(void)
+{
+    xreg_ria_tablet(XRAM_TAB_DATA);
+}
+
+static uint8_t tablet_read(int *x, int *y)
+{
+    uint8_t flags, x0, x1, x2, y0, y1;
+    bool offered;
+    int tries;
+
+    RIA.addr0 = TABLET_STATUS;
+    offered = RIA.rw0 & TABLET_STATUS_HOST_CURSOR;
+    if (offered != host_cursor)
+    {
+        host_cursor = offered;
+        RIA.addr0 = TABLET_CONTROL;
+        RIA.rw0 = host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF;
+    }
+
+    // A read that lands while a value crosses into the next window can find
+    // every window zero, so the contact is read a second time.
+    for (tries = 0; tries < 2; tries++)
+    {
+        RIA.addr0 = TABLET_CONTACT;
+        RIA.step0 = 1;
+        flags = RIA.rw0;
+        x0 = RIA.rw0;
+        x1 = RIA.rw0;
+        x2 = RIA.rw0;
+        y0 = RIA.rw0;
+        y1 = RIA.rw0;
+        if ((x0 | x1 | x2) && (y0 | y1))
+            break;
+    }
+
+    // With no window set, the position stays where it was.
+    if (x0)
+        tablet_x = x0 - 1;
+    else if (x1)
+        tablet_x = x1 + 254;
+    else if (x2)
+        tablet_x = x2 + 509;
+    if (y0)
+        tablet_y = y0 - 1;
+    else if (y1)
+        tablet_y = y1 + 254;
+
+    if (host_cursor)
+        move_pointer(CANVAS_WIDTH + 1, 0);
+    else
+        move_pointer(tablet_x, tablet_y);
+
+    *x = tablet_x;
+    *y = tablet_y;
+    return flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
+}
+
+// ---------------------------------------------------------------------------
+// Picture
+
+static void erase_picture(void)
+{
+    unsigned i;
+    RIA.addr0 = XRAM_PICTURE_DATA;
+    RIA.step0 = 1;
+    for (i = 0; i < CANVAS_WIDTH / 2 * (unsigned)CANVAS_HEIGHT; i++)
+        RIA.rw0 = 0;
+}
+
+// The ROM carries the logo twice: the copy loaded into the picture before the
+// program starts, and this one, a file to put it back.
+static void load_logo(void)
+{
+    unsigned addr = XRAM_PICTURE_DATA;
+    int fd = open("ROM:logo", O_RDONLY);
+    int count;
+    while ((count = read_xram(addr, 0x7FFF, fd)) > 0)
+        addr += count;
+    close(fd);
+}
+
+// The picture has four bits per pixel, so one byte holds two pixels.
+static void draw_pixel(int x, int y)
+{
+    uint8_t pair;
+    RIA.step0 = 0;
+    RIA.addr0 = XRAM_PICTURE_DATA + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
+    pair = RIA.rw0;
+    if (x & 1)
+        RIA.rw0 = (pair & 0xF0) | draw_color;
+    else
+        RIA.rw0 = (pair & 0x0F) | draw_color << 4;
+}
+
+// Bresenham's line algorithm
+static void draw_line(int x0, int y0, int x1, int y1)
+{
+    int dx = abs(x1 - x0);
+    int dy = -abs(y1 - y0);
+    int sx = x0 < x1 ? 1 : -1;
+    int sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    int err2;
+    while (true)
+    {
+        draw_pixel(x0, y0);
+        if (x0 == x1 && y0 == y1)
+            break;
+        err2 = 2 * err;
+        if (err2 >= dy)
+        {
+            err += dy;
+            x0 += sx;
+        }
+        if (err2 <= dx)
+        {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Palette
+//
+// The palette is a small bitmap that floats over the picture. From left to
+// right it holds a grip for dragging it, the sixteen colors, and an eraser.
+
+static void draw_picker_box(uint8_t shade, int x1, int y1, int x2, int y2)
+{
+    int x, y;
+    RIA.step0 = 1;
+    for (y = y1; y <= y2; y++)
+    {
+        RIA.addr0 = XRAM_PICKER_DATA + PICKER_WIDTH * y + x1;
+        for (x = x1; x <= x2; x++)
+            RIA.rw0 = shade;
+    }
+}
+
+// Palette index 0 is transparent, so black is drawn as the opaque black at
+// index 16 and placed after white. A notch in the bottom corner marks the
+// color held by that button.
+static void draw_picker_color(uint8_t c)
+{
+    uint8_t shade = c ? c : 16;
+    int x = 2 + shade * 6;
+    draw_picker_box(shade, x, 2, x + 4, 6);
+    if (color[LEFT] == c)
+        draw_picker_box(DARK_GRAY, x, 5, x + 1, 6);
+    if (color[RIGHT] == c)
+        draw_picker_box(DARK_GRAY, x + 3, 5, x + 4, 6);
+    draw_picker_box(shade, x + 1, 5, x + 3, 5);
+}
+
+static void draw_picker(void)
+{
+    uint8_t c;
+    draw_picker_box(LIGHT_GRAY, 0, 0, PICKER_WIDTH - 1, PICKER_HEIGHT - 1);
+    draw_picker_box(DARK_GRAY, 1, 1, PICKER_WIDTH - 2, PICKER_HEIGHT - 2);
+    draw_picker_box(WHITE, 2, 2, 6, 2); // grip
+    draw_picker_box(WHITE, 2, 4, 6, 4);
+    draw_picker_box(WHITE, 2, 6, 6, 6);
+    draw_picker_box(WHITE, 104, 2, 108, 6); // eraser
+    draw_picker_box(DARK_GRAY, 105, 3, 107, 5);
+    draw_picker_box(GRAY, 110, 2, 114, 6); // logo, a ring around the cow
+    draw_picker_box(BROWN, 111, 3, 113, 5);
+    draw_picker_box(DARK_GRAY, 110, 2, 110, 2);
+    draw_picker_box(DARK_GRAY, 114, 2, 114, 2);
+    draw_picker_box(DARK_GRAY, 110, 6, 110, 6);
+    draw_picker_box(DARK_GRAY, 114, 6, 114, 6);
+    for (c = 0; c < 16; c++)
+        draw_picker_color(c);
+}
+
+static void move_picker(int x, int y)
+{
+    picker_x = clamp(x, 0, CANVAS_WIDTH - PICKER_WIDTH);
+    picker_y = clamp(y, 0, CANVAS_HEIGHT - PICKER_HEIGHT);
+    xram0_struct_set(XRAM_PICKER_CONFIG, mode3_config_t, x_pos_px, picker_x);
+    xram0_struct_set(XRAM_PICKER_CONFIG, mode3_config_t, y_pos_px, picker_y);
+}
+
+static int picker_pick(int x, int y)
+{
+    int slot;
+    x -= picker_x;
+    y -= picker_y;
+    if (x < 0 || x >= PICKER_WIDTH || y < 0 || y >= PICKER_HEIGHT)
+        return PICK_PICTURE;
+    if (x < 2 || x >= PICKER_WIDTH - 1 || y < 2 || y >= PICKER_HEIGHT - 1)
+        return PICK_BORDER;
+    slot = (x - 2) / 6;
+    if (slot == 0)
+        return PICK_GRIP;
+    if (slot == 16)
+        return 0;
+    if (slot == 17)
+        return PICK_ERASER;
+    if (slot == 18)
+        return PICK_LOGO;
+    return slot;
+}
+
+static void set_color(int button, uint8_t c)
+{
+    uint8_t old = color[button];
+    color[button] = c;
+    draw_picker_color(old);
+    draw_picker_color(c);
+}
+
+// ---------------------------------------------------------------------------
+// Painting
+
+static void press(int button, int x, int y)
+{
+    int pick = picker_pick(x, y);
+    if (pick == PICK_PICTURE)
+    {
+        is_drawing = true;
+        draw_color = color[button];
+        line_x = x;
+        line_y = y;
+    }
+    else if (pick < 16)
+        set_color(button, pick);
+    else if (pick == PICK_GRIP)
+    {
+        is_dragging = true;
+        drag_x = x - picker_x;
+        drag_y = y - picker_y;
+    }
+    else if (pick == PICK_ERASER)
+        erase_picture();
+    else if (pick == PICK_LOGO)
+        load_logo();
+}
+
+static void release(void)
+{
+    is_drawing = false;
+    is_dragging = false;
+}
+
+static void move(int x, int y)
+{
+    if (is_dragging)
+        move_picker(x - drag_x, y - drag_y);
+    else if (is_drawing)
+    {
+        draw_line(line_x, line_y, x, y);
+        line_x = x;
+        line_y = y;
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    bool use_mouse = argc == 2 && strcmp(argv[1], "-m") == 0;
+    uint8_t buttons, held = 0, pressed, released;
+    int x, y;
+
+    free(argv);
+
+    load_logo();
+
+    xreg_vga_canvas(1); // 320x240
+    setup_bitmap(XRAM_PICTURE_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_PICTURE_DATA);
+    setup_bitmap(XRAM_PICKER_CONFIG, PICKER_WIDTH, PICKER_HEIGHT, XRAM_PICKER_DATA);
+    setup_bitmap(XRAM_POINTER_CONFIG, POINTER_SIZE, POINTER_SIZE, XRAM_POINTER_DATA);
+
+    draw_picker();
+    move_picker((CANVAS_WIDTH - PICKER_WIDTH) / 2, 0);
+    set_color(LEFT, 8);
+    set_color(RIGHT, 0);
+    draw_pointer();
+
+    xreg_vga_mode3(2, XRAM_PICTURE_CONFIG, 0);  // 4 bits per pixel, plane 0
+    xreg_vga_mode3(3, XRAM_PICKER_CONFIG, 1);  // 8 bits per pixel, plane 1
+    xreg_vga_mode3(3, XRAM_POINTER_CONFIG, 2); // 8 bits per pixel, plane 2
+
+    if (use_mouse)
+        mouse_init();
+    else
+        tablet_init();
+
+    while (true)
+    {
+        buttons = use_mouse ? mouse_read(&x, &y) : tablet_read(&x, &y);
+        pressed = buttons & ~held;
+        released = held & ~buttons;
+        held = buttons;
+        if (pressed & 1)
+            press(LEFT, x, y);
+        if (pressed & 2)
+            press(RIGHT, x, y);
+        if (released)
+            release();
+        move(x, y);
+    }
+}
