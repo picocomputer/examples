@@ -468,6 +468,8 @@ int main(int argc, char *argv[])
 
     free(argv);
 
+    load_logo();
+
     xreg_vga_canvas(1); // 320x240
     setup_bitmap(XRAM_PICTURE_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_PICTURE_DATA);
     setup_bitmap(XRAM_PICKER_CONFIG, PICKER_WIDTH, PICKER_HEIGHT, XRAM_PICKER_DATA);
