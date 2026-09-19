@@ -90,7 +90,7 @@ void mandelbrot()
 int main(void)
 {
     // Use the 320x240 canvas
-    xreg_vga_canvas(1);
+    xreg_vga_canvas(CANVAS_320X240);
 
     // Erase video memory before we show it
     erase();
@@ -106,7 +106,7 @@ int main(void)
     xram0_struct_set(XRAM_BITMAP_CONFIG, mode3_config_t, xram_palette_ptr, 0xFFFF);
 
     // Program the video mode
-    xreg_vga_mode3(10, XRAM_BITMAP_CONFIG);
+    xreg_vga_mode3(MODE3_4BPP | MODE3_REVERSE_BITS, XRAM_BITMAP_CONFIG);
 
     // Do the thing
     mandelbrot();

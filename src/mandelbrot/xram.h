@@ -13,7 +13,23 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
+
+#define CANVAS_CONSOLE 0
+#define CANVAS_320X240 1
+#define CANVAS_320X180 2
+#define CANVAS_640X480 3
+#define CANVAS_640X360 4
+
 #define xreg_vga_mode3(...) xreg(1, 0, 1, 3, __VA_ARGS__)
+
+#define MODE3_1BPP 0x00
+#define MODE3_2BPP 0x01
+#define MODE3_4BPP 0x02
+#define MODE3_8BPP 0x03
+#define MODE3_16BPP 0x04
+
+#define MODE3_REVERSE_BITS 0x08
 
 typedef struct
 {
@@ -26,8 +42,6 @@ typedef struct
     uint16_t xram_data_ptr;
     uint16_t xram_palette_ptr;
 } mode3_config_t;
-
-#define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
 
 #define KEYBOARD_NO_KEY 0
 #define KEYBOARD_NUM_LOCK 1

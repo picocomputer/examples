@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
 
     load_logo();
 
-    xreg_vga_canvas(1); // 320x240
+    xreg_vga_canvas(CANVAS_320X240);
     setup_bitmap(XRAM_PICTURE_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_PICTURE_DATA);
     setup_bitmap(XRAM_PICKER_CONFIG, PICKER_WIDTH, PICKER_HEIGHT, XRAM_PICKER_DATA);
     setup_bitmap(XRAM_POINTER_CONFIG, POINTER_SIZE, POINTER_SIZE, XRAM_POINTER_DATA);
@@ -481,9 +481,9 @@ int main(int argc, char *argv[])
     set_color(RIGHT, 0);
     draw_pointer();
 
-    xreg_vga_mode3(2, XRAM_PICTURE_CONFIG, 0);  // 4 bits per pixel, plane 0
-    xreg_vga_mode3(3, XRAM_PICKER_CONFIG, 1);  // 8 bits per pixel, plane 1
-    xreg_vga_mode3(3, XRAM_POINTER_CONFIG, 2); // 8 bits per pixel, plane 2
+    xreg_vga_mode3(MODE3_4BPP, XRAM_PICTURE_CONFIG, 0); // plane 0
+    xreg_vga_mode3(MODE3_8BPP, XRAM_PICKER_CONFIG, 1);  // plane 1
+    xreg_vga_mode3(MODE3_8BPP, XRAM_POINTER_CONFIG, 2); // plane 2
 
     if (use_mouse)
         mouse_init();
