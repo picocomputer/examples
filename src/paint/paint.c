@@ -70,8 +70,8 @@ static void setup_bitmap(unsigned config, int width, int height, unsigned data)
 // The point of the arrow is one pixel in from the corner of its image.
 static void move_pointer(int x, int y)
 {
-    xram0_struct_set(XRAM_POINTER_CONFIG, mode3_config_t, x_pos_px, x - 1);
-    xram0_struct_set(XRAM_POINTER_CONFIG, mode3_config_t, y_pos_px, y - 1);
+    xram0_struct_set(XRAM_CONFIG_POINTER, mode3_config_t, x_pos_px, x - 1);
+    xram0_struct_set(XRAM_CONFIG_POINTER, mode3_config_t, y_pos_px, y - 1);
 }
 
 static void draw_pointer(void)
@@ -86,7 +86,7 @@ static void draw_pointer(void)
     };
     // clang-format on
     unsigned i;
-    RIA.addr0 = XRAM_POINTER_DATA;
+    RIA.addr0 = XRAM_DATA_POINTER;
     RIA.step0 = 1;
     for (i = 0; i < sizeof(image); i++)
         RIA.rw0 = image[i];
@@ -113,7 +113,7 @@ static void mouse_sample(void)
 
     VIA.ifr = 0x40; // acknowledge timer 1
 
-    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, x);
+    RIA.addr0 = XRAM_DATA_MOU + offsetof(mouse_t, x);
     RIA.step0 = 1;
     count = RIA.rw0;
     raw_x += (int8_t)(count - mouse_last_x);
@@ -155,8 +155,8 @@ static void mouse_init(void)
     // in 8 ms.
     unsigned period = ria_attr_get(RIA_ATTR_PHI2_KHZ) * 8 - 2;
 
-    xreg_ria_mouse(XRAM_MOU_DATA);
-    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, x);
+    xreg_ria_mouse(XRAM_DATA_MOU);
+    RIA.addr0 = XRAM_DATA_MOU + offsetof(mouse_t, x);
     RIA.step0 = 1;
     mouse_last_x = RIA.rw0;
     mouse_last_y = RIA.rw0;
@@ -183,7 +183,7 @@ static uint8_t mouse_read(int *x, int *y)
     *x = mouse_x;
     *y = mouse_y;
     CLI();
-    RIA.addr0 = XRAM_MOU_DATA + offsetof(mouse_t, buttons);
+    RIA.addr0 = XRAM_DATA_MOU + offsetof(mouse_t, buttons);
     return RIA.rw0 & (MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT);
 }
 
@@ -195,16 +195,12 @@ static uint8_t mouse_read(int *x, int *y)
 // the host can draw a cursor, as the emulator can for a mouse, the program
 // hides its own pointer and asks for a crosshair.
 
-#define TABLET_CONTROL (XRAM_TAB_DATA + offsetof(tablet_t, control))
-#define TABLET_STATUS (XRAM_TAB_DATA + offsetof(tablet_t, status))
-#define TABLET_CONTACT (XRAM_TAB_DATA + offsetof(tablet_t, contact))
-
 static int tablet_x, tablet_y;
 static bool host_cursor;
 
 static void tablet_init(void)
 {
-    xreg_ria_tablet(XRAM_TAB_DATA);
+    xreg_ria_tablet(XRAM_DATA_TAB);
 }
 
 static uint8_t tablet_read(int *x, int *y)
@@ -213,12 +209,12 @@ static uint8_t tablet_read(int *x, int *y)
     bool offered;
     int tries;
 
-    RIA.addr0 = TABLET_STATUS;
+    RIA.addr0 = XRAM_DATA_TAB + offsetof(tablet_t, status);
     offered = RIA.rw0 & TABLET_STATUS_HOST_CURSOR;
     if (offered != host_cursor)
     {
         host_cursor = offered;
-        RIA.addr0 = TABLET_CONTROL;
+        RIA.addr0 = XRAM_DATA_TAB + offsetof(tablet_t, control);
         RIA.rw0 = host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF;
     }
 
@@ -226,7 +222,7 @@ static uint8_t tablet_read(int *x, int *y)
     // every window zero, so the contact is read a second time.
     for (tries = 0; tries < 2; tries++)
     {
-        RIA.addr0 = TABLET_CONTACT;
+        RIA.addr0 = XRAM_DATA_TAB + offsetof(tablet_t, contact);
         RIA.step0 = 1;
         flags = RIA.rw0;
         x0 = RIA.rw0;
@@ -266,7 +262,7 @@ static uint8_t tablet_read(int *x, int *y)
 static void erase_picture(void)
 {
     unsigned i;
-    RIA.addr0 = XRAM_PICTURE_DATA;
+    RIA.addr0 = XRAM_DATA_PICTURE;
     RIA.step0 = 1;
     for (i = 0; i < CANVAS_WIDTH / 2 * (unsigned)CANVAS_HEIGHT; i++)
         RIA.rw0 = 0;
@@ -276,7 +272,7 @@ static void erase_picture(void)
 // program starts, and this one, a file to put it back.
 static void load_logo(void)
 {
-    unsigned addr = XRAM_PICTURE_DATA;
+    unsigned addr = XRAM_DATA_PICTURE;
     int fd = open("ROM:logo", O_RDONLY);
     int count;
     while ((count = read_xram(addr, 0x7FFF, fd)) > 0)
@@ -289,7 +285,7 @@ static void draw_pixel(int x, int y)
 {
     uint8_t pair;
     RIA.step0 = 0;
-    RIA.addr0 = XRAM_PICTURE_DATA + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
+    RIA.addr0 = XRAM_DATA_PICTURE + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
     pair = RIA.rw0;
     if (x & 1)
         RIA.rw0 = (pair & 0xF0) | draw_color;
@@ -337,7 +333,7 @@ static void draw_picker_box(uint8_t shade, int x1, int y1, int x2, int y2)
     RIA.step0 = 1;
     for (y = y1; y <= y2; y++)
     {
-        RIA.addr0 = XRAM_PICKER_DATA + PICKER_WIDTH * y + x1;
+        RIA.addr0 = XRAM_DATA_PICKER + PICKER_WIDTH * y + x1;
         for (x = x1; x <= x2; x++)
             RIA.rw0 = shade;
     }
@@ -382,8 +378,8 @@ static void move_picker(int x, int y)
 {
     picker_x = clamp(x, 0, CANVAS_WIDTH - PICKER_WIDTH);
     picker_y = clamp(y, 0, CANVAS_HEIGHT - PICKER_HEIGHT);
-    xram0_struct_set(XRAM_PICKER_CONFIG, mode3_config_t, x_pos_px, picker_x);
-    xram0_struct_set(XRAM_PICKER_CONFIG, mode3_config_t, y_pos_px, picker_y);
+    xram0_struct_set(XRAM_CONFIG_PICKER, mode3_config_t, x_pos_px, picker_x);
+    xram0_struct_set(XRAM_CONFIG_PICKER, mode3_config_t, y_pos_px, picker_y);
 }
 
 static int picker_pick(int x, int y)
@@ -470,10 +466,10 @@ int main(int argc, char *argv[])
 
     load_logo();
 
-    xreg_vga_canvas(CANVAS_320X240);
-    setup_bitmap(XRAM_PICTURE_CONFIG, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_PICTURE_DATA);
-    setup_bitmap(XRAM_PICKER_CONFIG, PICKER_WIDTH, PICKER_HEIGHT, XRAM_PICKER_DATA);
-    setup_bitmap(XRAM_POINTER_CONFIG, POINTER_SIZE, POINTER_SIZE, XRAM_POINTER_DATA);
+    xreg_vga_canvas(1); // 320x240
+    setup_bitmap(XRAM_CONFIG_PICTURE, CANVAS_WIDTH, CANVAS_HEIGHT, XRAM_DATA_PICTURE);
+    setup_bitmap(XRAM_CONFIG_PICKER, PICKER_WIDTH, PICKER_HEIGHT, XRAM_DATA_PICKER);
+    setup_bitmap(XRAM_CONFIG_POINTER, POINTER_SIZE, POINTER_SIZE, XRAM_DATA_POINTER);
 
     draw_picker();
     move_picker((CANVAS_WIDTH - PICKER_WIDTH) / 2, 0);
@@ -481,9 +477,9 @@ int main(int argc, char *argv[])
     set_color(RIGHT, 0);
     draw_pointer();
 
-    xreg_vga_mode3(MODE3_4BPP, XRAM_PICTURE_CONFIG, 0); // plane 0
-    xreg_vga_mode3(MODE3_8BPP, XRAM_PICKER_CONFIG, 1);  // plane 1
-    xreg_vga_mode3(MODE3_8BPP, XRAM_POINTER_CONFIG, 2); // plane 2
+    xreg_vga_mode3(2, XRAM_CONFIG_PICTURE, 0);  // 4 bits per pixel, plane 0
+    xreg_vga_mode3(3, XRAM_CONFIG_PICKER, 1);  // 8 bits per pixel, plane 1
+    xreg_vga_mode3(3, XRAM_CONFIG_POINTER, 2); // 8 bits per pixel, plane 2
 
     if (use_mouse)
         mouse_init();

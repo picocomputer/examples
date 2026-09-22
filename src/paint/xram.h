@@ -115,13 +115,14 @@ typedef struct
     uint8_t pointer[POINTER_SIZE * POINTER_SIZE];
 } xram_layout_t;
 
-#define XRAM_PICTURE_CONFIG offsetof(xram_layout_t, picture_config)
-#define XRAM_PICKER_CONFIG  offsetof(xram_layout_t, picker_config)
-#define XRAM_POINTER_CONFIG offsetof(xram_layout_t, pointer_config)
-#define XRAM_TAB_DATA       offsetof(xram_layout_t, tab)
-#define XRAM_MOU_DATA       offsetof(xram_layout_t, mou)
-#define XRAM_PICTURE_DATA   offsetof(xram_layout_t, picture)
-#define XRAM_PICKER_DATA    offsetof(xram_layout_t, picker)
-#define XRAM_POINTER_DATA   offsetof(xram_layout_t, pointer)
+#define XRAM_CONFIG_PICTURE offsetof(xram_layout_t, picture_config)
+#define XRAM_CONFIG_PICKER  offsetof(xram_layout_t, picker_config)
+#define XRAM_CONFIG_POINTER offsetof(xram_layout_t, pointer_config)
+
+#define XRAM_DATA_TAB       offsetof(xram_layout_t, tab)
+#define XRAM_DATA_MOU       offsetof(xram_layout_t, mou)
+#define XRAM_DATA_PICTURE   offsetof(xram_layout_t, picture)
+#define XRAM_DATA_PICKER    offsetof(xram_layout_t, picker)
+#define XRAM_DATA_POINTER   offsetof(xram_layout_t, pointer)
 
 #endif
