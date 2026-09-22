@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # A commit to main gets a group of its own. Sharing one group would let a
+  # third push cancel the second while it waits, and that commit would ship
+  # no release without anything failing. Pull requests still collapse.
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  examples:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # From source, the way the SDK tells everyone to install it. bin/cl65
+      # finds its own ../target, so there is nothing to install afterwards.
+      - name: Build cc65
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cc65/cc65 "$RUNNER_TEMP/cc65"
+          make -C "$RUNNER_TEMP/cc65" -j"$(nproc)"
+          echo "$RUNNER_TEMP/cc65/bin" >> "$GITHUB_PATH"
+
+      # rp6502_xram() runs a program on the emulator while CMake configures.
+      # These two variables skip the tool download, so the examples build
+      # against the tools this repository holds rather than the newest ones.
+      - name: Fetch the emulator
+        run: |
+          set -euo pipefail
+          cmake -DRP6502_TOOLS_RELOADED=TRUE -DRP6502_TOOLS_FETCHED=TRUE \
+                -P tools/rp6502.cmake
+          # A download that fails is a notice rather than an error, and the
+          # build would go on to report a header that is not at fault.
+          test -x tools/rp6502-emu
+
+      - name: Build every example
+        run: |
+          set -euo pipefail
+          cmake --preset cc65/Release
+          cmake --build --preset cc65/Release
+
+      - name: Collect the ROMs
+        id: pack
+        run: |
+          set -euo pipefail
+          sha=$(git rev-parse --short HEAD)
+          name="rp6502-${sha}-examples"
+          mkdir "$name"
+          cp src/README.txt "$name/"
+          # Only the target ROMs. CMakeFiles holds directories with the same
+          # suffix, and the program rp6502_xram() runs while CMake configures
+          # is a .rp6502 of its own.
+          find build/cc65/release/src -mindepth 2 -maxdepth 2 -type f \
+               -name '*.rp6502' -exec cp -t "$name" {} +
+          # One ROM per example, so a target that quietly stopped producing
+          # one fails the release rather than leaving a gap in it.
+          want=$(grep -c '^add_subdirectory(src/' CMakeLists.txt)
+          got=$(find "$name" -name '*.rp6502' | wc -l)
+          if [ "$got" -ne "$want" ]; then
+            echo "packed ${got} ROMs, expected ${want}" >&2
+            exit 1
+          fi
+          ls -l "$name"
+          cmake -E tar cf "${name}.zip" --format=zip "$name"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.pack.outputs.name }}
+          path: ${{ steps.pack.outputs.name }}.zip
+
+      - name: Publish the release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: build-${{ steps.pack.outputs.sha }}
+          # Without this the tag is created on whatever the default branch
+          # points at when the release is published, not on what was built.
+          target_commitish: ${{ github.sha }}
+          name: Examples ${{ steps.pack.outputs.sha }}
+          files: ${{ steps.pack.outputs.name }}.zip
+          fail_on_unmatched_files: true
+          body: |
+            Example ROMs for the Picocomputer 6502, built with cc65.
+
+            Unzip and run a `.rp6502` in the emulator, or load one on a
+            Picocomputer.
+
+            https://picocomputer.github.io
