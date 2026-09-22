@@ -621,7 +621,7 @@ function(rp6502_xram header regex)
             "#endif\n")
     endforeach()
     string(APPEND stub "    return 0;\n}\n")
-    file(WRITE "${dir}/rp6502_xram_stub.c" "${stub}")
+    file(WRITE "${dir}/xram_stub.c" "${stub}")
 
     # A program of assertions, compiled but never run, so the compiler
     # reports a bad layout against the line in the header. Every name gets a
@@ -656,7 +656,7 @@ function(rp6502_xram header regex)
         endif()
         string(APPEND check "#endif\n")
     endforeach()
-    file(WRITE "${dir}/rp6502_xram_check.c" "${check}")
+    file(WRITE "${dir}/xram_check.c" "${check}")
 
     # cc65's CMAKE_C_COMPILER is a wrapper around cl65 that puts diagnostics
     # in the form an IDE matches, so both programs are built through it.
@@ -669,7 +669,7 @@ function(rp6502_xram header regex)
     set(failed FALSE)
     execute_process(
         COMMAND "${CMAKE_C_COMPILER}" ${compiler_args} ${flags} -I "${header_dir}"
-                -o "${dir}/rp6502_xram_stub" "${dir}/rp6502_xram_stub.c"
+                -o "${dir}/xram_stub" "${dir}/xram_stub.c"
         WORKING_DIRECTORY "${dir}"
         RESULT_VARIABLE result
         OUTPUT_VARIABLE output
@@ -685,7 +685,7 @@ function(rp6502_xram header regex)
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" "${RP6502_TOOLS_DIR}/rp6502.py"
                     -a "${load_addr}" -r "${load_addr}"
-                    -o "${dir}/rp6502_xram_stub.rp6502" create "${dir}/rp6502_xram_stub"
+                    -o "${dir}/xram_stub.rp6502" create "${dir}/xram_stub"
             RESULT_VARIABLE result
             OUTPUT_VARIABLE output
             ERROR_VARIABLE output
@@ -699,7 +699,7 @@ function(rp6502_xram header regex)
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" "${RP6502_TOOLS_DIR}/rp6502.py"
                     -c "${RP6502_PROJECT_DIR}/.rp6502"
-                    execute "${dir}/rp6502_xram_stub.rp6502"
+                    execute "${dir}/xram_stub.rp6502"
             TIMEOUT 60
             RESULT_VARIABLE result
             OUTPUT_VARIABLE output
@@ -738,10 +738,10 @@ function(rp6502_xram header regex)
     set(unread)
     if (failed)
         message(STATUS "rp6502_xram(${header}) read no addresses; the build reports why.")
-        file(WRITE "${dir}/rp6502_xram_unread.txt"
+        file(WRITE "${dir}/xram_unread.txt"
             "rp6502_xram(${header}) read no addresses, so every name is zero.\n${output}\n")
         set(unread
-            COMMAND "${CMAKE_COMMAND}" -E cat "${dir}/rp6502_xram_unread.txt"
+            COMMAND "${CMAKE_COMMAND}" -E cat "${dir}/xram_unread.txt"
             COMMAND "${CMAKE_COMMAND}" -E false)
     endif()
 
@@ -756,16 +756,16 @@ function(rp6502_xram header regex)
     string(SUBSTRING "${hash}" 0 8 hash)
     set(target "rp6502_xram_${id}_${hash}")
     add_custom_command(
-        OUTPUT "${dir}/rp6502_xram_check.stamp"
-        DEPENDS "${header_file}" "${dir}/rp6502_xram_check.c"
+        OUTPUT "${dir}/xram_check.stamp"
+        DEPENDS "${header_file}" "${dir}/xram_check.c"
         COMMAND "${CMAKE_C_COMPILER}" ${compiler_args} ${flags} -I "${header_dir}"
-                -c -o "${dir}/rp6502_xram_check.o" "${dir}/rp6502_xram_check.c"
+                -c -o "${dir}/xram_check.o" "${dir}/xram_check.c"
         ${unread}
-        COMMAND "${CMAKE_COMMAND}" -E touch "${dir}/rp6502_xram_check.stamp"
+        COMMAND "${CMAKE_COMMAND}" -E touch "${dir}/xram_check.stamp"
         COMMENT "Checking ${header_name}"
         VERBATIM
     )
-    add_custom_target(${target} ALL DEPENDS "${dir}/rp6502_xram_check.stamp")
+    add_custom_target(${target} ALL DEPENDS "${dir}/xram_check.stamp")
     set_property(DIRECTORY APPEND PROPERTY RP6502_XRAM_CHECKS "${target}")
 endfunction()
 
