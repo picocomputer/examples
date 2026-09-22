@@ -439,11 +439,10 @@ function(rp6502_executable name)
     )
     add_custom_target(${name}_rp6502 ALL DEPENDS "${rom_file}")
     # A layout that fails its checks must not produce a ROM.
-    get_directory_property(xram_checks RP6502_XRAM_CHECKS)
+    get_target_property(xram_checks ${name} RP6502_XRAM_CHECKS)
     if (xram_checks)
         add_dependencies(${name}_rp6502 ${xram_checks})
     endif()
-    set_property(DIRECTORY APPEND PROPERTY RP6502_ROM_TARGETS "${name}_rp6502")
     # Mark that rp6502_executable has been called for this target
     set_property(TARGET ${name} PROPERTY RP6502_EXECUTABLE_CALLED TRUE)
 endfunction()
@@ -461,8 +460,9 @@ endfunction()
 # with "ROM:filename" from a micro filesystem in the ROM.
 # Writing the address as RAM(<x>) or XRAM(<x>) checks that it is in range,
 # and XRAM() sets the bit that tells XRAM from RAM, so an offset from
-# rp6502_xram() loads into XRAM. Inside the parentheses, <x> is a number
-# or the name of a CMake variable.
+# rp6502_xram() loads into XRAM. Inside the parentheses, <x> is a number,
+# a name rp6502_xram() read for this target, or the name of a CMake
+# variable.
 #
 function(rp6502_asset name)
     get_target_property(executable_called ${name} RP6502_EXECUTABLE_CALLED)
@@ -490,7 +490,11 @@ function(rp6502_asset name)
         endif()
         list(GET args 2 value)
         set(token "${value}")
-        if (DEFINED ${value})
+        # A name read as 0x0 is false, so only NOTFOUND means no name.
+        get_target_property(read ${name} RP6502_XRAM_${value})
+        if (NOT read MATCHES "-NOTFOUND$")
+            set(value "${read}")
+        elseif (DEFINED ${value})
             set(value "${${value}}")
         endif()
         set(written "${value}")
@@ -505,7 +509,8 @@ function(rp6502_asset name)
         string(REGEX REPLACE "^\\$" "0x" value "${value}")
         if (NOT value MATCHES "^[-+]?(0[xX][0-9a-fA-F]+|[0-9]+)$")
             message(FATAL_ERROR
-                "rp6502_asset(${name} ${form}(...)): ${written} is not a number.")
+                "rp6502_asset(${name} ${form}(...)): ${written} is not a number,"
+                " or a name from rp6502_xram(${name} ...).")
         endif()
         if (form STREQUAL "RAM")
             set(limit 65535)
@@ -574,11 +579,12 @@ endfunction()
 # RP6502 XRAM Layout
 # ^^^^^^^^^^^^^^^^^^
 #
-#  rp6502_xram(<header> <regex> [<unaligned_regex>])
+#  rp6502_xram(<target> <header> <regex> [<unaligned_regex>])
 #
 # Reads the ``#define`` lines of ``<header>`` whose name matches
-# ``<regex>`` and sets each name as a variable holding the value the
-# header computes. The names then work as rp6502_asset() addresses.
+# ``<regex>`` and records each name on ``<target>`` with the value the
+# header computes. The names then work inside RAM() and XRAM() in that
+# target's rp6502_asset() calls, and its ROM waits for the header's check.
 # Names matching ``<unaligned_regex>`` are exempt from 16-bit alignment.
 # A commented out define, a define with no value, and a function-like
 # macro are all skipped.
@@ -588,18 +594,28 @@ endfunction()
 # project behind, and every problem is reported by the compiler against
 # the line in the header.
 #
-function(rp6502_xram header regex)
-    set(unaligned "${ARGV2}")
+function(rp6502_xram target)
+    # The arguments are counted here, so the old form without a target
+    # gets the usage rather than CMake's complaint about the call.
+    if (ARGC LESS 3 OR ARGC GREATER 4 OR NOT TARGET ${target})
+        message(FATAL_ERROR
+            "rp6502_xram(<target> <header> <regex> [<unaligned_regex>])")
+    endif()
+    set(header "${ARGV1}")
+    set(regex "${ARGV2}")
+    set(unaligned)
+    if (ARGC EQUAL 4)
+        set(unaligned "${ARGV3}")
+    endif()
+    get_target_property(executable_called ${target} RP6502_EXECUTABLE_CALLED)
+    if (executable_called)
+        message(FATAL_ERROR
+            "rp6502_xram(${target} ...) must be registered BEFORE calling rp6502_executable()."
+        )
+    endif()
     get_filename_component(header_file "${header}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
     get_filename_component(header_name "${header_file}" NAME)
     get_filename_component(header_dir "${header_file}" DIRECTORY)
-    get_filename_component(stem "${header_file}" NAME_WE)
-    get_directory_property(rom_targets RP6502_ROM_TARGETS)
-    if (rom_targets)
-        message(FATAL_ERROR
-            "rp6502_xram(${header}) must be registered BEFORE calling rp6502_executable()."
-        )
-    endif()
     # Editing the layout has to configure again, since these values are read
     # at configure time.
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${header_file}")
@@ -683,7 +699,14 @@ function(rp6502_xram header regex)
         endif()
     endforeach()
 
-    set(dir "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${stem}.xram")
+    # Two targets can share a header, and a target can read two headers
+    # with the same file name, so the files are kept apart by both.
+    file(RELATIVE_PATH id "${CMAKE_SOURCE_DIR}" "${header_file}")
+    if (id MATCHES "^\\.\\.")
+        set(id "${header_file}")
+    endif()
+    string(MAKE_C_IDENTIFIER "${id}" id)
+    set(dir "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${target}.xram/${id}")
     string(REPLACE "\\" "/" header_c "${header_file}")
 
     # A program that prints the values. Everything is unsigned long, so
@@ -798,7 +821,7 @@ function(rp6502_xram header regex)
     string(REPLACE "\r" "" output "${output}")
     foreach(name IN LISTS names)
         if (failed)
-            set(${name} 0xFFFFFFFF PARENT_SCOPE)
+            set_property(TARGET ${target} PROPERTY RP6502_XRAM_${name} 0xFFFFFFFF)
         elseif (output MATCHES "(^|\n)${name} (0x[0-9A-Fa-f]+)")
             # Out of range is unread while the build reports it against the
             # header.
@@ -807,36 +830,25 @@ function(rp6502_xram header regex)
             if (numeric GREATER 65535)
                 set(found 0xFFFFFFFF)
             endif()
-            set(${name} "${found}" PARENT_SCOPE)
-        else()
-            # The preprocessor skipped it, so it is not a name at all.
-            unset(${name} PARENT_SCOPE)
+            set_property(TARGET ${target} PROPERTY RP6502_XRAM_${name} "${found}")
         endif()
+        # A name the preprocessor skipped is not a name at all.
     endforeach()
     # A header that will not compile is reported by the compile below, but a
     # tool that did not run leaves a header that compiles and nothing to
     # report. So the reason is carried to the build and fails it.
     set(unread)
     if (failed)
-        message(STATUS "rp6502_xram(${header}) read no addresses; the build reports why.")
+        message(STATUS "rp6502_xram(${target} ${header}) read no addresses; the build reports why.")
         file(WRITE "${dir}/xram_unread.txt"
-            "rp6502_xram(${header}) read no addresses. Configure again once"
+            "rp6502_xram(${target} ${header}) read no addresses. Configure again once"
             " this is fixed.\n${output}\n")
         set(unread
             COMMAND "${CMAKE_COMMAND}" -E cat "${dir}/xram_unread.txt"
             COMMAND "${CMAKE_COMMAND}" -E false)
     endif()
 
-    # Target names are global, and one header can be shared by two
-    # directories, so the name carries where it was called from.
-    file(RELATIVE_PATH id "${CMAKE_SOURCE_DIR}" "${header_file}")
-    if (id MATCHES "^\\.\\.")
-        set(id "${header_file}")
-    endif()
-    string(MAKE_C_IDENTIFIER "${id}" id)
-    string(MD5 hash "${CMAKE_CURRENT_BINARY_DIR}|${header_file}")
-    string(SUBSTRING "${hash}" 0 8 hash)
-    set(target "rp6502_xram_${id}_${hash}")
+    set(xram_check "${target}_xram_${id}")
     add_custom_command(
         OUTPUT "${dir}/xram_check.stamp"
         DEPENDS "${header_file}" "${dir}/xram_check.c"
@@ -847,8 +859,8 @@ function(rp6502_xram header regex)
         COMMENT "Checking ${header_name}"
         VERBATIM
     )
-    add_custom_target(${target} ALL DEPENDS "${dir}/xram_check.stamp")
-    set_property(DIRECTORY APPEND PROPERTY RP6502_XRAM_CHECKS "${target}")
+    add_custom_target(${xram_check} ALL DEPENDS "${dir}/xram_check.stamp")
+    set_property(TARGET ${target} APPEND PROPERTY RP6502_XRAM_CHECKS "${xram_check}")
 endfunction()
 
 # Declare files as byproducts of building <target>.
