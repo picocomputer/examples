@@ -1,5 +1,5 @@
 # The RP6502 project tools: rp6502_executable(), rp6502_asset(),
-# rp6502_xram(), rp6502_byproducts(), and the fetch that keeps this
+# rp6502_map(), rp6502_byproducts(), and the fetch that keeps this
 # directory current.
 #
 # Update with:  cmake -P tools/rp6502.cmake
@@ -439,9 +439,9 @@ function(rp6502_executable name)
     )
     add_custom_target(${name}_rp6502 ALL DEPENDS "${rom_file}")
     # A layout that fails its checks must not produce a ROM.
-    get_target_property(xram_checks ${name} RP6502_XRAM_CHECKS)
-    if (xram_checks)
-        add_dependencies(${name}_rp6502 ${xram_checks})
+    get_target_property(map_checks ${name} RP6502_MAP_CHECKS)
+    if (map_checks)
+        add_dependencies(${name}_rp6502 ${map_checks})
     endif()
     # Mark that rp6502_executable has been called for this target
     set_property(TARGET ${name} PROPERTY RP6502_EXECUTABLE_CALLED TRUE)
@@ -460,8 +460,8 @@ endfunction()
 # with "ROM:filename" from a micro filesystem in the ROM.
 # Writing the address as RAM(<x>) or XRAM(<x>) checks that it is in range,
 # and XRAM() sets the bit that tells XRAM from RAM, so an offset from
-# rp6502_xram() loads into XRAM. Inside the parentheses, <x> is a number,
-# a name rp6502_xram() read for this target, or the name of a CMake
+# rp6502_map() loads into XRAM. Inside the parentheses, <x> is a number,
+# a name rp6502_map() read for this target, or the name of a CMake
 # variable.
 #
 function(rp6502_asset name)
@@ -491,14 +491,14 @@ function(rp6502_asset name)
         list(GET args 2 value)
         set(token "${value}")
         # A name read as 0x0 is false, so only NOTFOUND means no name.
-        get_target_property(read ${name} RP6502_XRAM_${value})
+        get_target_property(read ${name} RP6502_MAP_${value})
         if (NOT read MATCHES "-NOTFOUND$")
             set(value "${read}")
         elseif (DEFINED ${value})
             set(value "${${value}}")
         endif()
         set(written "${value}")
-        # rp6502_xram() gives an address it could not read this value.
+        # rp6502_map() gives an address it could not read this value.
         if (value STREQUAL "0xFFFFFFFF")
             set(unread TRUE)
             # Stands in until the build refuses it.
@@ -510,7 +510,7 @@ function(rp6502_asset name)
         if (NOT value MATCHES "^[-+]?(0[xX][0-9a-fA-F]+|[0-9]+)$")
             message(FATAL_ERROR
                 "rp6502_asset(${name} ${form}(...)): ${written} is not a number,"
-                " or a name from rp6502_xram(${name} ...).")
+                " or a name from rp6502_map(${name} ...).")
         endif()
         if (form STREQUAL "RAM")
             set(limit 65535)
@@ -559,7 +559,7 @@ function(rp6502_asset name)
     if (unread)
         set(create
             COMMAND ${CMAKE_COMMAND} -E echo
-                "rp6502_asset(${name} ${form}(${token})): rp6502_xram() did not read this address, or it does not fit in 16 bits."
+                "rp6502_asset(${name} ${form}(${token})): rp6502_map() did not read this address, or it does not fit in 16 bits."
             COMMAND ${CMAKE_COMMAND} -E false)
     endif()
     add_custom_command(
@@ -576,30 +576,31 @@ endfunction()
 
 # Give CMake the addresses a header defines.
 #
-# RP6502 XRAM Layout
-# ^^^^^^^^^^^^^^^^^^
+# RP6502 Memory Map
+# ^^^^^^^^^^^^^^^^^
 #
-#  rp6502_xram(<target> <header> <regex> [<unaligned_regex>])
+#  rp6502_map(<target> <header> <regex> [<unaligned_regex>])
 #
 # Reads the ``#define`` lines of ``<header>`` whose name matches
 # ``<regex>`` and records each name on ``<target>`` with the value the
 # header computes. The names then work inside RAM() and XRAM() in that
 # target's rp6502_asset() calls, and its ROM waits for the header's check.
 # Names matching ``<unaligned_regex>`` are exempt from 16-bit alignment.
-# A commented out define, a define with no value, and a function-like
-# macro are all skipped.
+# A target can read several headers, one call each, and a name defined
+# by two of them stops the configure. A commented out define, a define
+# with no value, and a function-like macro are all skipped.
 #
 # The layout is checked while the project builds rather than while it
 # configures, so a header that will not compile still leaves a configured
 # project behind, and every problem is reported by the compiler against
 # the line in the header.
 #
-function(rp6502_xram target)
+function(rp6502_map target)
     # The arguments are counted here, so the old form without a target
     # gets the usage rather than CMake's complaint about the call.
     if (ARGC LESS 3 OR ARGC GREATER 4 OR NOT TARGET ${target})
         message(FATAL_ERROR
-            "rp6502_xram(<target> <header> <regex> [<unaligned_regex>])")
+            "rp6502_map(<target> <header> <regex> [<unaligned_regex>])")
     endif()
     set(header "${ARGV1}")
     set(regex "${ARGV2}")
@@ -610,7 +611,7 @@ function(rp6502_xram target)
     get_target_property(executable_called ${target} RP6502_EXECUTABLE_CALLED)
     if (executable_called)
         message(FATAL_ERROR
-            "rp6502_xram(${target} ...) must be registered BEFORE calling rp6502_executable()."
+            "rp6502_map(${target} ...) must be registered BEFORE calling rp6502_executable()."
         )
     endif()
     get_filename_component(header_file "${header}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -706,7 +707,7 @@ function(rp6502_xram target)
         set(id "${header_file}")
     endif()
     string(MAKE_C_IDENTIFIER "${id}" id)
-    set(dir "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${target}.xram/${id}")
+    set(dir "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${target}.map/${id}")
     string(REPLACE "\\" "/" header_c "${header_file}")
 
     # A program that prints the values. Everything is unsigned long, so
@@ -722,7 +723,7 @@ function(rp6502_xram target)
             "#endif\n")
     endforeach()
     string(APPEND stub "    return 0;\n}\n")
-    file(WRITE "${dir}/xram_stub.c" "${stub}")
+    file(WRITE "${dir}/map_stub.c" "${stub}")
 
     # A program of assertions, compiled but never run, so the compiler
     # reports a bad layout against the line in the header. Every name gets a
@@ -742,7 +743,7 @@ function(rp6502_xram target)
         string(MAKE_C_IDENTIFIER "${type}" probe)
         string(APPEND check
             "\n#if ${guard}\n#line ${line} \"${header_c}\"\n"
-            "extern ${type} _xram_fits_${probe}[1];\n#endif\n")
+            "extern ${type} _map_fits_${probe}[1];\n#endif\n")
     endforeach()
     # An offset and arithmetic between offsets are size_t, so 16 bits, and
     # can never trip this. A number that does not fit is a long and does,
@@ -756,11 +757,11 @@ function(rp6502_xram target)
             string(APPEND check
                 "#line ${line} \"${header_c}\"\n"
                 "_Static_assert(!((${name}) & 1), \"${name} is unaligned."
-                " To allow, use the [<unaligned_regex>] in rp6502_xram.\");\n")
+                " To allow, use the [<unaligned_regex>] in rp6502_map.\");\n")
         endif()
         string(APPEND check "#endif\n")
     endforeach()
-    file(WRITE "${dir}/xram_check.c" "${check}")
+    file(WRITE "${dir}/map_check.c" "${check}")
 
     # cc65's CMAKE_C_COMPILER is a wrapper around cl65 that puts diagnostics
     # in the form an IDE matches, so both programs are built through it.
@@ -773,7 +774,7 @@ function(rp6502_xram target)
     set(failed FALSE)
     execute_process(
         COMMAND "${CMAKE_C_COMPILER}" ${compiler_args} ${flags} -I "${header_dir}"
-                -o "${dir}/xram_stub" "${dir}/xram_stub.c"
+                -o "${dir}/map_stub" "${dir}/map_stub.c"
         WORKING_DIRECTORY "${dir}"
         RESULT_VARIABLE result
         OUTPUT_VARIABLE output
@@ -789,7 +790,7 @@ function(rp6502_xram target)
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" "${RP6502_TOOLS_DIR}/rp6502.py"
                     -a "${load_addr}" -r "${load_addr}"
-                    -o "${dir}/xram_stub.rp6502" create "${dir}/xram_stub"
+                    -o "${dir}/map_stub.rp6502" create "${dir}/map_stub"
             RESULT_VARIABLE result
             OUTPUT_VARIABLE output
             ERROR_VARIABLE output
@@ -803,7 +804,7 @@ function(rp6502_xram target)
         execute_process(
             COMMAND "${Python3_EXECUTABLE}" "${RP6502_TOOLS_DIR}/rp6502.py"
                     -c "${RP6502_PROJECT_DIR}/.rp6502"
-                    execute "${dir}/xram_stub.rp6502"
+                    execute "${dir}/map_stub.rp6502"
             TIMEOUT 60
             RESULT_VARIABLE result
             OUTPUT_VARIABLE output
@@ -820,8 +821,9 @@ function(rp6502_xram target)
     # XRAM() refuse and rp6502.py cannot place, so no ROM is built from it.
     string(REPLACE "\r" "" output "${output}")
     foreach(name IN LISTS names)
+        set(found "")
         if (failed)
-            set_property(TARGET ${target} PROPERTY RP6502_XRAM_${name} 0xFFFFFFFF)
+            set(found 0xFFFFFFFF)
         elseif (output MATCHES "(^|\n)${name} (0x[0-9A-Fa-f]+)")
             # Out of range is unread while the build reports it against the
             # header.
@@ -830,37 +832,50 @@ function(rp6502_xram target)
             if (numeric GREATER 65535)
                 set(found 0xFFFFFFFF)
             endif()
-            set_property(TARGET ${target} PROPERTY RP6502_XRAM_${name} "${found}")
         endif()
         # A name the preprocessor skipped is not a name at all.
+        if (found STREQUAL "")
+            continue()
+        endif()
+        # One header may define a name twice under #if, but two maps of one
+        # target never share a name.
+        get_target_property(from ${target} RP6502_MAP_FROM_${name})
+        if (NOT from MATCHES "-NOTFOUND$" AND NOT from STREQUAL header_file)
+            file(RELATIVE_PATH from "${CMAKE_CURRENT_SOURCE_DIR}" "${from}")
+            message(FATAL_ERROR
+                "rp6502_map(${target} ${header}): ${name} is already defined by "
+                "rp6502_map(${target} ${from}).")
+        endif()
+        set_property(TARGET ${target} PROPERTY RP6502_MAP_${name} "${found}")
+        set_property(TARGET ${target} PROPERTY RP6502_MAP_FROM_${name} "${header_file}")
     endforeach()
     # A header that will not compile is reported by the compile below, but a
     # tool that did not run leaves a header that compiles and nothing to
     # report. So the reason is carried to the build and fails it.
     set(unread)
     if (failed)
-        message(STATUS "rp6502_xram(${target} ${header}) read no addresses; the build reports why.")
-        file(WRITE "${dir}/xram_unread.txt"
-            "rp6502_xram(${target} ${header}) read no addresses. Configure again once"
+        message(STATUS "rp6502_map(${target} ${header}) read no addresses; the build reports why.")
+        file(WRITE "${dir}/map_unread.txt"
+            "rp6502_map(${target} ${header}) read no addresses. Configure again once"
             " this is fixed.\n${output}\n")
         set(unread
-            COMMAND "${CMAKE_COMMAND}" -E cat "${dir}/xram_unread.txt"
+            COMMAND "${CMAKE_COMMAND}" -E cat "${dir}/map_unread.txt"
             COMMAND "${CMAKE_COMMAND}" -E false)
     endif()
 
-    set(xram_check "${target}_xram_${id}")
+    set(map_check "${target}_map_${id}")
     add_custom_command(
-        OUTPUT "${dir}/xram_check.stamp"
-        DEPENDS "${header_file}" "${dir}/xram_check.c"
+        OUTPUT "${dir}/map_check.stamp"
+        DEPENDS "${header_file}" "${dir}/map_check.c"
         COMMAND "${CMAKE_C_COMPILER}" ${compiler_args} ${flags} -I "${header_dir}"
-                -c -o "${dir}/xram_check.o" "${dir}/xram_check.c"
+                -c -o "${dir}/map_check.o" "${dir}/map_check.c"
         ${unread}
-        COMMAND "${CMAKE_COMMAND}" -E touch "${dir}/xram_check.stamp"
+        COMMAND "${CMAKE_COMMAND}" -E touch "${dir}/map_check.stamp"
         COMMENT "Checking ${header_name}"
         VERBATIM
     )
-    add_custom_target(${xram_check} ALL DEPENDS "${dir}/xram_check.stamp")
-    set_property(TARGET ${target} APPEND PROPERTY RP6502_XRAM_CHECKS "${xram_check}")
+    add_custom_target(${map_check} ALL DEPENDS "${dir}/map_check.stamp")
+    set_property(TARGET ${target} APPEND PROPERTY RP6502_MAP_CHECKS "${map_check}")
 endfunction()
 
 # Declare files as byproducts of building <target>.

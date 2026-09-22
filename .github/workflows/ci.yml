@@ -35,7 +35,7 @@ jobs:
           echo "$RUNNER_TEMP/cc65/bin" >> "$GITHUB_PATH"
 
       # The configure fetches the emulator, which git ignores, because
-      # rp6502_xram() runs a program on it.
+      # rp6502_map() runs a program on it.
       - name: Build every example
         run: |
           set -euo pipefail
@@ -58,7 +58,7 @@ jobs:
           mkdir "$name"
           cp src/README.txt "$name/"
           # Only the target ROMs. CMakeFiles holds directories with the same
-          # suffix, and the program rp6502_xram() runs while CMake configures
+          # suffix, and the program rp6502_map() runs while CMake configures
           # is a .rp6502 of its own.
           find build/cc65/release/src -mindepth 2 -maxdepth 2 -type f \
                -name '*.rp6502' -exec cp -t "$name" {} +
