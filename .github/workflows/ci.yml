@@ -87,12 +87,13 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
-      # Only where nothing is released. GitHub appends .zip when an artifact
-      # is downloaded, so uploading the directory lands it as <name>.zip.
+      # Only where nothing is released. The name carries .zip because that is
+      # the filename the download is served with, and the directory is what
+      # goes in it, so the one archive holds the ROMs and nothing else.
       - uses: actions/upload-artifact@v7
         if: github.ref != 'refs/heads/main'
         with:
-          name: ${{ steps.pack.outputs.name }}
+          name: ${{ steps.pack.outputs.name }}.zip
           path: ${{ steps.pack.outputs.name }}/
 
       - name: Publish the release
