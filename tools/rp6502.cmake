@@ -635,11 +635,13 @@ function(rp6502_xram header regex)
         "   being refused. An array of one is refused outright, because the\n"
         "   size of an array is checked against the largest object the target\n"
         "   allows and not against the truncated sizeof. */\n")
+    # The leading underscore is the namespace C keeps for file scope, which
+    # is the one place a name here cannot collide with the header's own.
     foreach(type line guard IN ZIP_LISTS probes probe_lines probe_guards)
         string(MAKE_C_IDENTIFIER "${type}" probe)
         string(APPEND check
             "\n#if ${guard}\n#line ${line} \"${header_c}\"\n"
-            "extern ${type} rp6502_xram_${probe}_fits[1];\n#endif\n")
+            "extern ${type} _xram_fits_${probe}[1];\n#endif\n")
     endforeach()
     # An offset and arithmetic between offsets are size_t, so 16 bits, and
     # can never trip this. A number that does not fit is a long and does.
