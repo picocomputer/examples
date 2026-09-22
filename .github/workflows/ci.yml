@@ -57,7 +57,14 @@ jobs:
         run: |
           set -euo pipefail
           sha=$(git rev-parse --short HEAD)
-          name="rp6502-${sha}-examples"
+          # A release is named for the commit it ships. A pull request ships
+          # nothing, and its HEAD is a merge commit nobody can look up, so it
+          # is named for the run instead.
+          if [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            name="rp6502-${sha}-examples"
+          else
+            name="rp6502-${GITHUB_RUN_ID}-examples"
+          fi
           mkdir "$name"
           cp src/README.txt "$name/"
           # Only the target ROMs. CMakeFiles holds directories with the same
@@ -79,6 +86,14 @@ jobs:
           ( cd "$name" && cmake -E tar cf "../${name}.zip" --format=zip . )
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
+
+      # Only where nothing is released. GitHub appends .zip when an artifact
+      # is downloaded, so uploading the directory lands it as <name>.zip.
+      - uses: actions/upload-artifact@v7
+        if: github.ref != 'refs/heads/main'
+        with:
+          name: ${{ steps.pack.outputs.name }}
+          path: ${{ steps.pack.outputs.name }}/
 
       - name: Publish the release
         if: github.ref == 'refs/heads/main'
