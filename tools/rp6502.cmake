@@ -71,29 +71,11 @@ function(rp6502_fetch_sums out_var)
     set(${out_var} "${files}" PARENT_SCOPE)
 endfunction()
 
-# One release archive, reduced to the executable it carries.
-function(rp6502_fetch_emu suffix member exe)
-    if(RP6502_EMU_RELEASE STREQUAL "latest")
-        set(base "https://github.com/${RP6502_TOOLS_REPO}/releases/latest/download")
-    else()
-        set(base "https://github.com/${RP6502_TOOLS_REPO}/releases/download/${RP6502_EMU_RELEASE}")
-    endif()
-    set(tmp "${RP6502_TOOLS_DIR}/${exe}.tmp")
-    file(REMOVE_RECURSE "${tmp}")
-    file(MAKE_DIRECTORY "${tmp}")
-    file(DOWNLOAD "${base}/SHA256SUMS" "${tmp}/SHA256SUMS"
-        STATUS status
-        TLS_VERIFY ON
-        INACTIVITY_TIMEOUT 30
-    )
-    list(GET status 0 code)
-    list(GET status 1 text)
-    if(NOT code EQUAL 0)
-        file(REMOVE_RECURSE "${tmp}")
-        message(NOTICE "No emulator: cannot fetch ${base}/SHA256SUMS\n${text}")
-        return()
-    endif()
-    rp6502_read_sums("${tmp}/SHA256SUMS" assets)
+# One release archive, reduced to the executable it carries. assets is
+# the release's name=hash list. Sets result_var to ok, unsupported when
+# the release has no such asset, or failed.
+function(rp6502_fetch_emu base assets suffix member exe result_var)
+    set(${result_var} failed PARENT_SCOPE)
     set(name)
     foreach(asset IN LISTS assets)
         string(REGEX MATCH "^(.+)=([0-9a-fA-F]+)$" ignored "${asset}")
@@ -106,10 +88,13 @@ function(rp6502_fetch_emu suffix member exe)
         endif()
     endforeach()
     if(NOT name)
-        file(REMOVE_RECURSE "${tmp}")
         message(NOTICE "No emulator: release ${RP6502_EMU_RELEASE} has no ${suffix}")
+        set(${result_var} unsupported PARENT_SCOPE)
         return()
     endif()
+    set(tmp "${RP6502_TOOLS_DIR}/${exe}.tmp")
+    file(REMOVE_RECURSE "${tmp}")
+    file(MAKE_DIRECTORY "${tmp}")
     message(STATUS "Fetching tools/${exe}")
     file(DOWNLOAD "${base}/${name}" "${tmp}/${name}"
         STATUS status
@@ -153,30 +138,95 @@ function(rp6502_fetch_emu suffix member exe)
             GROUP_READ GROUP_EXECUTE
             WORLD_READ WORLD_EXECUTE)
     endif()
+    set(${result_var} ok PARENT_SCOPE)
 endfunction()
 
+# Given MISSING, fetches only what tools/ lacks and skips the builds
+# rp6502-emu.unsupported lists, so a host the release has no build for
+# doesn't ask again at every configure. An update retries them all.
 function(rp6502_fetch_emulator)
-    cmake_host_system_information(RESULT host QUERY OS_NAME)
-    if(host STREQUAL "Windows")
-        rp6502_fetch_emu("windows.zip" "rp6502-emu.exe" "rp6502-emu.exe")
+    # Each build is suffix|member|exe. OS_NAME is "macOS" on a Mac, not
+    # Darwin, so the Windows and Apple hosts are told apart this way.
+    set(builds)
+    if(CMAKE_HOST_WIN32)
+        list(APPEND builds "windows.zip|rp6502-emu.exe|rp6502-emu.exe")
+    elseif(CMAKE_HOST_APPLE)
+        list(APPEND builds "macos.zip|rp6502-emu.app/Contents/MacOS/rp6502-emu|rp6502-emu")
+    else()
+        cmake_host_system_information(RESULT host QUERY OS_NAME)
+        cmake_host_system_information(RESULT release QUERY OS_RELEASE)
+        cmake_host_system_information(RESULT machine QUERY OS_PLATFORM)
+        if(host STREQUAL "Linux")
+            # WSL runs the Windows build through interop.
+            if(release MATCHES "[Mm]icrosoft")
+                list(APPEND builds "windows.zip|rp6502-emu.exe|rp6502-emu.exe")
+            endif()
+            list(APPEND builds "linux-${machine}.tar.gz|rp6502-emu|rp6502-emu")
+        endif()
+    endif()
+    set(sentinel "${RP6502_TOOLS_DIR}/rp6502-emu.unsupported")
+    set(unsupported)
+    if(EXISTS "${sentinel}")
+        file(STRINGS "${sentinel}" unsupported)
+    endif()
+    set(before "${unsupported}")
+    set(assets)
+    foreach(build IN LISTS builds)
+        string(REPLACE "|" ";" fields "${build}")
+        list(GET fields 0 suffix)
+        list(GET fields 1 member)
+        list(GET fields 2 exe)
+        if("MISSING" IN_LIST ARGN)
+            if(EXISTS "${RP6502_TOOLS_DIR}/${exe}")
+                continue()
+            endif()
+            if(suffix IN_LIST unsupported)
+                message(STATUS "No emulator: tools/rp6502-emu.unsupported lists ${suffix}; "
+                    "the \"RP6502: update tools\" task tries again.")
+                continue()
+            endif()
+        endif()
+        # One list serves every build, and it is fetched only when a build
+        # is wanted. The timeout bounds a network that drops packets.
+        if(NOT assets)
+            if(RP6502_EMU_RELEASE STREQUAL "latest")
+                set(base "https://github.com/${RP6502_TOOLS_REPO}/releases/latest/download")
+            else()
+                set(base "https://github.com/${RP6502_TOOLS_REPO}/releases/download/${RP6502_EMU_RELEASE}")
+            endif()
+            message(STATUS "Fetching the emulator list")
+            set(sums "${RP6502_TOOLS_DIR}/rp6502-emu.SHA256SUMS.tmp")
+            file(DOWNLOAD "${base}/SHA256SUMS" "${sums}"
+                STATUS status
+                TLS_VERIFY ON
+                TIMEOUT 30
+            )
+            list(GET status 0 code)
+            list(GET status 1 text)
+            if(code EQUAL 0)
+                rp6502_read_sums("${sums}" assets)
+            endif()
+            file(REMOVE "${sums}")
+            if(NOT assets)
+                message(NOTICE "No emulator: cannot fetch ${base}/SHA256SUMS\n${text}")
+                break()
+            endif()
+        endif()
+        rp6502_fetch_emu("${base}" "${assets}" "${suffix}" "${member}" "${exe}" result)
+        if(result STREQUAL "unsupported" AND NOT suffix IN_LIST unsupported)
+            list(APPEND unsupported "${suffix}")
+        elseif(result STREQUAL "ok")
+            list(REMOVE_ITEM unsupported "${suffix}")
+        endif()
+    endforeach()
+    if(unsupported STREQUAL before)
         return()
     endif()
-    if(host STREQUAL "Darwin")
-        rp6502_fetch_emu("macos.zip"
-            "rp6502-emu.app/Contents/MacOS/rp6502-emu" "rp6502-emu")
-        return()
-    endif()
-    if(NOT host STREQUAL "Linux")
-        return()
-    endif()
-    cmake_host_system_information(RESULT release QUERY OS_RELEASE)
-    cmake_host_system_information(RESULT machine QUERY OS_PLATFORM)
-    # WSL runs the Windows build through interop.
-    if(release MATCHES "[Mm]icrosoft")
-        rp6502_fetch_emu("windows.zip" "rp6502-emu.exe" "rp6502-emu.exe")
-    endif()
-    if(machine STREQUAL "x86_64" OR machine STREQUAL "aarch64")
-        rp6502_fetch_emu("linux-${machine}.tar.gz" "rp6502-emu" "rp6502-emu")
+    if(unsupported)
+        list(JOIN unsupported "\n" text)
+        file(WRITE "${sentinel}" "${text}\n")
+    else()
+        file(REMOVE "${sentinel}")
     endif()
 endfunction()
 
@@ -249,6 +299,12 @@ endif()
 
 if(CMAKE_SCRIPT_MODE_FILE)
     return()
+endif()
+
+# A clone has the tools but not the emulator, which git ignores. The
+# bootstrap's first configure has just fetched everything.
+if(NOT RP6502_TOOLS_FETCHED)
+    rp6502_fetch_emulator(MISSING)
 endif()
 
 if(DEFINED CC65_TARGET_SYSTEM)
@@ -421,6 +477,7 @@ function(rp6502_asset name)
     set(args ${ARGN})
     list(LENGTH args argc)
     list(GET args 0 addr)
+    set(unread FALSE)
     if (addr STREQUAL "RAM" OR addr STREQUAL "XRAM")
         set(form "${addr}")
         if (NOT argc EQUAL 5)
@@ -432,10 +489,17 @@ function(rp6502_asset name)
             message(FATAL_ERROR "rp6502_asset(${name} ${form}(<address>) <in_file>)")
         endif()
         list(GET args 2 value)
+        set(token "${value}")
         if (DEFINED ${value})
             set(value "${${value}}")
         endif()
         set(written "${value}")
+        # rp6502_xram() gives an address it could not read this value.
+        if (value STREQUAL "0xFFFFFFFF")
+            set(unread TRUE)
+            # Stands in until the build refuses it.
+            set(value 0)
+        endif()
         # A leading $ is how a 6502 program writes hex, which rp6502.py
         # takes as well.
         string(REGEX REPLACE "^\\$" "0x" value "${value}")
@@ -459,6 +523,10 @@ function(rp6502_asset name)
             math(EXPR value "${value} | 0x10000")
         endif()
         math(EXPR addr "${value}" OUTPUT_FORMAT HEXADECIMAL)
+        if (unread)
+            # Keeps two refusals from sharing an output.
+            set(addr "${form}_${token}")
+        endif()
         list(GET args 4 in_file)
     else()
         if (NOT argc EQUAL 2)
@@ -475,15 +543,25 @@ function(rp6502_asset name)
     set(out_file "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${name}.rp6502/${key}/${rel_path}")
     get_filename_component(out_dir "${out_file}" DIRECTORY)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
-    add_custom_command(
-        OUTPUT "${out_file}"
-        DEPENDS "${src_file}"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${out_dir}"
+    set(create
         COMMAND "${Python3_EXECUTABLE}"
                 "${RP6502_TOOLS_DIR}/rp6502.py"
                 -a "${addr}"
                 -o "${out_file}"
-                create "${src_file}"
+                create "${src_file}")
+    # The configure has to finish for the build to report why the address
+    # was not read, so the refusal waits for the build too.
+    if (unread)
+        set(create
+            COMMAND ${CMAKE_COMMAND} -E echo
+                "rp6502_asset(${name} ${form}(${token})): rp6502_xram() did not read this address, or it does not fit in 16 bits."
+            COMMAND ${CMAKE_COMMAND} -E false)
+    endif()
+    add_custom_command(
+        OUTPUT "${out_file}"
+        DEPENDS "${src_file}"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${out_dir}"
+        ${create}
         VERBATIM
     )
     set_property(TARGET ${name} APPEND PROPERTY
@@ -644,12 +722,13 @@ function(rp6502_xram header regex)
             "extern ${type} _xram_fits_${probe}[1];\n#endif\n")
     endforeach()
     # An offset and arithmetic between offsets are size_t, so 16 bits, and
-    # can never trip this. A number that does not fit is a long and does.
+    # can never trip this. A number that does not fit is a long and does,
+    # and so does a negative one, which the cast makes large.
     foreach(name line IN ZIP_LISTS names lines)
         string(APPEND check
             "\n#ifdef ${name}\n#line ${line} \"${header_c}\"\n"
-            "_Static_assert((${name}) < 0x10000L,"
-            " \"${name} overflows 16 bits.\");\n")
+            "_Static_assert((unsigned long)(${name}) < 0x10000UL,"
+            " \"${name} does not fit in 16 bits.\");\n")
         if (NOT unaligned OR NOT name MATCHES "^(${unaligned})$")
             string(APPEND check
                 "#line ${line} \"${header_c}\"\n"
@@ -713,19 +792,20 @@ function(rp6502_xram header regex)
     endif()
 
     # A failure here is the header's, and the build reports it in full, so
-    # the configure finishes with every address at zero rather than leaving
-    # the project unconfigured.
+    # the configure finishes with every address unread rather than leaving
+    # the project unconfigured. Unread is 0xFFFFFFFF, which RAM() and
+    # XRAM() refuse and rp6502.py cannot place, so no ROM is built from it.
     string(REPLACE "\r" "" output "${output}")
     foreach(name IN LISTS names)
         if (failed)
-            set(${name} 0 PARENT_SCOPE)
+            set(${name} 0xFFFFFFFF PARENT_SCOPE)
         elseif (output MATCHES "(^|\n)${name} (0x[0-9A-Fa-f]+)")
-            # Out of range is zeroed, so it reaches rp6502_asset() as nothing
-            # while the build reports it against the header.
+            # Out of range is unread while the build reports it against the
+            # header.
             set(found "${CMAKE_MATCH_2}")
             math(EXPR numeric "${found}")
             if (numeric GREATER 65535)
-                set(found 0)
+                set(found 0xFFFFFFFF)
             endif()
             set(${name} "${found}" PARENT_SCOPE)
         else()
@@ -734,14 +814,14 @@ function(rp6502_xram header regex)
         endif()
     endforeach()
     # A header that will not compile is reported by the compile below, but a
-    # tool that did not run leaves a header that compiles and every address
-    # at zero, which would otherwise build a ROM that loads everything over
-    # the start of XRAM. So the reason is carried to the build and fails it.
+    # tool that did not run leaves a header that compiles and nothing to
+    # report. So the reason is carried to the build and fails it.
     set(unread)
     if (failed)
         message(STATUS "rp6502_xram(${header}) read no addresses; the build reports why.")
         file(WRITE "${dir}/xram_unread.txt"
-            "rp6502_xram(${header}) read no addresses, so every name is zero.\n${output}\n")
+            "rp6502_xram(${header}) read no addresses. Configure again once"
+            " this is fixed.\n${output}\n")
         set(unread
             COMMAND "${CMAKE_COMMAND}" -E cat "${dir}/xram_unread.txt"
             COMMAND "${CMAKE_COMMAND}" -E false)

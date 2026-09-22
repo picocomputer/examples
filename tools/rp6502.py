@@ -1136,14 +1136,15 @@ class Emulator:
 
     @staticmethod
     def find(config=None):
-        """The emulator the tools fetched beside this script, or a bare name."""
+        """The emulator the tools fetch beside this script."""
         exe = "rp6502-emu.exe" if platform.system() == "Windows" else "rp6502-emu"
         beside = "rp6502-emu.exe" if "microsoft" in platform.release().lower() else exe
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), beside)
-        if not os.path.isfile(path):
-            return exe
         if config:
-            rel = os.path.relpath(path, os.path.dirname(os.path.abspath(config)))
+            try:
+                rel = os.path.relpath(path, os.path.dirname(os.path.abspath(config)))
+            except ValueError:  # Windows: another drive has no relative path
+                return path
             if not rel.startswith(os.pardir):
                 return rel.replace(os.sep, "/")
         return path
@@ -1167,6 +1168,13 @@ class Emulator:
     @staticmethod
     def cannot_run(emulator: str, config, err) -> str:
         """Why the emulator did not start, and where to change it."""
+        if config and emulator == Emulator.find(config):
+            return (
+                f"Cannot run emulator '{emulator}': {err} — it has not been "
+                f"downloaded. Configure the project again with a network "
+                f"connection, or run the 'RP6502: update tools' task. If none "
+                f"is released for this system, set 'emulator' in {config}."
+            )
         if config:
             return (
                 f"Cannot run emulator '{emulator}': {err} — "
