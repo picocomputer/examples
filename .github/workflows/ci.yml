@@ -80,13 +80,6 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
-      # The directory, not the zip. Uploading the zip would be downloaded as
-      # a zip holding a zip.
-      - uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.pack.outputs.name }}
-          path: ${{ steps.pack.outputs.name }}/
-
       - name: Publish the release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v3
