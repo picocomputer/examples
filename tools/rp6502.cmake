@@ -141,9 +141,9 @@ function(rp6502_fetch_emu base assets suffix member exe result_var)
     set(${result_var} ok PARENT_SCOPE)
 endfunction()
 
-# Given MISSING, fetches only what tools/ lacks and skips the builds
-# rp6502-emu.unsupported lists, so a host the release has no build for
-# doesn't ask again at every configure. An update retries them all.
+# Given MISSING, fetches only what tools/ lacks, and nothing at all once
+# rp6502-emu.unsupported exists, so a host the release has no build for
+# doesn't ask again at every configure. An update removes it and retries.
 function(rp6502_fetch_emulator)
     # Each build is suffix|member|exe. OS_NAME is "macOS" on a Mac, not
     # Darwin, so the Windows and Apple hosts are told apart this way.
@@ -165,26 +165,21 @@ function(rp6502_fetch_emulator)
         endif()
     endif()
     set(sentinel "${RP6502_TOOLS_DIR}/rp6502-emu.unsupported")
-    set(unsupported)
-    if(EXISTS "${sentinel}")
-        file(STRINGS "${sentinel}" unsupported)
+    if(NOT "MISSING" IN_LIST ARGN)
+        file(REMOVE "${sentinel}")
+    elseif(EXISTS "${sentinel}")
+        message(STATUS "No emulator: tools/rp6502-emu.unsupported has the reason, "
+            "and the \"RP6502: update tools\" task tries again.")
+        return()
     endif()
-    set(before "${unsupported}")
     set(assets)
     foreach(build IN LISTS builds)
         string(REPLACE "|" ";" fields "${build}")
         list(GET fields 0 suffix)
         list(GET fields 1 member)
         list(GET fields 2 exe)
-        if("MISSING" IN_LIST ARGN)
-            if(EXISTS "${RP6502_TOOLS_DIR}/${exe}")
-                continue()
-            endif()
-            if(suffix IN_LIST unsupported)
-                message(STATUS "No emulator: tools/rp6502-emu.unsupported lists ${suffix}; "
-                    "the \"RP6502: update tools\" task tries again.")
-                continue()
-            endif()
+        if("MISSING" IN_LIST ARGN AND EXISTS "${RP6502_TOOLS_DIR}/${exe}")
+            continue()
         endif()
         # One list serves every build, and it is fetched only when a build
         # is wanted. The timeout bounds a network that drops packets.
@@ -213,21 +208,11 @@ function(rp6502_fetch_emulator)
             endif()
         endif()
         rp6502_fetch_emu("${base}" "${assets}" "${suffix}" "${member}" "${exe}" result)
-        if(result STREQUAL "unsupported" AND NOT suffix IN_LIST unsupported)
-            list(APPEND unsupported "${suffix}")
-        elseif(result STREQUAL "ok")
-            list(REMOVE_ITEM unsupported "${suffix}")
+        if(result STREQUAL "unsupported")
+            file(APPEND "${sentinel}"
+                "Release ${RP6502_EMU_RELEASE} has no ${suffix} for tools/${exe}.\n")
         endif()
     endforeach()
-    if(unsupported STREQUAL before)
-        return()
-    endif()
-    if(unsupported)
-        list(JOIN unsupported "\n" text)
-        file(WRITE "${sentinel}" "${text}\n")
-    else()
-        file(REMOVE "${sentinel}")
-    endif()
 endfunction()
 
 # Hooks patch config files.
