@@ -490,8 +490,7 @@ function(rp6502_asset name)
         endif()
         list(GET args 2 value)
         set(token "${value}")
-        # A name read as 0x0 is false, so only NOTFOUND means no name.
-        get_target_property(read ${name} RP6502_MAP_${value})
+        get_target_property(read ${name} RP6502_MAP_NAME_${value})
         if (NOT read MATCHES "-NOTFOUND$")
             set(value "${read}")
         elseif (DEFINED ${value})
@@ -596,11 +595,16 @@ endfunction()
 # the line in the header.
 #
 function(rp6502_map target)
-    # The arguments are counted here, so the old form without a target
-    # gets the usage rather than CMake's complaint about the call.
-    if (ARGC LESS 3 OR ARGC GREATER 4 OR NOT TARGET ${target})
+    # The arguments are counted here rather than named, so a wrong count
+    # gets the usage instead of CMake's complaint about the call.
+    if (ARGC LESS 3 OR ARGC GREATER 4)
         message(FATAL_ERROR
             "rp6502_map(<target> <header> <regex> [<unaligned_regex>])")
+    endif()
+    if (NOT TARGET ${target})
+        message(FATAL_ERROR
+            "rp6502_map(${target} ...): ${target} is not a target. "
+            "Call rp6502_map() after add_executable(${target}).")
     endif()
     set(header "${ARGV1}")
     set(regex "${ARGV2}")
@@ -704,9 +708,18 @@ function(rp6502_map target)
     # with the same file name, so the files are kept apart by both.
     file(RELATIVE_PATH id "${CMAKE_SOURCE_DIR}" "${header_file}")
     if (id MATCHES "^\\.\\.")
-        set(id "${header_file}")
+        # A whole absolute path would push the ROM path past what the
+        # emulator opens.
+        get_filename_component(stem "${header_file}" NAME_WE)
+        string(SHA1 hash "${header_file}")
+        string(SUBSTRING "${hash}" 0 8 hash)
+        set(id "${stem}_${hash}")
     endif()
     string(MAKE_C_IDENTIFIER "${id}" id)
+    if (TARGET ${target}_map_${id})
+        message(FATAL_ERROR
+            "rp6502_map(${target} ${header}): ${header} is already mapped for ${target}.")
+    endif()
     set(dir "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${target}.map/${id}")
     string(REPLACE "\\" "/" header_c "${header_file}")
 
@@ -838,16 +851,19 @@ function(rp6502_map target)
             continue()
         endif()
         # One header may define a name twice under #if, but two maps of one
-        # target never share a name.
-        get_target_property(from ${target} RP6502_MAP_FROM_${name})
-        if (NOT from MATCHES "-NOTFOUND$" AND NOT from STREQUAL header_file)
-            file(RELATIVE_PATH from "${CMAKE_CURRENT_SOURCE_DIR}" "${from}")
-            message(FATAL_ERROR
-                "rp6502_map(${target} ${header}): ${name} is already defined by "
-                "rp6502_map(${target} ${from}).")
+        # target never share a name. Names from a header that was not read
+        # are not recorded, since some of them may sit in a false #if.
+        if (NOT failed)
+            get_target_property(from ${target} RP6502_MAP_FROM_${name})
+            if (NOT from MATCHES "-NOTFOUND$" AND NOT from STREQUAL header_file)
+                file(RELATIVE_PATH from "${CMAKE_CURRENT_SOURCE_DIR}" "${from}")
+                message(FATAL_ERROR
+                    "rp6502_map(${target} ${header}): ${name} is already defined by "
+                    "rp6502_map(${target} ${from}).")
+            endif()
+            set_property(TARGET ${target} PROPERTY RP6502_MAP_FROM_${name} "${header_file}")
         endif()
-        set_property(TARGET ${target} PROPERTY RP6502_MAP_${name} "${found}")
-        set_property(TARGET ${target} PROPERTY RP6502_MAP_FROM_${name} "${header_file}")
+        set_property(TARGET ${target} PROPERTY RP6502_MAP_NAME_${name} "${found}")
     endforeach()
     # A header that will not compile is reported by the compile below, but a
     # tool that did not run leaves a header that compiles and nothing to
