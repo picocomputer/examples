@@ -169,7 +169,7 @@ function(rp6502_fetch_emulator)
         file(REMOVE "${sentinel}")
     elseif(EXISTS "${sentinel}")
         message(STATUS "No emulator: tools/rp6502-emu.unsupported has the reason, "
-            "and the \"RP6502: update tools\" task tries again.")
+            "and cmake -P tools/rp6502.cmake tries again.")
         return()
     endif()
     set(assets)

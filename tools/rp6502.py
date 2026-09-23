@@ -1168,13 +1168,6 @@ class Emulator:
     @staticmethod
     def cannot_run(emulator: str, config, err) -> str:
         """Why the emulator did not start, and where to change it."""
-        if config and emulator == Emulator.find(config):
-            return (
-                f"Cannot run emulator '{emulator}': {err} — it has not been "
-                f"downloaded. Configure the project again with a network "
-                f"connection, or run the 'RP6502: update tools' task. If none "
-                f"is released for this system, set 'emulator' in {config}."
-            )
         if config:
             return (
                 f"Cannot run emulator '{emulator}': {err} — "
