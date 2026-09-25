@@ -11,9 +11,10 @@ permissions:
   contents: read
 
 concurrency:
-  # A commit to main gets a group of its own. Sharing one group would let a
-  # third push cancel the second while it waits, and that commit would ship
-  # no release without anything failing. Pull requests still collapse.
+  # The run for each commit to main is in a separate group. With one shared
+  # group, a third push cancels the second run while it waits, and that
+  # commit then gets no release and no failure. Pull request runs still
+  # cancel older runs.
   group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
@@ -25,14 +26,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # From source, the way the SDK tells everyone to install it. bin/cl65
-      # finds its own ../target, so there is nothing to install afterwards.
-      - name: Build cc65
+      # CI builds with the same compilers users install.
+      - name: Install cc65
         run: |
           set -euo pipefail
-          git clone --depth 1 https://github.com/cc65/cc65 "$RUNNER_TEMP/cc65"
-          make -C "$RUNNER_TEMP/cc65" -j"$(nproc)"
-          echo "$RUNNER_TEMP/cc65/bin" >> "$GITHUB_PATH"
+          curl -fsSL https://raw.githubusercontent.com/picocomputer/.github/main/install/cc65.sh | sh
+          echo "$HOME/.rp6502/cc65/bin" >> "$GITHUB_PATH"
+
+      - name: Install llvm-mos
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/picocomputer/.github/main/install/llvm-mos.sh | sh
+          echo "$HOME/.rp6502/llvm-mos/bin" >> "$GITHUB_PATH"
 
       # The configure fetches the emulator, which git ignores, because
       # rp6502_map() runs a program on it.
@@ -41,6 +46,14 @@ jobs:
           set -euo pipefail
           cmake --preset cc65/Release
           cmake --build --preset cc65/Release
+
+      # Only the cc65 ROMs are released. This build checks that the examples
+      # still compile with llvm-mos.
+      - name: Build the examples with llvm-mos
+        run: |
+          set -euo pipefail
+          cmake --preset llvm-mos/Release
+          cmake --build --preset llvm-mos/Release
 
       - name: Collect the ROMs
         id: pack
@@ -58,8 +71,8 @@ jobs:
           mkdir "$name"
           cp src/README.txt "$name/"
           # Only the target ROMs. CMakeFiles holds directories with the same
-          # suffix, and the program rp6502_map() runs while CMake configures
-          # is a .rp6502 of its own.
+          # suffix, and the program that rp6502_map() runs while CMake
+          # configures is also a .rp6502 file.
           find build/cc65/release/src -mindepth 2 -maxdepth 2 -type f \
                -name '*.rp6502' -exec cp -t "$name" {} +
           # One ROM per example, so a target that quietly stopped producing
@@ -67,7 +80,7 @@ jobs:
           want=$(grep -c '^add_subdirectory(src/' CMakeLists.txt)
           got=$(find "$name" -name '*.rp6502' | wc -l)
           if [ "$got" -ne "$want" ]; then
-            echo "packed ${got} ROMs, expected ${want}" >&2
+            echo "packed ${got} ROMs for ${want} examples" >&2
             exit 1
           fi
           ls -l "$name"
@@ -77,7 +90,7 @@ jobs:
           echo "sha=${sha}" >> "$GITHUB_OUTPUT"
           echo "name=${name}" >> "$GITHUB_OUTPUT"
 
-      # Only where nothing is released. The name carries .zip because that is
+      # Only where nothing is released. The name ends in .zip because that is
       # the filename the download is served with, and the directory is what
       # goes in it, so the one archive holds the ROMs and nothing else.
       - uses: actions/upload-artifact@v7
