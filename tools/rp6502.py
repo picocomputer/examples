@@ -1034,7 +1034,7 @@ class ROM:
             # Decode first line as cp850 because binary garbage can
             # raise here before our better message gets to the user.
             command = f.readline().decode("cp850")
-            if not re.match(f"^#!{SCRIPT_NAME}\\r?\\n$", command, re.IGNORECASE):
+            if not re.match(f"^#!.*{SCRIPT_NAME}", command, re.IGNORECASE):
                 raise ROMException(f"Invalid ROM file: {file}")
             while True:
                 line = f.readline()
@@ -1136,14 +1136,15 @@ class Emulator:
 
     @staticmethod
     def find(config=None):
-        """The emulator the tools fetched beside this script, or a bare name."""
+        """The emulator the tools fetch beside this script."""
         exe = "rp6502-emu.exe" if platform.system() == "Windows" else "rp6502-emu"
         beside = "rp6502-emu.exe" if "microsoft" in platform.release().lower() else exe
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), beside)
-        if not os.path.isfile(path):
-            return exe
         if config:
-            rel = os.path.relpath(path, os.path.dirname(os.path.abspath(config)))
+            try:
+                rel = os.path.relpath(path, os.path.dirname(os.path.abspath(config)))
+            except ValueError:  # Windows: another drive has no relative path
+                return path
             if not rel.startswith(os.pardir):
                 return rel.replace(os.sep, "/")
         return path

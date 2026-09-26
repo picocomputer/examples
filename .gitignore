@@ -3,4 +3,4 @@ __pycache__
 /build
 /CMakeUserPresets.json
 /tools/rp6502-emu
-/tools/rp6502-emu.exe
+/tools/rp6502-emu.*
