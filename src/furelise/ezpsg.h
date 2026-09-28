@@ -160,7 +160,7 @@ enum ezpsg_notes
 // Requires 64 bytes of xram.
 void ezpsg_init(uint16_t xaddr);
 
-// Call tick 60-100 times per second. RIA.vsync is usually good enough,
+// Call tick 60-100 times per second. ria_vsync() is usually good enough,
 // but a 6522 timer can be used for precision bpm. Tempo is how many ticks+1
 // equal one duration unit. Return value is true when work was done. Work is
 // always done in two adjacent ticks once every duration unit. Use the return
@@ -175,9 +175,9 @@ uint16_t ezpsg_play_note(uint8_t note,
                          uint8_t duration,
                          uint8_t release,
                          uint8_t duty,
-                         uint8_t vol_attack,
-                         uint8_t vol_decay,
-                         uint8_t wave_release,
+                         uint8_t attack,
+                         uint8_t decay,
+                         uint8_t release_wave,
                          int8_t pan);
 
 // Play song will move the song pointer to new music.

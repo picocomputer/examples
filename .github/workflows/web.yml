@@ -1,0 +1,14 @@
+name: Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  web:
+    uses: picocomputer/.github/.github/workflows/web.yml@main
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

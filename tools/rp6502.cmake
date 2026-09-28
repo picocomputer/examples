@@ -764,15 +764,22 @@ function(rp6502_map target)
     # cc65's CMAKE_C_COMPILER is a wrapper around cl65 that puts diagnostics
     # in the form an IDE matches, so both programs are built through it.
     set(compiler_args)
-    if (CMAKE_C_COMPILER_ARG1)
+    if (CMAKE_C_COMPILER_ID STREQUAL "cc65")
+        set(compiler_args -P "${RP6502_TOOLS_DIR}/cc65-toolchain.cmake" -- "${CC65_C_COMPILER}")
+    elseif (CMAKE_C_COMPILER_ARG1)
         separate_arguments(compiler_args NATIVE_COMMAND "${CMAKE_C_COMPILER_ARG1}")
     endif()
     separate_arguments(flags NATIVE_COMMAND "${CMAKE_C_FLAGS}")
+    # clang does not escape spaces in the -MT target, so the target is a
+    # plain name.
+    separate_arguments(dep_flags NATIVE_COMMAND "${CMAKE_DEPFILE_FLAGS_C}")
+    string(REPLACE "<DEP_TARGET>" "map_stub" dep_flags "${dep_flags}")
+    string(REPLACE "<DEP_FILE>" "${dir}/map_stub.d" dep_flags "${dep_flags}")
 
     set(failed FALSE)
     execute_process(
         COMMAND "${CMAKE_C_COMPILER}" ${compiler_args} ${flags} -I "${header_dir}"
-                -o "${dir}/map_stub" "${dir}/map_stub.c"
+                ${dep_flags} -o "${dir}/map_stub" "${dir}/map_stub.c"
         WORKING_DIRECTORY "${dir}"
         RESULT_VARIABLE result
         OUTPUT_VARIABLE output
@@ -780,6 +787,30 @@ function(rp6502_map target)
     )
     if (NOT result EQUAL 0)
         set(failed TRUE)
+    endif()
+
+    # The addresses are read at configure time, so a change to any header
+    # the stub includes has to configure the project again, not only a
+    # change to the named one. The list is read after a failed compile too,
+    # so fixing an included header configures again. A failed cc65 compile
+    # keeps the previous list, which can name a header that no longer exists.
+    if (EXISTS "${dir}/map_stub.d")
+        file(READ "${dir}/map_stub.d" deps)
+        # Make syntax, where a name that ends in a colon is a target.
+        string(REGEX REPLACE "\\\\\r?\n" " " deps "${deps}")
+        string(REGEX REPLACE "([^\\\\])[ \t\r\n]+" "\\1;" deps "${deps}")
+        foreach(dep IN LISTS deps)
+            if (dep STREQUAL "" OR dep MATCHES ":$")
+                continue()
+            endif()
+            string(REPLACE "\\ " " " dep "${dep}")
+            string(REPLACE "\\#" "#" dep "${dep}")
+            string(REPLACE "$$" "$" dep "${dep}")
+            cmake_path(ABSOLUTE_PATH dep BASE_DIRECTORY "${dir}" NORMALIZE)
+            if (EXISTS "${dep}")
+                set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${dep}")
+            endif()
+        endforeach()
     endif()
 
     if (NOT failed)

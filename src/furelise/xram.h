@@ -28,17 +28,19 @@
 
 typedef struct
 {
-    struct
-    {
-        uint16_t freq;
-        uint8_t duty;
-        uint8_t vol_attack;
-        uint8_t vol_decay;
-        uint8_t wave_release;
-        uint8_t pan_gate;
-        uint8_t reserved;
-    } channel[PSG_CHANNELS];
-} psg_t;
+    uint16_t freq;
+    uint8_t duty;
+    uint8_t attack;
+    uint8_t decay;
+    uint8_t release_wave;
+    uint8_t pan_gate;
+    uint8_t reserved;
+} psg_channel_t;
+
+typedef struct
+{
+    psg_channel_t channel[PSG_CHANNELS];
+} psg_t; /* layout */
 
 typedef struct
 {
