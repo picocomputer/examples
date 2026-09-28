@@ -1,15 +1,3 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "cmake.showSystemKits": false,
-    "cmake.options.advanced": {
-        "launchTarget": {
-            "statusBarVisibility": "visible"
-        },
-        "launch": {
-            "statusBarVisibility": "hidden",
-        },
-        "debug": {
-            "statusBarVisibility": "hidden",
-        }
-    }
 }
