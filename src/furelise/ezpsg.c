@@ -31,16 +31,13 @@ void ezpsg_init(uint16_t xaddr)
 {
     unsigned u;
     // Clear RIA PSG XRAM.
-    RIA.addr0 = xaddr;
-    RIA.step0 = 1;
-    for (u = 0; u < sizeof(psg_t); u++)
-        RIA.rw0 = 0;
+    xram0_set(xaddr, 0, sizeof(psg_t));
     // Start RIA PSG.
     xreg_ria_psg(xaddr);
     // Init linked lists.
     for (u = 0; u < PSG_CHANNELS; u++)
     {
-        ezpsg_channels[u].xaddr = xaddr + u * (sizeof(psg_t) / PSG_CHANNELS);
+        ezpsg_channels[u].xaddr = xaddr + u * sizeof(psg_channel_t);
         ezpsg_channels[u].next = &ezpsg_channels[u + 1];
     }
     ezpsg_channels[PSG_CHANNELS - 1].next = NULL;
@@ -72,9 +69,9 @@ bool ezpsg_tick(uint16_t tempo)
             channel->next = *releasing;
             *releasing = channel;
             // Clear gate bit.
-            RIA.addr0 = channel->xaddr + offsetof(psg_t, channel[0].pan_gate);
-            RIA.step0 = 0;
-            RIA.rw0 &= (uint8_t)~PSG_GATE;
+            xram0_poke8(channel->xaddr + offsetof(psg_channel_t, pan_gate),
+                        xram0_peek8(channel->xaddr + offsetof(psg_channel_t, pan_gate)) &
+                            (uint8_t)~PSG_GATE);
         }
         // Decrement everything still playing.
         channel = ezpsg_channels_playing;
@@ -129,12 +126,13 @@ uint16_t ezpsg_play_note(uint8_t note,
                          uint8_t duration,
                          uint8_t release,
                          uint8_t duty,
-                         uint8_t vol_attack,
-                         uint8_t vol_decay,
-                         uint8_t wave_release,
+                         uint8_t attack,
+                         uint8_t decay,
+                         uint8_t release_wave,
                          int8_t pan)
 {
     struct channel **playing = &ezpsg_channels_playing;
+    psg_channel_t regs;
     // Convert note to frequency in hertz
     static const uint16_t freq_conv[] = {EZPSG_NOTE_FREQS};
     uint16_t freq = freq_conv[note];
@@ -152,15 +150,13 @@ uint16_t ezpsg_play_note(uint8_t note,
     channel->duration = duration;
     channel->release = release;
     // Program the XRAM registers
-    RIA.addr0 = channel->xaddr;
-    RIA.step0 = 1;
-    RIA.rw0 = freq & 0xff;
-    RIA.rw0 = (freq >> 8) & 0xff;
-    RIA.rw0 = duty;
-    RIA.rw0 = vol_attack;
-    RIA.rw0 = vol_decay;
-    RIA.rw0 = wave_release;
-    RIA.rw0 = pan | PSG_GATE;
+    regs.freq = freq;
+    regs.duty = duty;
+    regs.attack = attack;
+    regs.decay = decay;
+    regs.release_wave = release_wave;
+    regs.pan_gate = pan | PSG_GATE;
+    xram0_write(channel->xaddr, &regs, offsetof(psg_channel_t, reserved));
     // Success. The caller may manipulate the returned
     // channel until the tick which clears the gate.
     return channel->xaddr;

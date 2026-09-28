@@ -57,21 +57,23 @@ static int clamp(int value, int low, int high)
 
 static void setup_bitmap(unsigned config, int width, int height, unsigned data)
 {
-    xram0_struct_set(config, mode3_config_t, x_wrap, false);
-    xram0_struct_set(config, mode3_config_t, y_wrap, false);
-    xram0_struct_set(config, mode3_config_t, x_pos_px, 0);
-    xram0_struct_set(config, mode3_config_t, y_pos_px, 0);
-    xram0_struct_set(config, mode3_config_t, width_px, width);
-    xram0_struct_set(config, mode3_config_t, height_px, height);
-    xram0_struct_set(config, mode3_config_t, xram_data_ptr, data);
-    xram0_struct_set(config, mode3_config_t, xram_palette_ptr, 0xFFFF);
+    mode3_config_t bitmap;
+    bitmap.x_wrap = false;
+    bitmap.y_wrap = false;
+    bitmap.x_pos_px = 0;
+    bitmap.y_pos_px = 0;
+    bitmap.width_px = width;
+    bitmap.height_px = height;
+    bitmap.xram_data_ptr = data;
+    bitmap.xram_palette_ptr = 0xFFFF;
+    xram0_write(config, &bitmap, sizeof(bitmap));
 }
 
 // The point of the arrow is one pixel in from the corner of its image.
 static void move_pointer(int x, int y)
 {
-    xram0_struct_set(XRAM_CONFIG_POINTER, mode3_config_t, x_pos_px, x - 1);
-    xram0_struct_set(XRAM_CONFIG_POINTER, mode3_config_t, y_pos_px, y - 1);
+    xram1_poke16(XRAM_CONFIG_POINTER + offsetof(mode3_config_t, x_pos_px), x - 1);
+    xram1_poke16(XRAM_CONFIG_POINTER + offsetof(mode3_config_t, y_pos_px), y - 1);
 }
 
 static void draw_pointer(void)
@@ -85,11 +87,7 @@ static void draw_pointer(void)
         0,0,0,0,0,0,16,255,16,0,0,0,0,0,0,0,0,16,0,0,
     };
     // clang-format on
-    unsigned i;
-    RIA.addr0 = XRAM_DATA_POINTER;
-    RIA.step0 = 1;
-    for (i = 0; i < sizeof(image); i++)
-        RIA.rw0 = image[i];
+    xram0_write(XRAM_DATA_POINTER, image, sizeof(image));
 }
 
 // ---------------------------------------------------------------------------
@@ -97,28 +95,47 @@ static void draw_pointer(void)
 //
 // The mouse reports relative motion as counters. The RIA docs recommend
 // reading them at 125 Hz or faster, so a VIA timer interrupt keeps the
-// position. On a 320 pixel wide canvas, two counts move one pixel.
+// position. On a 320 pixel wide canvas, two counts move one pixel. The
+// interrupt handler uses portal 1, and in mouse mode all other code uses
+// portal 0, so the handler does not save and restore a portal.
 
 #define MOUSE_DIV 2
 
 static uint8_t mouse_last_x, mouse_last_y;
 static volatile int mouse_x, mouse_y;
 
+#ifdef __CC65__
+#pragma optimize (push, off)
+#endif
+static void mouse_timer_start(unsigned period)
+{
+    VIA.t1l_lo = period & 0xFF;
+    VIA.t1l_hi = period >> 8;
+    VIA.t1_lo = period & 0xFF;
+    VIA.t1_hi = period >> 8;
+    VIA.acr = 0x40; // timer 1 free running
+    VIA.ier = 0xC0; // timer 1 interrupt on
+}
+
+static void mouse_timer_ack(void)
+{
+    VIA.ifr = 0x40; // acknowledge timer 1
+}
+#ifdef __CC65__
+#pragma optimize (pop)
+#endif
+
 static void mouse_sample(void)
 {
     static int raw_x, raw_y;
-    uint16_t save_addr0 = RIA.addr0;
-    uint8_t save_step0 = RIA.step0;
     uint8_t count;
 
-    VIA.ifr = 0x40; // acknowledge timer 1
+    mouse_timer_ack();
 
-    RIA.addr0 = XRAM_DATA_MOU + offsetof(mouse_t, x);
-    RIA.step0 = 1;
-    count = RIA.rw0;
+    count = xram1_peek8(XRAM_DATA_MOU + offsetof(mouse_t, x));
     raw_x += (int8_t)(count - mouse_last_x);
     mouse_last_x = count;
-    count = RIA.rw0;
+    count = xram1_peek8(XRAM_DATA_MOU + offsetof(mouse_t, y));
     raw_y += (int8_t)(count - mouse_last_y);
     mouse_last_y = count;
 
@@ -127,10 +144,6 @@ static void mouse_sample(void)
     mouse_x = raw_x / MOUSE_DIV;
     mouse_y = raw_y / MOUSE_DIV;
     move_pointer(mouse_x, mouse_y);
-
-    // The main loop was using RW0 when this interrupt arrived.
-    RIA.addr0 = save_addr0;
-    RIA.step0 = save_step0;
 }
 
 // cc65 calls a C handler from its own stub, on a stack the program lends it.
@@ -156,22 +169,15 @@ static void mouse_init(void)
     unsigned period = ria_attr_get(RIA_ATTR_PHI2_KHZ) * 8 - 2;
 
     xreg_ria_mouse(XRAM_DATA_MOU);
-    RIA.addr0 = XRAM_DATA_MOU + offsetof(mouse_t, x);
-    RIA.step0 = 1;
-    mouse_last_x = RIA.rw0;
-    mouse_last_y = RIA.rw0;
+    mouse_last_x = xram0_peek8(XRAM_DATA_MOU + offsetof(mouse_t, x));
+    mouse_last_y = xram0_peek8(XRAM_DATA_MOU + offsetof(mouse_t, y));
 
 #ifdef __CC65__
     set_irq(mouse_irq, &mouse_irq_stack, sizeof(mouse_irq_stack));
 #else
     *(void (**)(void))0xFFFE = mouse_irq;
 #endif
-    VIA.t1l_lo = period & 0xFF;
-    VIA.t1l_hi = period >> 8;
-    VIA.t1_lo = period & 0xFF;
-    VIA.t1_hi = period >> 8;
-    VIA.acr = 0x40; // timer 1 free running
-    VIA.ier = 0xC0; // timer 1 interrupt on
+    mouse_timer_start(period);
 #ifndef __CC65__
     CLI(); // set_irq() does this for cc65
 #endif
@@ -183,8 +189,8 @@ static uint8_t mouse_read(int *x, int *y)
     *x = mouse_x;
     *y = mouse_y;
     CLI();
-    RIA.addr0 = XRAM_DATA_MOU + offsetof(mouse_t, buttons);
-    return RIA.rw0 & (MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT);
+    return xram0_peek8(XRAM_DATA_MOU + offsetof(mouse_t, buttons)) &
+           (MOUSE_BUTTON_LEFT | MOUSE_BUTTON_RIGHT);
 }
 
 // ---------------------------------------------------------------------------
@@ -205,46 +211,39 @@ static void tablet_init(void)
 
 static uint8_t tablet_read(int *x, int *y)
 {
-    uint8_t flags, x0, x1, x2, y0, y1;
+    tablet_contact_t contact;
     bool offered;
     int tries;
 
-    RIA.addr0 = XRAM_DATA_TAB + offsetof(tablet_t, status);
-    offered = RIA.rw0 & TABLET_STATUS_HOST_CURSOR;
+    offered = xram0_peek8(XRAM_DATA_TAB + offsetof(tablet_t, status)) &
+              TABLET_STATUS_HOST_CURSOR;
     if (offered != host_cursor)
     {
         host_cursor = offered;
-        RIA.addr0 = XRAM_DATA_TAB + offsetof(tablet_t, control);
-        RIA.rw0 = host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF;
+        xram0_poke8(XRAM_DATA_TAB + offsetof(tablet_t, control),
+                    host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF);
     }
 
     // A read that lands while a value crosses into the next window can find
     // every window zero, so the contact is read a second time.
     for (tries = 0; tries < 2; tries++)
     {
-        RIA.addr0 = XRAM_DATA_TAB + offsetof(tablet_t, contact);
-        RIA.step0 = 1;
-        flags = RIA.rw0;
-        x0 = RIA.rw0;
-        x1 = RIA.rw0;
-        x2 = RIA.rw0;
-        y0 = RIA.rw0;
-        y1 = RIA.rw0;
-        if ((x0 | x1 | x2) && (y0 | y1))
+        xram0_read(&contact, XRAM_DATA_TAB + offsetof(tablet_t, contact), sizeof(contact));
+        if ((contact.x0 | contact.x1 | contact.x2) && (contact.y0 | contact.y1))
             break;
     }
 
     // With no window set, the position stays where it was.
-    if (x0)
-        tablet_x = x0 - 1;
-    else if (x1)
-        tablet_x = x1 + 254;
-    else if (x2)
-        tablet_x = x2 + 509;
-    if (y0)
-        tablet_y = y0 - 1;
-    else if (y1)
-        tablet_y = y1 + 254;
+    if (contact.x0)
+        tablet_x = contact.x0 - 1;
+    else if (contact.x1)
+        tablet_x = contact.x1 + 254;
+    else if (contact.x2)
+        tablet_x = contact.x2 + 509;
+    if (contact.y0)
+        tablet_y = contact.y0 - 1;
+    else if (contact.y1)
+        tablet_y = contact.y1 + 254;
 
     if (host_cursor)
         move_pointer(CANVAS_WIDTH + 1, 0);
@@ -253,7 +252,7 @@ static uint8_t tablet_read(int *x, int *y)
 
     *x = tablet_x;
     *y = tablet_y;
-    return flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
+    return contact.flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
 }
 
 // ---------------------------------------------------------------------------
@@ -261,15 +260,9 @@ static uint8_t tablet_read(int *x, int *y)
 
 static void erase_picture(void)
 {
-    unsigned i;
-    RIA.addr0 = XRAM_DATA_PICTURE;
-    RIA.step0 = 1;
-    for (i = 0; i < CANVAS_WIDTH / 2 * (unsigned)CANVAS_HEIGHT; i++)
-        RIA.rw0 = 0;
+    xram0_set(XRAM_DATA_PICTURE, 0, CANVAS_WIDTH / 2 * (unsigned)CANVAS_HEIGHT);
 }
 
-// The ROM carries the logo twice: the copy loaded into the picture before the
-// program starts, and this one, a file to put it back.
 static void load_logo(void)
 {
     unsigned addr = XRAM_DATA_PICTURE;
@@ -283,14 +276,12 @@ static void load_logo(void)
 // The picture has four bits per pixel, so one byte holds two pixels.
 static void draw_pixel(int x, int y)
 {
-    uint8_t pair;
-    RIA.step0 = 0;
-    RIA.addr0 = XRAM_DATA_PICTURE + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
-    pair = RIA.rw0;
+    unsigned addr = XRAM_DATA_PICTURE + (unsigned)y * (CANVAS_WIDTH / 2) + x / 2;
+    uint8_t pair = xram0_peek8(addr);
     if (x & 1)
-        RIA.rw0 = (pair & 0xF0) | draw_color;
+        xram0_poke8(addr, (pair & 0xF0) | draw_color);
     else
-        RIA.rw0 = (pair & 0x0F) | draw_color << 4;
+        xram0_poke8(addr, (pair & 0x0F) | draw_color << 4);
 }
 
 // Bresenham's line algorithm
@@ -329,14 +320,9 @@ static void draw_line(int x0, int y0, int x1, int y1)
 
 static void draw_picker_box(uint8_t shade, int x1, int y1, int x2, int y2)
 {
-    int x, y;
-    RIA.step0 = 1;
+    int y;
     for (y = y1; y <= y2; y++)
-    {
-        RIA.addr0 = XRAM_DATA_PICKER + PICKER_WIDTH * y + x1;
-        for (x = x1; x <= x2; x++)
-            RIA.rw0 = shade;
-    }
+        xram0_set(XRAM_DATA_PICKER + PICKER_WIDTH * y + x1, shade, x2 - x1 + 1);
 }
 
 // Palette index 0 is transparent, so black is drawn as the opaque black at
@@ -378,8 +364,8 @@ static void move_picker(int x, int y)
 {
     picker_x = clamp(x, 0, CANVAS_WIDTH - PICKER_WIDTH);
     picker_y = clamp(y, 0, CANVAS_HEIGHT - PICKER_HEIGHT);
-    xram0_struct_set(XRAM_CONFIG_PICKER, mode3_config_t, x_pos_px, picker_x);
-    xram0_struct_set(XRAM_CONFIG_PICKER, mode3_config_t, y_pos_px, picker_y);
+    xram0_poke16(XRAM_CONFIG_PICKER + offsetof(mode3_config_t, x_pos_px), picker_x);
+    xram0_poke16(XRAM_CONFIG_PICKER + offsetof(mode3_config_t, y_pos_px), picker_y);
 }
 
 static int picker_pick(int x, int y)

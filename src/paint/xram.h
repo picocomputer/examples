@@ -41,7 +41,7 @@ typedef struct
     int16_t height_px;
     uint16_t xram_data_ptr;
     uint16_t xram_palette_ptr;
-} mode3_config_t;
+} mode3_config_t; /* layout */
 
 #define MOUSE_BUTTON_LEFT 0x01
 #define MOUSE_BUTTON_RIGHT 0x02
@@ -59,7 +59,7 @@ typedef struct
     uint8_t wheel;
     uint8_t pan;
     uint8_t pad;
-} mouse_t;
+} mouse_t; /* layout */
 
 #define TABLET_CONTACTS 8
 
@@ -84,17 +84,19 @@ typedef struct
 
 typedef struct
 {
+    uint8_t flags;
+    uint8_t x0, x1, x2;
+    uint8_t y0, y1;
+} tablet_contact_t;
+
+typedef struct
+{
     uint8_t control;
     uint8_t status;
     uint8_t wheel;
     uint8_t pan;
-    struct
-    {
-        uint8_t flags;
-        uint8_t x0, x1, x2;
-        uint8_t y0, y1;
-    } contact[TABLET_CONTACTS];
-} tablet_t;
+    tablet_contact_t contact[TABLET_CONTACTS];
+} tablet_t; /* layout */
 
 #define CANVAS_WIDTH 320
 #define CANVAS_HEIGHT 240

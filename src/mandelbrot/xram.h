@@ -41,7 +41,7 @@ typedef struct
     int16_t height_px;
     uint16_t xram_data_ptr;
     uint16_t xram_palette_ptr;
-} mode3_config_t;
+} mode3_config_t; /* layout */
 
 #define KEYBOARD_NO_KEY 0
 #define KEYBOARD_NUM_LOCK 1
@@ -55,7 +55,7 @@ typedef struct
 typedef struct
 {
     uint8_t keys[32];
-} keyboard_t;
+} keyboard_t; /* layout */
 
 typedef struct
 {

@@ -57,20 +57,22 @@
 
 typedef struct
 {
-    struct
-    {
-        uint8_t dpad;
-        uint8_t sticks;
-        uint8_t btn0;
-        uint8_t btn1;
-        int8_t lx;
-        int8_t ly;
-        int8_t rx;
-        int8_t ry;
-        uint8_t l2;
-        uint8_t r2;
-    } player[GAMEPAD_PLAYERS];
-} gamepad_t;
+    uint8_t dpad;
+    uint8_t sticks;
+    uint8_t btn0;
+    uint8_t btn1;
+    int8_t lx;
+    int8_t ly;
+    int8_t rx;
+    int8_t ry;
+    uint8_t l2;
+    uint8_t r2;
+} gamepad_player_t;
+
+typedef struct
+{
+    gamepad_player_t player[GAMEPAD_PLAYERS];
+} gamepad_t; /* layout */
 
 typedef struct
 {

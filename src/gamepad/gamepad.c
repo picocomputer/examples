@@ -32,26 +32,24 @@ void show(int player)
                           "E ", "NE", "SE", "ER",
                           "ER", "ER", "ER", "ER"};
     const char *types[] = {"?? ", "AB ", "BA ", "PS "};
-    uint8_t hat, sticks, btns0, btns1, type;
+    gamepad_player_t pad;
+    uint8_t type;
 
     printf("P%d ", player);
 
-    hat = RIA.rw0;
-    sticks = RIA.rw0;
-    btns0 = RIA.rw0;
-    btns1 = RIA.rw0;
+    xram0_read(&pad, XRAM_GAMEPAD + (player - 1) * sizeof(pad), sizeof(pad));
 
-    printf("lx:%4d ly:%4d ", (int8_t)RIA.rw0, (int8_t)RIA.rw0);
-    printf("rx:%4d ry:%4d ", (int8_t)RIA.rw0, (int8_t)RIA.rw0);
-    printf("lt:%3u rt:%3u ", RIA.rw0, RIA.rw0);
-    printf("L:%s ", dpad[sticks & 0xF]);
-    printf("R:%s ", dpad[(sticks & 0xF0) >> 4]);
-    printf("H:%s ", dpad[hat & 0xF]);
+    printf("lx:%4d ly:%4d ", pad.lx, pad.ly);
+    printf("rx:%4d ry:%4d ", pad.rx, pad.ry);
+    printf("lt:%3u rt:%3u ", pad.l2, pad.r2);
+    printf("L:%s ", dpad[pad.sticks & 0xF]);
+    printf("R:%s ", dpad[(pad.sticks & 0xF0) >> 4]);
+    printf("H:%s ", dpad[pad.dpad & 0xF]);
 
-    type = hat & GAMEPAD_FEAT_TYPE_MASK;
-    printf("%s%s ", types[type >> 4], (hat & GAMEPAD_FEAT_STICKS) ? "2S" : "  ");
+    type = pad.dpad & GAMEPAD_FEAT_TYPE_MASK;
+    printf("%s%s ", types[type >> 4], (pad.dpad & GAMEPAD_FEAT_STICKS) ? "2S" : "  ");
 
-    if (!(hat & GAMEPAD_FEAT_CONNECTED))
+    if (!(pad.dpad & GAMEPAD_FEAT_CONNECTED))
     {
         printf("\33[K\n\033[90m   Disconnected\033[0m\33[K\n\n");
         return;
@@ -61,33 +59,33 @@ void show(int player)
 
     if (type == GAMEPAD_TYPE_PLAYSTATION)
     {
-        print(btns0 & GAMEPAD_BTN0_A, "Cross");
-        print(btns0 & GAMEPAD_BTN0_B, "Circle");
-        print(btns0 & GAMEPAD_BTN0_X, "Square");
-        print(btns0 & GAMEPAD_BTN0_Y, "Triangle");
+        print(pad.btn0 & GAMEPAD_BTN0_A, "Cross");
+        print(pad.btn0 & GAMEPAD_BTN0_B, "Circle");
+        print(pad.btn0 & GAMEPAD_BTN0_X, "Square");
+        print(pad.btn0 & GAMEPAD_BTN0_Y, "Triangle");
     }
     else
     {
-        print(btns0 & GAMEPAD_BTN0_A, "A");
-        print(btns0 & GAMEPAD_BTN0_B, "B");
-        print(btns0 & GAMEPAD_BTN0_C, "C");
-        print(btns0 & GAMEPAD_BTN0_X, "X");
-        print(btns0 & GAMEPAD_BTN0_Y, "Y");
-        print(btns0 & GAMEPAD_BTN0_Z, "Z");
+        print(pad.btn0 & GAMEPAD_BTN0_A, "A");
+        print(pad.btn0 & GAMEPAD_BTN0_B, "B");
+        print(pad.btn0 & GAMEPAD_BTN0_C, "C");
+        print(pad.btn0 & GAMEPAD_BTN0_X, "X");
+        print(pad.btn0 & GAMEPAD_BTN0_Y, "Y");
+        print(pad.btn0 & GAMEPAD_BTN0_Z, "Z");
     }
 
-    print(btns0 & GAMEPAD_BTN0_L1, "L1");
-    print(btns0 & GAMEPAD_BTN0_R1, "R1");
-    print(btns1 & GAMEPAD_BTN1_L2, "L2");
-    print(btns1 & GAMEPAD_BTN1_R2, "R2");
+    print(pad.btn0 & GAMEPAD_BTN0_L1, "L1");
+    print(pad.btn0 & GAMEPAD_BTN0_R1, "R1");
+    print(pad.btn1 & GAMEPAD_BTN1_L2, "L2");
+    print(pad.btn1 & GAMEPAD_BTN1_R2, "R2");
 
-    print(btns1 & GAMEPAD_BTN1_SELECT, "Select");
-    print(btns1 & GAMEPAD_BTN1_START, "Start");
-    print(btns1 & GAMEPAD_BTN1_HOME, "Home");
-    print(btns1 & GAMEPAD_BTN1_L3, "L3");
-    print(btns1 & GAMEPAD_BTN1_R3, "R3");
+    print(pad.btn1 & GAMEPAD_BTN1_SELECT, "Select");
+    print(pad.btn1 & GAMEPAD_BTN1_START, "Start");
+    print(pad.btn1 & GAMEPAD_BTN1_HOME, "Home");
+    print(pad.btn1 & GAMEPAD_BTN1_L3, "L3");
+    print(pad.btn1 & GAMEPAD_BTN1_R3, "R3");
 
-    print(btns1 & 0x80, "?");
+    print(pad.btn1 & 0x80, "?");
 
     printf("\33[K\n\n");
 }
@@ -99,8 +97,6 @@ int main(void)
     while (1)
     {
         printf("\33[H\33[3B");
-        RIA.addr0 = XRAM_GAMEPAD;
-        RIA.step0 = 1;
         show(1);
         show(2);
         show(3);

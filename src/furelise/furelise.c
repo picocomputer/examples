@@ -1500,24 +1500,24 @@ static const uint8_t song[] = {
 
 void ezpsg_instruments(const uint8_t **data)
 {
-    uint8_t note, vol_decay;
+    uint8_t note, decay;
     switch ((int8_t)*(*data)++) // instrument
     {
     case -1: // piano
         // higher notes decay faster
         note = *(*data)++;
-        vol_decay = 0xF9;
+        decay = 0xF9;
         if (note < c3)
-            vol_decay = 0xFA;
+            decay = 0xFA;
         if (note > c6)
-            vol_decay = 0xF8;
+            decay = 0xF8;
         ezpsg_play_note(note,       // note
                         *(*data)++, // duration
                         1,          // release
                         200,        // duty
-                        0x11,       // vol_attack
-                        vol_decay,  // vol_decay
-                        0x34,       // wave_release
+                        0x11,       // attack
+                        decay,      // decay
+                        0x34,       // release_wave
                         0);         // pan
         break;
 #ifndef NDEBUG
@@ -1532,7 +1532,7 @@ void ezpsg_instruments(const uint8_t **data)
 
 int main(void)
 {
-    uint8_t v = RIA.vsync;
+    uint8_t v = ria_vsync();
 
     int cp = ria_attr_get(RIA_ATTR_CODE_PAGE);
     char u = 'u';
@@ -1548,9 +1548,9 @@ int main(void)
 
     while (true)
     {
-        if (RIA.vsync == v)
+        if (ria_vsync() == v)
             continue;
-        v = RIA.vsync;
+        v = ria_vsync();
         ezpsg_tick(1);
         if (!ezpsg_playing())
             break;
