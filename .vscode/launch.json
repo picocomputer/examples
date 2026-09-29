@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "RP6502 (Emulator)",
+            "name": "RP6502-EMU",
             "type": "lldb-dap",
             "request": "launch",
             "debugAdapterExecutable": "/usr/bin/env",
@@ -29,7 +29,7 @@
             "stopOnExit": true
         },
         {
-            "name": "RP6502 (Hardware)",
+            "name": "RP6502-PICO",
             "type": "debugpy",
             "request": "launch",
             "console": "integratedTerminal",
@@ -39,6 +39,17 @@
                 "${workspaceFolder}/.rp6502",
                 "run",
                 "${command:cmake.launchTargetPath}.rp6502"
+            ],
+        },
+        {
+            "name": "RP6502-WEB",
+            "type": "debugpy",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "program": "${workspaceFolder}/tools/rp6502.py",
+            "args": [
+                "web",
+                "${command:cmake.launchTargetPath}"
             ],
         },
     ]

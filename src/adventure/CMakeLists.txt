@@ -20,6 +20,12 @@ rp6502_asset(adventure /advent2.txt troglobit/src/advent2.txt)
 rp6502_asset(adventure /advent3.txt troglobit/src/advent3.txt)
 rp6502_asset(adventure /advent4.txt troglobit/src/advent4.txt)
 rp6502_executable(adventure DATA default RESET default)
+rp6502_web(adventure CONFIG [[
+    title: 'Colossal Cave Adventure',
+    db: 'adventure',
+    border: '1em',
+    footer: 'Type a command, then press Enter.',
+]])
 target_include_directories(adventure PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
