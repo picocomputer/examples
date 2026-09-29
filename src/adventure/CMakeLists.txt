@@ -24,6 +24,7 @@ rp6502_web(adventure CONFIG [[
     title: 'Colossal Cave Adventure',
     db: 'adventure',
     border: '1em',
+    overlay: '',
     footer: 'Type a command, then press Enter.',
 ]])
 target_include_directories(adventure PRIVATE

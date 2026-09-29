@@ -16,6 +16,7 @@ rp6502_asset(paint logo ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
 rp6502_executable(paint DATA default RESET default)
 rp6502_web(paint CONFIG [[
     title: 'Paint',
+    overlay: '',
     footer: 'Paint with the mouse, a pen or a finger.',
 ]])
 target_sources(paint PRIVATE
