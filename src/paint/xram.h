@@ -85,9 +85,19 @@ typedef struct
 typedef struct
 {
     uint8_t flags;
-    uint8_t x0, x1, x2;
-    uint8_t y0, y1;
+    uint8_t xy_hi;
+    uint8_t x_lo;
+    uint8_t y_lo;
 } tablet_contact_t;
+
+typedef struct
+{
+    uint8_t control;
+    uint8_t status;
+    uint8_t wheel;
+    uint8_t pan;
+    tablet_contact_t contact;
+} tablet_pointer_t;
 
 typedef struct
 {

@@ -105,7 +105,7 @@ static uint8_t mouse_last_x, mouse_last_y;
 static volatile int mouse_x, mouse_y;
 
 #ifdef __CC65__
-#pragma optimize (push, off)
+#pragma optimize(push, off)
 #endif
 static void mouse_timer_start(unsigned period)
 {
@@ -122,7 +122,7 @@ static void mouse_timer_ack(void)
     VIA.ifr = 0x40; // acknowledge timer 1
 }
 #ifdef __CC65__
-#pragma optimize (pop)
+#pragma optimize(pop)
 #endif
 
 static void mouse_sample(void)
@@ -196,12 +196,9 @@ static uint8_t mouse_read(int *x, int *y)
 // ---------------------------------------------------------------------------
 // Tablet
 //
-// The tablet reports the pointer as a canvas position. Each axis is split into
-// one-byte windows, and only the window holding the value is non-zero. When
-// the host can draw a cursor, as the emulator can for a mouse, the program
+// The tablet reports a canvas position. When the host can draw a cursor, paint
 // hides its own pointer and asks for a crosshair.
 
-static int tablet_x, tablet_y;
 static bool host_cursor;
 
 static void tablet_init(void)
@@ -209,14 +206,27 @@ static void tablet_init(void)
     xreg_ria_tablet(XRAM_DATA_TAB);
 }
 
-static uint8_t tablet_read(int *x, int *y)
+// Read the block again to check that the host did not write it during the
+// read. Writes are at least 1 ms apart, so a third read will not overlap one.
+static void tablet_read(tablet_pointer_t *tablet)
 {
-    tablet_contact_t contact;
-    bool offered;
-    int tries;
+    tablet_pointer_t check;
 
-    offered = xram0_peek8(XRAM_DATA_TAB + offsetof(tablet_t, status)) &
-              TABLET_STATUS_HOST_CURSOR;
+    xram0_read(tablet, XRAM_DATA_TAB, sizeof(tablet_pointer_t));
+    xram0_read(&check, XRAM_DATA_TAB, sizeof(tablet_pointer_t));
+    if (memcmp(tablet, &check, sizeof(tablet_pointer_t)))
+        xram0_read(tablet, XRAM_DATA_TAB, sizeof(tablet_pointer_t));
+}
+
+static uint8_t tablet_poll(int *x, int *y)
+{
+    tablet_pointer_t tablet;
+    tablet_contact_t *contact = &tablet.contact;
+    bool offered;
+
+    tablet_read(&tablet);
+
+    offered = tablet.status & TABLET_STATUS_HOST_CURSOR;
     if (offered != host_cursor)
     {
         host_cursor = offered;
@@ -224,35 +234,13 @@ static uint8_t tablet_read(int *x, int *y)
                     host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF);
     }
 
-    // A read that lands while a value crosses into the next window can find
-    // every window zero, so the contact is read a second time.
-    for (tries = 0; tries < 2; tries++)
-    {
-        xram0_read(&contact, XRAM_DATA_TAB + offsetof(tablet_t, contact), sizeof(contact));
-        if ((contact.x0 | contact.x1 | contact.x2) && (contact.y0 | contact.y1))
-            break;
-    }
-
-    // With no window set, the position stays where it was.
-    if (contact.x0)
-        tablet_x = contact.x0 - 1;
-    else if (contact.x1)
-        tablet_x = contact.x1 + 254;
-    else if (contact.x2)
-        tablet_x = contact.x2 + 509;
-    if (contact.y0)
-        tablet_y = contact.y0 - 1;
-    else if (contact.y1)
-        tablet_y = contact.y1 + 254;
-
+    *x = (contact->xy_hi >> 4) << 8 | contact->x_lo;
+    *y = (contact->xy_hi & 0x0F) << 8 | contact->y_lo;
     if (host_cursor)
         move_pointer(CANVAS_WIDTH + 1, 0);
     else
-        move_pointer(tablet_x, tablet_y);
-
-    *x = tablet_x;
-    *y = tablet_y;
-    return contact.flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
+        move_pointer(*x, *y);
+    return contact->flags & (TABLET_FLAG_LEFT | TABLET_FLAG_RIGHT);
 }
 
 // ---------------------------------------------------------------------------
@@ -463,7 +451,7 @@ int main(int argc, char *argv[])
     set_color(RIGHT, 0);
     draw_pointer();
 
-    xreg_vga_mode3(2, XRAM_CONFIG_PICTURE, 0);  // 4 bits per pixel, plane 0
+    xreg_vga_mode3(2, XRAM_CONFIG_PICTURE, 0); // 4 bits per pixel, plane 0
     xreg_vga_mode3(3, XRAM_CONFIG_PICKER, 1);  // 8 bits per pixel, plane 1
     xreg_vga_mode3(3, XRAM_CONFIG_POINTER, 2); // 8 bits per pixel, plane 2
 
@@ -474,7 +462,7 @@ int main(int argc, char *argv[])
 
     while (true)
     {
-        buttons = use_mouse ? mouse_read(&x, &y) : tablet_read(&x, &y);
+        buttons = use_mouse ? mouse_read(&x, &y) : tablet_poll(&x, &y);
         pressed = buttons & ~held;
         released = held & ~buttons;
         held = buttons;
