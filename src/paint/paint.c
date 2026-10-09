@@ -234,8 +234,9 @@ static uint8_t tablet_poll(int *x, int *y)
                     host_cursor ? TABLET_CURSOR_CROSSHAIR : TABLET_CURSOR_OFF);
     }
 
-    *x = (contact->xy_hi >> 4) << 8 | contact->x_lo;
-    *y = (contact->xy_hi & 0x0F) << 8 | contact->y_lo;
+    // On a 320x240 canvas the Y nibble is always 0.
+    *x = contact->yx_hi << 8 | contact->x_lo;
+    *y = contact->y_lo;
     if (host_cursor)
         move_pointer(CANVAS_WIDTH + 1, 0);
     else

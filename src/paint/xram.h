@@ -85,9 +85,9 @@ typedef struct
 typedef struct
 {
     uint8_t flags;
-    uint8_t xy_hi;
-    uint8_t x_lo;
     uint8_t y_lo;
+    uint8_t x_lo;
+    uint8_t yx_hi;
 } tablet_contact_t;
 
 typedef struct
