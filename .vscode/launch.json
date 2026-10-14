@@ -45,12 +45,24 @@
             "name": "RP6502-WEB",
             "type": "debugpy",
             "request": "launch",
-            "console": "integratedTerminal",
-            "program": "${workspaceFolder}/tools/rp6502.py",
+            "console": "internalConsole",
+            "module": "http.server",
             "args": [
-                "web",
-                "${command:cmake.launchTargetPath}"
+                "--bind",
+                "127.0.0.1",
+                "--directory",
+                "${command:cmake.buildDirectory}/web",
+                "0"
             ],
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            },
+            "preLaunchTask": "CMake: build",
+            "serverReadyAction": {
+                "pattern": "\\((https?://\\S+)\\)",
+                "uriFormat": "%s",
+                "action": "openExternally"
+            },
         },
     ]
 }
