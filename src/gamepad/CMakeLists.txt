@@ -8,3 +8,7 @@ rp6502_web(gamepad
 target_sources(gamepad PRIVATE
     gamepad.c
 )
+rp6502_test(NAME connect COMMAND tests/connect.txt
+    $<TARGET_PROPERTY:gamepad,RP6502_ROM>)
+rp6502_test(NAME buttons COMMAND tests/buttons.txt
+    $<TARGET_PROPERTY:gamepad,RP6502_ROM>)

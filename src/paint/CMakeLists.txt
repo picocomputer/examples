@@ -22,3 +22,5 @@ rp6502_web(paint CONFIG [[
 target_sources(paint PRIVATE
     paint.c
 )
+rp6502_test(NAME picker COMMAND tests/picker.py
+    $<TARGET_PROPERTY:paint,RP6502_ROM>)

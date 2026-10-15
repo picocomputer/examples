@@ -1,0 +1,3 @@
+wait "DO YOU NEED INSTRUCTIONS"
+type "N\r"
+wait "Loading"

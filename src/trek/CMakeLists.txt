@@ -9,3 +9,5 @@ rp6502_web(trek CONFIG [[
     overlay: '',
     footer: 'Type a command, then press Enter. XXX resigns.',
 ]])
+rp6502_test(NAME title COMMAND tests/title.txt
+    $<TARGET_PROPERTY:trek,RP6502_ROM>)

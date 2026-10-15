@@ -5,26 +5,17 @@
             "name": "RP6502-EMU",
             "type": "lldb-dap",
             "request": "launch",
-            "debugAdapterExecutable": "/usr/bin/env",
+            "debugAdapterExecutable": "${command:cmake.launchTargetDirectory}/rp6502-emu",
             "debugAdapterArgs": [
-                "python3",
-                "${workspaceFolder}/tools/rp6502.py",
-                "-c",
-                "${workspaceFolder}/.rp6502",
-                "emu"
+                "--dap",
+                "--ini",
+                "${workspaceFolder}/.rp6502"
             ],
             "windows": {
-                "debugAdapterExecutable": "${env:ComSpec}",
-                "debugAdapterArgs": [
-                    "/c",
-                    "python",
-                    "${workspaceFolder}\\tools\\rp6502.py",
-                    "-c",
-                    "${workspaceFolder}\\.rp6502",
-                    "emu"
-                ]
+                "debugAdapterExecutable": "${command:cmake.launchTargetDirectory}/rp6502-emu.exe"
             },
             "program": "${command:cmake.launchTargetPath}.rp6502",
+            "args": [],
             "stopOnEntry": false,
             "stopOnExit": true
         },
