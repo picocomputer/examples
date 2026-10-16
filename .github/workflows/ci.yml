@@ -39,7 +39,7 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/picocomputer/.github/main/install/llvm-mos.sh | sh
           echo "$HOME/.rp6502/llvm-mos/bin" >> "$GITHUB_PATH"
 
-      # The configure fetches the release files, which git ignores.
+      # The configure fetches the tool files, which git ignores.
       - name: Build every example
         run: |
           set -euo pipefail
