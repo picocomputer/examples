@@ -26,9 +26,9 @@
             "console": "integratedTerminal",
             "program": "${workspaceFolder}/tools/rp6502.py",
             "args": [
+                "run",
                 "-c",
                 "${workspaceFolder}/.rp6502",
-                "run",
                 "${command:cmake.launchTargetPath}.rp6502"
             ],
         },
