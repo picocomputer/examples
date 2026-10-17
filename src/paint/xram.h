@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
+#define xreg_vga_canvas(...) xreg(0x1, 0x0, 0x00, __VA_ARGS__)
 
 #define CANVAS_CONSOLE 0
 #define CANVAS_320X240 1
@@ -21,7 +21,7 @@
 #define CANVAS_640X480 3
 #define CANVAS_640X360 4
 
-#define xreg_vga_mode3(...) xreg(1, 0, 1, 3, __VA_ARGS__)
+#define xreg_vga_mode3(...) xreg(0x1, 0x0, 0x01, 3, __VA_ARGS__)
 
 #define MODE3_1BPP 0x00
 #define MODE3_2BPP 0x01
@@ -49,7 +49,7 @@ typedef struct
 #define MOUSE_BUTTON_BACKWARD 0x08
 #define MOUSE_BUTTON_FORWARD 0x10
 
-#define xreg_ria_mouse(...) xreg(0, 0, 1, __VA_ARGS__)
+#define xreg_ria_mouse(...) xreg(0x0, 0x0, 0x01, __VA_ARGS__)
 
 typedef struct
 {
@@ -58,7 +58,7 @@ typedef struct
     uint8_t y;
     uint8_t wheel;
     uint8_t pan;
-    uint8_t pad;
+    uint8_t pad; // alignment, unused
 } mouse_t; /* layout */
 
 #define TABLET_CONTACTS 8
@@ -80,7 +80,7 @@ typedef struct
 #define TABLET_CURSOR_RESIZE_EW 5
 #define TABLET_CURSOR_RESIZE_NS 6
 
-#define xreg_ria_tablet(...) xreg(0, 0, 3, __VA_ARGS__)
+#define xreg_ria_tablet(...) xreg(0x0, 0x0, 0x03, __VA_ARGS__)
 
 typedef struct
 {

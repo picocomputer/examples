@@ -53,7 +53,7 @@
 #define GAMEPAD_BTN1_L3 0x20
 #define GAMEPAD_BTN1_R3 0x40
 
-#define xreg_ria_gamepad(...) xreg(0, 0, 2, __VA_ARGS__)
+#define xreg_ria_gamepad(...) xreg(0x0, 0x0, 0x02, __VA_ARGS__)
 
 typedef struct
 {

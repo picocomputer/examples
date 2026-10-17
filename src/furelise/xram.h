@@ -24,7 +24,7 @@
 #define PSG_FREQ_HZ(hz) ((hz) * 3u)
 #define PSG_PAN(pan) ((uint8_t)((pan) * 2))
 
-#define xreg_ria_psg(...) xreg(0, 1, 0, __VA_ARGS__)
+#define xreg_ria_psg(...) xreg(0x0, 0x1, 0x00, __VA_ARGS__)
 
 typedef struct
 {
@@ -42,11 +42,17 @@ typedef struct
     psg_channel_t channel[PSG_CHANNELS];
 } psg_t; /* layout */
 
+/* After the XRAM_ names: PSG_PAGE_CHECK(XRAM_PSG); */
+#define PSG_PAGE_CHECK(addr) \
+    _Static_assert((addr) % 256 + sizeof(psg_t) <= 256, #addr " crosses a page.")
+
 typedef struct
 {
     psg_t psg;
 } xram_layout_t;
 
 #define XRAM_PSG offsetof(xram_layout_t, psg)
+
+PSG_PAGE_CHECK(XRAM_PSG);
 
 #endif
