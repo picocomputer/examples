@@ -14,5 +14,3 @@ down a gully.
 
 > █
 ```
-
-This only compiles with cc65. The code from llvm-mos does not fit in 64k.

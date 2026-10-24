@@ -1,0 +1,6 @@
+# The program maps the gamepads after it prints the title.
+wait "Gamepad Tester"
+pad 0 connect western sticks
+run 2
+peek xram:XRAM_GAMEPAD (GAMEPAD_FEAT_CONNECTED|GAMEPAD_FEAT_STICKS|GAMEPAD_TYPE_WESTERN)
+peek xram:XRAM_GAMEPAD+10 $00

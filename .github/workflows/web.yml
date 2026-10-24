@@ -8,7 +8,7 @@ on:
       source:
         description: Branch, tag or commit to build
       emulator:
-        description: Emulator, such as v0.36
+        description: Web player version, such as 0.40
 
 jobs:
   web:

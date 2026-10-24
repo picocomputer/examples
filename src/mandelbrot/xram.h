@@ -13,7 +13,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define xreg_vga_canvas(...) xreg(1, 0, 0, __VA_ARGS__)
+#define xreg_vga_canvas(...) xreg(0x1, 0x0, 0x00, __VA_ARGS__)
 
 #define CANVAS_CONSOLE 0
 #define CANVAS_320X240 1
@@ -21,7 +21,7 @@
 #define CANVAS_640X480 3
 #define CANVAS_640X360 4
 
-#define xreg_vga_mode3(...) xreg(1, 0, 1, 3, __VA_ARGS__)
+#define xreg_vga_mode3(...) xreg(0x1, 0x0, 0x01, 3, __VA_ARGS__)
 
 #define MODE3_1BPP 0x00
 #define MODE3_2BPP 0x01
@@ -50,7 +50,7 @@ typedef struct
 
 #define KEYBOARD_PRESSED(keys, code) ((keys)[(code) >> 3] & (1 << ((code) & 7)))
 
-#define xreg_ria_keyboard(...) xreg(0, 0, 0, __VA_ARGS__)
+#define xreg_ria_keyboard(...) xreg(0x0, 0x0, 0x00, __VA_ARGS__)
 
 typedef struct
 {

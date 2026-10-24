@@ -39,8 +39,7 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/picocomputer/.github/main/install/llvm-mos.sh | sh
           echo "$HOME/.rp6502/llvm-mos/bin" >> "$GITHUB_PATH"
 
-      # The configure fetches the emulator, which git ignores, because
-      # rp6502_map() runs a program on it.
+      # The configure fetches the tool files, which git ignores.
       - name: Build every example
         run: |
           set -euo pipefail
@@ -70,10 +69,9 @@ jobs:
           fi
           mkdir "$name"
           cp src/README.txt "$name/"
-          # Only the target ROMs. CMakeFiles holds directories with the same
-          # suffix, and the program that rp6502_map() runs while CMake
-          # configures is also a .rp6502 file.
-          find build/cc65/release/src -mindepth 2 -maxdepth 2 -type f \
+          # Only the target ROMs, each in the folder of its target.
+          # CMakeFiles holds directories with the same suffix.
+          find build/cc65/release/src -mindepth 3 -maxdepth 3 -type f \
                -name '*.rp6502' -exec cp -t "$name" {} +
           # One ROM per example, so a target that quietly stopped producing
           # one fails the release rather than leaving a gap in it.

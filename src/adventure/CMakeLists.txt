@@ -8,11 +8,6 @@ if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/troglobit/src/advent.c)
         "  git submodule update --init src/adventure/troglobit")
 endif()
 
-if(NOT CMAKE_C_COMPILER_ID STREQUAL "cc65")
-    message(WARNING "adventure: skipped, it does not fit in RAM with llvm-mos")
-    return()
-endif()
-
 add_executable(adventure)
 rp6502_asset(adventure help adventure.hlp)
 rp6502_asset(adventure /advent1.txt troglobit/src/advent1.txt)
@@ -30,6 +25,10 @@ rp6502_web(adventure CONFIG [[
 target_include_directories(adventure PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
+# With llvm-mos, the program fits in RAM only at -Oz.
+if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(adventure PRIVATE -Oz)
+endif()
 target_sources(adventure PRIVATE
     err.c
     troglobit/src/advent.c

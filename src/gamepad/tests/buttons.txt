@@ -1,0 +1,7 @@
+# The program maps the gamepads after it prints the title.
+wait "Gamepad Tester"
+pad 0 connect
+run 2
+pad 0 press a
+run 2
+peek xram:XRAM_GAMEPAD+2 GAMEPAD_BTN0_A

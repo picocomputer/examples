@@ -10,7 +10,7 @@ add_custom_command(
 )
 
 add_executable(paint)
-rp6502_map(paint xram.h "XRAM_.*")
+rp6502_align(paint "XRAM_.*")
 rp6502_asset(paint help paint.hlp)
 rp6502_asset(paint logo ${CMAKE_CURRENT_BINARY_DIR}/logo.bin)
 rp6502_executable(paint DATA default RESET default)
@@ -22,3 +22,5 @@ rp6502_web(paint CONFIG [[
 target_sources(paint PRIVATE
     paint.c
 )
+rp6502_test(NAME picker COMMAND tests/picker.py
+    $<TARGET_PROPERTY:paint,RP6502_ROM>)
